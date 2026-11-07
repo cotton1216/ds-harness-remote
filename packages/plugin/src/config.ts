@@ -3,7 +3,15 @@ import type { Volatile, VolatileSnapshot } from '@deepseek-ai/cordis'
 import s from '@deepseek-ai/schemastery'
 import { z } from 'zod'
 
-export const DEFAULT_REMOTE_SERVER_URL = 'https://dsh.r2049.cn'
+/**
+ * 默认中继地址。自托管部署可在启动进程里用 `DSH_REMOTE_DEFAULT_SERVER`
+ * 覆盖，未设置时沿用托管的 dsh.r2049.cn（与历史行为一致）。
+ *
+ * 注：插件 Web 侧（client/*）在浏览器里运行，读不到该环境变量，仍以
+ * 配置项 `serverUrl` 为准；这里只影响未配置 serverUrl 时的兜底值。
+ */
+export const DEFAULT_REMOTE_SERVER_URL =
+  process.env.DSH_REMOTE_DEFAULT_SERVER?.trim() || 'https://dsh.r2049.cn'
 
 export interface Config {
   enabled?: boolean
