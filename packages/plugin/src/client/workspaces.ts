@@ -398,6 +398,7 @@ export function createRemoteWorkspaceAction(React: ClientReact, portal?: PortalR
     const selectLoginMethod = (method: LoginMethod): void => {
       loginMethodManuallySelected.current = true
       if (method === loginMethod) return
+      if (method === 'pair' && pairingImage === undefined) void startPairing()
       qrFlowRun.current += 1
       setLoginMethod(method)
       setQrSession(undefined)
@@ -410,6 +411,7 @@ export function createRemoteWorkspaceAction(React: ClientReact, portal?: PortalR
       Number(b.id === props.preferredQrProvider) - Number(a.id === props.preferredQrProvider))
     const selectedProvider = oauthProviders.find(item => `oauth:${item.id}` === loginMethod)
     const scanLabel = t('scanWithProvider', { provider: selectedProvider?.displayName ?? '' })
+    const pairVisible = !savingServer && !serverDirty && loginMethod === 'pair'
     const passwordVisible = !savingServer && !serverDirty && loginMethod === 'password' && (
       loginMethodManuallySelected.current || (!providersLoading && !providersFailed && oauthProviders.length === 0)
     )
@@ -1273,43 +1275,15 @@ export function createRemoteWorkspaceAction(React: ClientReact, portal?: PortalR
             needsAuthorization === undefined && busy
               ? React.createElement('p', null, t('checkingConnection')) : null,
             /*
-             * 本机作为 Host 的状态与绑定入口。原先它只出现在「客户端已登录」之后，
-             * 于是没登录时既看不到本机在线状态，也找不到授权码绑定入口
-             * （服务端不允许口令登录时，这是唯一能用的方式）。
+             * 本机 Host 状态原先藏在「客户端已登录」之后，没登录时完全看不到。
+             * 这里只保留一行状态，扫码入口放在登录卡片的 tab 里，
+             * 避免页面级卡片和登录卡片的布局互相挤压。
              */
             status?.hostAuthorizationAvailable
-              ? React.createElement('section', { className: 'dshRemoteHostAccount' },
-                React.createElement('strong', null, t('thisMachineHost')),
-                React.createElement('p', { role: 'status' },
-                  status.host?.online ? t('hostStatusOnline') : t('hostStatusOffline'),
-                  status.host?.account === undefined ? '' : ` · ${status.host.account}`),
-                status.host?.accountRequired
-                  ? React.createElement('div', { className: 'dshRemoteLogin' },
-                    React.createElement('input', {
-                      value: hostRegistrationCode, disabled: busy, autoComplete: 'one-time-code',
-                      placeholder: t('hostRegistrationCode'), 'aria-label': t('hostRegistrationCode'),
-                      onChange: (event: Event) => setHostRegistrationCode((event.target as HTMLInputElement).value.toUpperCase()),
-                    }),
-                    React.createElement('button', {
-                      type: 'button', disabled: busy || hostRegistrationCode.trim() === '',
-                      onClick: () => void authorizeHost('code'),
-                    }, t(busy ? 'registering' : 'useRegistrationCode')))
-                  : null,
-                React.createElement('div', { className: 'dshRemoteLogin' },
-                  React.createElement('button', {
-                    type: 'button',
-                    disabled: pairingBusy || busy || status.host?.online !== true,
-                    onClick: () => void startPairing(),
-                  }, t(pairingBusy ? 'loadingSettings' : 'pairWithPhone'))),
-                pairingError === undefined
-                  ? null
-                  : React.createElement('p', { className: 'dshRemoteConnectionIssue', role: 'status' }, pairingError),
-                pairingImage === undefined
-                  ? null
-                  : React.createElement('div', { className: 'dshRemoteQrLogin', style: { marginTop: 8 } },
-                    React.createElement('img', { src: pairingImage, width: 208, height: 208, alt: t('pairWithPhone') }),
-                    React.createElement('strong', null, pairing?.code ?? ''),
-                    React.createElement('p', null, t('pairingExpiresHint'))))
+              ? React.createElement('p', { className: 'dshRemoteSettingsState', role: 'status' },
+                `${t('thisMachineHost')} · `,
+                status.host?.online ? t('hostStatusOnline') : t('hostStatusOffline'),
+                status.host?.account === undefined ? '' : ` · ${status.host.account}`)
               : null,
             needsAuthorization ? React.createElement('section', { className: 'dshRemoteEnable' },
               React.createElement('div', { className: 'dshRemoteLoginHeading' },
@@ -1326,7 +1300,15 @@ export function createRemoteWorkspaceAction(React: ClientReact, portal?: PortalR
                   'aria-selected': passwordVisible, 'aria-controls': 'dsh-remote-password-panel',
                   className: passwordVisible ? 'isActive' : '', disabled: busy || savingServer || serverDirty,
                   onClick: () => selectLoginMethod('password'),
-                }, t('accountPasswordLogin'))),
+                }, t('accountPasswordLogin')),
+                status?.hostAuthorizationAvailable
+                  ? React.createElement('button', {
+                    type: 'button', role: 'tab', id: 'dsh-remote-pair-tab',
+                    'aria-selected': pairVisible, 'aria-controls': 'dsh-remote-pair-panel',
+                    className: pairVisible ? 'isActive' : '', disabled: busy || savingServer || serverDirty,
+                    onClick: () => selectLoginMethod('pair'),
+                  }, t('pairWithPhone'))
+                  : null),
               providersLoading ? React.createElement('p', { role: 'status' }, t('loadingLoginProviders')) : null,
               providersFailed ? React.createElement('button', {
                 type: 'button', disabled: busy || savingServer || serverDirty,
@@ -1334,7 +1316,24 @@ export function createRemoteWorkspaceAction(React: ClientReact, portal?: PortalR
               }, t('retryLoginProviders')) : null,
               !savingServer && !serverDirty && !providersLoading && !providersFailed && oauthProviders.length === 0
                 ? React.createElement('p', { role: 'status' }, t('noLoginProviders')) : null,
-              passwordVisible
+              pairVisible
+                ? React.createElement('div', {
+                  className: 'dshRemoteQrLogin', role: 'tabpanel', id: 'dsh-remote-pair-panel',
+                  'aria-labelledby': 'dsh-remote-pair-tab',
+                },
+                  pairingImage === undefined
+                    ? React.createElement('div', { className: 'dshRemoteQrPlaceholder', 'aria-busy': pairingBusy },
+                      React.createElement('span', null, pairingBusy ? t('loadingSettings') : t('pairWithPhone')))
+                    : React.createElement('img', { src: pairingImage, width: 184, height: 184, alt: t('pairWithPhone') }),
+                  React.createElement('strong', null, pairing?.code ?? ''),
+                  React.createElement('p', null, t('pairingExpiresHint')),
+                  pairingError === undefined
+                    ? null
+                    : React.createElement('p', { className: 'dshRemoteConnectionIssue', role: 'status' }, pairingError),
+                  React.createElement('button', {
+                    type: 'button', disabled: pairingBusy || busy, onClick: () => void startPairing(),
+                  }, t(pairingBusy ? 'loadingSettings' : 'pairWithPhone')))
+                : passwordVisible
                 ? React.createElement('div', {
                   className: 'dshRemoteClientLogin', role: 'tabpanel', id: 'dsh-remote-password-panel',
                   'aria-labelledby': 'dsh-remote-password-tab',
