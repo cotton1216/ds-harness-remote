@@ -5,7 +5,7 @@ import { fileURLToPath } from 'node:url'
 import { randomUUID } from 'node:crypto'
 import { isIP } from 'node:net'
 import { z } from 'zod'
-import { deviceRegistrationRequestSchema, deviceRefreshRequestSchema } from '@dsh-remote/protocol'
+import { accountDeviceDescriptorSchema, deviceRegistrationRequestSchema, deviceRefreshRequestSchema, PROTOCOL_VERSION } from '@dsh-remote/protocol'
 import { ApiError, Store, hash, secret, validateAccounts, type AccountConfig } from './store.js'
 import { IamError, iamLogin, iamProfile, type IamConfig, type IamUser } from './iam.js'
 import { Gateway } from './gateway.js'
@@ -174,6 +174,15 @@ export function createRemoteServer(config: Config) {
   const store = new Store(config.dataFile, accounts, { iam: iam !== undefined, rebind: config.allowDeviceRebind === true })
   const assets = readAssets()
   const sessions = new Map<string, { expires: number; account: string; accountId: string; displayName: string }>()
+  /**
+   * Single-use device authorization codes. Kept in memory on purpose: a code that
+   * does not survive a restart is safer than one accidentally persisted, and the
+   * whole point is a short hand-off between an already-authenticated device and a
+   * new one (the desktop can mint a code for a phone, or vice versa).
+   */
+  const registrationCodes = new Map<string, { accountId: string; expires: number }>()
+  const CODE_ALPHABET = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'
+  const CODE_TTL_MS = 10 * 60_000
   const limits = new Map<string, { count: number; until: number }>()
   function rate(key: string, max: number) {
     for (const [k, v] of limits) if (v.until < Date.now()) limits.delete(k)
@@ -204,7 +213,14 @@ export function createRemoteServer(config: Config) {
   }
   /** Map an IAM failure onto the relay's own error vocabulary, never echoing IAM's body. */
   function iamFailure(error: unknown): never {
-    if (error instanceof IamError && error.code === 'AUTH_INVALID') throw new ApiError('AUTH_INVALID', 401)
+    if (error instanceof IamError) {
+      // 只记录错误类别与上游状态码，绝不记录凭据或 IAM 的响应正文。
+      logger.warn('iam_auth_failed', { code: error.code, status: error.status ?? null, detail: error.detail ?? null })
+      if (error.code === 'AUTH_INVALID') throw new ApiError('AUTH_INVALID', 401)
+      if (error.code === 'RATE_LIMITED') throw new ApiError('RATE_LIMITED', 429)
+    } else {
+      logger.warn('iam_auth_failed', { code: 'UNEXPECTED' })
+    }
     throw new ApiError('IAM_UNAVAILABLE', 503)
   }
   /** Owner identity is always derived from the IAM user id, never from client-supplied text. */
@@ -231,10 +247,35 @@ export function createRemoteServer(config: Config) {
     } catch (error) { failure = error }
     try { return local() } catch { return iamFailure(failure) }
   }
+  /** Mint a `XXXX-XXXX` hand-off code bound to one account. */
+  function issueRegistrationCode(accountId: string): { code: string; expiresAt: number } {
+    for (const [key, entry] of registrationCodes) if (entry.expires <= Date.now()) registrationCodes.delete(key)
+    if (registrationCodes.size >= 256) throw new ApiError('RATE_LIMITED', 429)
+    const random = (): string => randomUUID().replaceAll('-', '').slice(0, 8).toUpperCase()
+    // Rewrite hex digits that are not in the unambiguous alphabet so the protocol
+    // regex (`[A-Z0-9]{4}-[A-Z0-9]{4}`) always matches.
+    const normalize = (raw: string): string => [...raw].map(ch => CODE_ALPHABET[ch.charCodeAt(0) % CODE_ALPHABET.length]!).join('')
+    let code = ''
+    do {
+      const body = normalize(random())
+      code = `${body.slice(0, 4)}-${body.slice(4, 8)}`
+    } while (registrationCodes.has(code))
+    const expiresAt = Date.now() + CODE_TTL_MS
+    registrationCodes.set(code, { accountId, expires: expiresAt })
+    return { code, expiresAt }
+  }
+  /** Consume a code exactly once; the owner comes from the code, never from the request. */
+  function redeemRegistrationCode(raw: string): string {
+    const code = raw.trim().toUpperCase()
+    const entry = registrationCodes.get(code)
+    // 过期、已用、不存在三者对外表现一致，避免用码探测有效性。
+    if (!entry || entry.expires <= Date.now()) throw new ApiError('AUTH_INVALID', 401)
+    registrationCodes.delete(code)
+    return entry.accountId
+  }
   function deviceAuth(req: IncomingMessage) {
     if (!req.headers.authorization?.startsWith('Bearer ')) throw new ApiError('AUTH_REQUIRED', 401)
-    return store.authenticate(req.headers.authorization.slice(7))
-  }
+    return store.authenticate(req.headers.authorization.slice(7))  }
   function cookie(value: string, age: number): string { return `dsh_session=${value}; Path=/; HttpOnly; SameSite=Strict; Max-Age=${age}${url.protocol === 'https:' ? '; Secure' : ''}` }
   const profile = (account: string, displayName = account) => ({ account: displayName, profile: { displayName }, isAdmin: false })
   const server = createServer({ requestTimeout: 15000, headersTimeout: 10000 }, (req, res) => {
@@ -326,6 +367,21 @@ export function createRemoteServer(config: Config) {
       const session = accountAuth(req)
       const { items, nextCursor } = store.page(session.account, undefined, paginationCursor(requestUrl), paginationLimit(requestUrl))
       json(res, 200, { items: items.map(descriptor), nextCursor, serverUrl: url.origin, transport: 'webrtc' }); return
+    }
+    // 已登录的设备/账号换一个一次性授权码，供另一台设备免口令接入同一账号（M1 绑定）。
+    if (method === 'POST' && path === '/api/v1/account/registration-codes') {
+      rate(`code:${client}`, 10)
+      const session = accountAuth(req)
+      json(res, 200, issueRegistrationCode(session.accountId)); return
+    }
+    // 协议既有端点：插件/客户端本来就会调它，只是上游服务端没实现。
+    if (method === 'POST' && path === '/api/v1/devices/register-with-code') {
+      rate(`redeem:${client}`, 20)
+      const request = z.object({
+        v: z.literal(PROTOCOL_VERSION), code: z.string().min(1).max(32), device: accountDeviceDescriptorSchema,
+      }).strict().parse(await body(req))
+      const accountId = redeemRegistrationCode(request.code)
+      json(res, 200, store.register(request.device, store.accountName(accountId))); return
     }
     if (method === 'POST' && (path === '/api/v1/devices/register' || path === '/api/v1/devices/register-owned-role')) {
       const source = path.endsWith('register-owned-role') ? deviceAuth(req) : undefined

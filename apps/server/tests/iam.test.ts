@@ -21,7 +21,7 @@ class FakeIam {
     { id: 12, email: 'bob@example.test', username: '鲍勃', password: '{{SECRET_hf2x4b7t}}' },
   ]
   readonly tokens = new Map<string, number>()
-  mode: 'ok' | 'boom' | 'not-found' = 'ok'
+  mode: 'ok' | 'boom' | 'not-found' | 'throttle' = 'ok'
   loginCalls = 0
   profileCalls = 0
   private server?: Server
@@ -50,6 +50,7 @@ class FakeIam {
   private async handle(req: IncomingMessage, res: ServerResponse) {
     const path = new URL(req.url ?? '/', 'http://localhost').pathname
     if (this.mode === 'boom') return this.send(res, 500, { code: 500, message: 'boom' })
+    if (this.mode === 'throttle') return this.send(res, 429, { code: 429, message: 'too many requests' })
     if (this.mode === 'not-found') return this.send(res, 404, { code: 404, message: 'not found' })
     if (req.method === 'POST' && path === '/api/v1/auth/login') {
       this.loginCalls++
@@ -191,6 +192,16 @@ describe('IAM 身份适配', () => {
     expect(missing.status).toBe(503)
   })
 
+  it('IAM 限流单独映射成 429，不混进「服务不可用」', async () => {
+    await start()
+    iam.mode = 'throttle'
+    const alice = iam.users[0]!
+    const result = await call('/auth/login', 'POST', { email: alice.email, password: alice.password })
+    expect(result.status).toBe(429)
+    expect(result.data.error.code).toBe('RATE_LIMITED')
+    expect(result.data.error.retryable).toBe(true)
+  })
+
   it('桌面端可以直接用已有 IAM token 换中继会话，且与口令登录是同一个 owner', async () => {
     await start()
     const alice = iam.users[0]!
@@ -253,6 +264,85 @@ describe('IAM 身份适配', () => {
     const store = new Store(join(dir, 'state.json'), [{ account: 'local@example.test', password: '{{SECRET_localpwd1}}' }], {})
     expect(() => store.getAccount(`iam:${alice.id}`)).toThrow()
     expect(() => store.authenticate(client.accessToken)).toThrow()
+  })
+})
+
+describe('设备授权码（绑定码）', () => {
+  async function issue(session: string) {
+    const result = await call('/account/registration-codes', 'POST', {}, session)
+    expect(result.status).toBe(200)
+    return result.data as { code: string; expiresAt: number }
+  }
+  async function redeem(code: string, role: 'host' | 'client' = 'host', key = `${'D'.repeat(42)}A`) {
+    return call('/devices/register-with-code', 'POST', {
+      v: 1, code,
+      device: { deviceId: randomUUID(), identityKey: key, name: `code-${role}`, role, platform: 'linux', clientVersion: '0.6.3' },
+    })
+  }
+
+  it('登录后可以拿到格式正确的短码，10 分钟有效', async () => {
+    await start()
+    iam.users[0]!
+    const session = (await signIn(iam.users[0]!)).data.token as string
+    const { code, expiresAt } = await issue(session)
+    expect(code).toMatch(/^[A-Z0-9]{4}-[A-Z0-9]{4}$/)
+    expect(expiresAt - Date.now()).toBeGreaterThan(9 * 60_000)
+  })
+
+  it('用码注册的设备归属于发码人（IAM 账号），手机端因此能看见它', async () => {
+    await start()
+    const alice = iam.users[0]!
+    const session = (await signIn(alice)).data.token as string
+    const { code } = await issue(session)
+    const host = await redeem(code, 'host')
+    expect(host.status).toBe(200)
+
+    const client = await register(session, 'client', 'alice-phone')
+    const list = await call('/devices', 'GET', undefined, client.accessToken)
+    expect(list.data.items.map((item: any) => item.name)).toContain('code-host')
+  })
+
+  it('同一个码只能用一次，第二次按无效处理', async () => {
+    await start()
+    const session = (await signIn(iam.users[0]!)).data.token as string
+    const { code } = await issue(session)
+    expect((await redeem(code)).status).toBe(200)
+    const again = await redeem(code)
+    expect(again.status).toBe(401)
+    expect(again.data.error.code).toBe('AUTH_INVALID')
+  })
+
+  it('不存在的码与格式错误的码都返回 401，不泄露码是否曾经存在', async () => {
+    await start()
+    for (const code of ['AAAA-AAAA', 'bad-code', 'ZZZZ-9999']) {
+      const result = await call('/devices/register-with-code', 'POST', {
+        v: 1, code,
+        device: { deviceId: randomUUID(), identityKey: `${'E'.repeat(42)}A`, name: 'x', role: 'host', platform: 'linux', clientVersion: '0.6.3' },
+      })
+      expect(result.status).toBe(401)
+      expect(result.data.error.code).toBe('AUTH_INVALID')
+    }
+    // 空码在 schema 层就被拒：属于请求格式错误，不是凭据错误。
+    const empty = await call('/devices/register-with-code', 'POST', {
+      v: 1, code: '',
+      device: { deviceId: randomUUID(), identityKey: `${'E'.repeat(42)}A`, name: 'x', role: 'host', platform: 'linux', clientVersion: '0.6.3' },
+    })
+    expect(empty.status).toBe(400)
+  })
+
+  it('A 发的码只能进 A 的账号，注册后 B 看不到', async () => {
+    await start()
+    const [alice, bob] = [iam.users[0]!, iam.users[1]!]
+    const { code } = await issue((await signIn(alice)).data.token as string)
+    expect((await redeem(code, 'client')).status).toBe(200)
+    const bobClient = await register((await signIn(bob)).data.token as string, 'client', 'bob-phone')
+    expect((await call('/devices', 'GET', undefined, bobClient.accessToken)).data.items).toEqual([])
+  })
+
+  it('未登录不能发码', async () => {
+    await start()
+    const result = await call('/account/registration-codes', 'POST', {})
+    expect(result.status).toBe(401)
   })
 })
 
