@@ -127,6 +127,13 @@ export class PluginControlRuntime {
         this.host.reconnectHost()
         return withUpdate(ok(this.hostOnlyStatus()), this.updates?.snapshot())
       }
+      // 扫码配对：桌面端出码，手机扫码后直接绑定到同一账号并连上这台 Host。
+      if (endpoint === 'host.pairing-code') {
+        if (this.host === undefined || this.host.pairingCode === undefined) {
+          throw new ClientModeError('METHOD_NOT_ALLOWED', 'This plugin is not running as a Host.')
+        }
+        return ok(await this.host.pairingCode())
+      }
       if (endpoint === 'status') {
         // Both mode paths merge the update snapshot here, so the SSE stream,
         // polling, and the unary call always observe the same payload shape.

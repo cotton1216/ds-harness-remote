@@ -140,6 +140,17 @@ export interface HostAuthorizationControl {
   }
   hasStoredAuthorization?(): Promise<boolean>
   reconnectHost(): void
+  /**
+   * Mint a one-time pairing code for the mobile scan flow.
+   * The Host holds only a device token, so the code comes from the Server.
+   */
+  pairingCode?(): Promise<{
+    code: string
+    expiresAt: number
+    serverUrl: string
+    hostDeviceId?: string
+    hostName?: string
+  }>
   clearHostAuthorization(): Promise<void>
   localHarnessVersion?(): string | undefined
   authorizeHostAsOwned(accessToken: string, account?: string): Promise<unknown>

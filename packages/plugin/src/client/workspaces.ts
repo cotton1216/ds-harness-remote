@@ -178,6 +178,17 @@ export function createRemoteWorkspaceAction(React: ClientReact, portal?: PortalR
     const providerRequestRun = React.useRef(0)
     const [qrSession, setQrSession] = React.useState<OAuthQrSession | undefined>(undefined)
     const [qrImage, setQrImage] = React.useState<string | undefined>(undefined)
+    // 扫码配对：桌面出码，手机扫码后绑定同一账号并直连本机。
+    const [pairing, setPairing] = React.useState<{
+      code: string
+      expiresAt: number
+      serverUrl: string
+      hostDeviceId?: string
+      hostName?: string
+    } | undefined>(undefined)
+    const [pairingImage, setPairingImage] = React.useState<string | undefined>(undefined)
+    const [pairingBusy, setPairingBusy] = React.useState(false)
+    const [pairingError, setPairingError] = React.useState<string | undefined>(undefined)
     const [qrExpired, setQrExpired] = React.useState(false)
     const [hostEmail, setHostEmail] = React.useState('')
     const [hostPassword, setHostPassword] = React.useState('')
@@ -874,6 +885,42 @@ export function createRemoteWorkspaceAction(React: ClientReact, portal?: PortalR
       }
     }
 
+    /**
+     * 生成扫码配对二维码。载荷带 server + 码 + 本机 deviceId，
+     * 手机扫完就能直接连这台机器，不用再从列表里挑。
+     */
+    const startPairing = async (): Promise<void> => {
+      setPairingBusy(true)
+      setPairingError(undefined)
+      try {
+        const pair = await props.control<{
+          code: string
+          expiresAt: number
+          serverUrl: string
+          hostDeviceId?: string
+          hostName?: string
+        }>('host.pairing-code')
+        const query = [
+          'v=1',
+          `s=${encodeURIComponent(pair.serverUrl)}`,
+          `c=${encodeURIComponent(pair.code)}`,
+          ...(pair.hostDeviceId === undefined ? [] : [`h=${encodeURIComponent(pair.hostDeviceId)}`]),
+          ...(pair.hostName === undefined ? [] : [`n=${encodeURIComponent(pair.hostName)}`]),
+        ].join('&')
+        const image = await QRCode.toDataURL(`dsh-remote://bind?${query}`, {
+          width: 208,
+          margin: 1,
+          errorCorrectionLevel: 'M',
+        })
+        setPairing(pair)
+        setPairingImage(image)
+      } catch (reason) {
+        setPairingError(connectionErrorMessageFor(reason, t))
+      } finally {
+        setPairingBusy(false)
+      }
+    }
+
     const openLocalWorkspaces = async (): Promise<void> => {
       setBusy(true)
       setError(undefined)
@@ -1225,6 +1272,45 @@ export function createRemoteWorkspaceAction(React: ClientReact, portal?: PortalR
           React.createElement(React.Fragment, null,
             needsAuthorization === undefined && busy
               ? React.createElement('p', null, t('checkingConnection')) : null,
+            /*
+             * 本机作为 Host 的状态与绑定入口。原先它只出现在「客户端已登录」之后，
+             * 于是没登录时既看不到本机在线状态，也找不到授权码绑定入口
+             * （服务端不允许口令登录时，这是唯一能用的方式）。
+             */
+            status?.hostAuthorizationAvailable
+              ? React.createElement('section', { className: 'dshRemoteHostAccount' },
+                React.createElement('strong', null, t('thisMachineHost')),
+                React.createElement('p', { role: 'status' },
+                  status.host?.online ? t('hostStatusOnline') : t('hostStatusOffline'),
+                  status.host?.account === undefined ? '' : ` · ${status.host.account}`),
+                status.host?.accountRequired
+                  ? React.createElement('div', { className: 'dshRemoteLogin' },
+                    React.createElement('input', {
+                      value: hostRegistrationCode, disabled: busy, autoComplete: 'one-time-code',
+                      placeholder: t('hostRegistrationCode'), 'aria-label': t('hostRegistrationCode'),
+                      onChange: (event: Event) => setHostRegistrationCode((event.target as HTMLInputElement).value.toUpperCase()),
+                    }),
+                    React.createElement('button', {
+                      type: 'button', disabled: busy || hostRegistrationCode.trim() === '',
+                      onClick: () => void authorizeHost('code'),
+                    }, t(busy ? 'registering' : 'useRegistrationCode')))
+                  : null,
+                React.createElement('div', { className: 'dshRemoteLogin' },
+                  React.createElement('button', {
+                    type: 'button',
+                    disabled: pairingBusy || busy || status.host?.online !== true,
+                    onClick: () => void startPairing(),
+                  }, t(pairingBusy ? 'loadingSettings' : 'pairWithPhone'))),
+                pairingError === undefined
+                  ? null
+                  : React.createElement('p', { className: 'dshRemoteConnectionIssue', role: 'status' }, pairingError),
+                pairingImage === undefined
+                  ? null
+                  : React.createElement('div', { className: 'dshRemoteQrLogin', style: { marginTop: 8 } },
+                    React.createElement('img', { src: pairingImage, width: 208, height: 208, alt: t('pairWithPhone') }),
+                    React.createElement('strong', null, pairing?.code ?? ''),
+                    React.createElement('p', null, t('pairingExpiresHint'))))
+              : null,
             needsAuthorization ? React.createElement('section', { className: 'dshRemoteEnable' },
               React.createElement('div', { className: 'dshRemoteLoginHeading' },
                 React.createElement('a', {

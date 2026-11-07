@@ -223,6 +223,29 @@ export class HostPluginRuntime {
     return this.connections.accept(channel)
   }
 
+  /**
+   * Pairing payload for the mobile scan flow: a fresh one-time code plus the
+   * identity the phone should connect to afterwards.
+   */
+  async pairingCode(): Promise<{
+    code: string
+    expiresAt: number
+    serverUrl: string
+    hostDeviceId?: string
+    hostName?: string
+  }> {
+    const api = this.serverApi
+    if (api === undefined) throw new Error('This Host is not configured for a Server yet.')
+    const { code, expiresAt } = await api.createPairingCode()
+    return {
+      code,
+      expiresAt,
+      serverUrl: this.config.serverUrl ?? '',
+      ...(this.identity === undefined ? {} : { hostDeviceId: this.identity.deviceId }),
+      hostName: this.config.deviceName,
+    }
+  }
+
   hostStatus(): HostRemoteStatus {
     const error = this.serverConnection?.lastError()
     const authorization = this.serverApi?.currentAuthorization()

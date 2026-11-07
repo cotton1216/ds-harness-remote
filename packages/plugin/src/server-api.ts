@@ -125,6 +125,26 @@ export class HostServerApi {
     }
   }
 
+  /**
+   * Mint a one-time pairing code for another device (QR pairing).
+   *
+   * Uses this device's access token: an already-authorized device may pull one
+   * more device into the same account, which is what the mobile scan flow needs
+   * (the Host has no account session at all).
+   */
+  async createPairingCode(): Promise<{ code: string; expiresAt: number }> {
+    const body = await this.request<{ code?: unknown; expiresAt?: unknown }>(
+      '/api/v1/account/registration-codes',
+      { method: 'POST', body: '{}' },
+    )
+    const code = body?.code
+    const expiresAt = body?.expiresAt
+    if (typeof code !== 'string' || code.length === 0 || typeof expiresAt !== 'number') {
+      throw new ServerApiError('INVALID_MESSAGE', 'The Server returned an invalid pairing code.', false)
+    }
+    return { code, expiresAt }
+  }
+
   async authorizeWithAccount(
     identity: HostIdentity,
     email: string,
