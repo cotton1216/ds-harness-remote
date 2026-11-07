@@ -405,8 +405,11 @@ export function createRemoteWorkspaceAction(React: ClientReact, portal?: PortalR
 
     const selectLoginMethod = (method: LoginMethod): void => {
       loginMethodManuallySelected.current = true
+      if (method === 'pair') {
+        // Explicitly entering or clicking the pairing tab requests a fresh code.
+        void startPairing()
+      }
       if (method === loginMethod) return
-      if (method === 'pair' && pairingImage === undefined) void startPairing()
       qrFlowRun.current += 1
       setLoginMethod(method)
       setQrSession(undefined)
@@ -423,11 +426,13 @@ export function createRemoteWorkspaceAction(React: ClientReact, portal?: PortalR
     // 进入「扫码连接手机」时自动出码。挂在副作用上而不是点击回调里：
     // 从任何路径进入该面板都会发码，不依赖某一次点击是否命中。
     React.useEffect(() => {
-      if (!pairVisible || pairing !== undefined || pairingBusy) return
+      if (!open || !pairVisible || pairingBusy || pairingError !== undefined) return
+      // 过期即自动换新码：面板停在扫码页时不应让人对着死码反复扫。
+      if (pairing !== undefined && !pairingExpired) return
       void startPairing()
       // startPairing 每次渲染都是新引用，故意只跟随进入面板与当前码状态。
       // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [pairVisible, pairing, pairingBusy])
+    }, [open, pairVisible, pairing, pairingExpired, pairingBusy, pairingError])
     const passwordVisible = !savingServer && !serverDirty && loginMethod === 'password' && (
       loginMethodManuallySelected.current || (!providersLoading && !providersFailed && oauthProviders.length === 0)
     )

@@ -182,7 +182,16 @@ export function createRemoteServer(config: Config) {
    */
   const registrationCodes = new Map<string, { accountId: string; expires: number }>()
   const CODE_ALPHABET = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'
-  const CODE_TTL_MS = 10 * 60_000
+  /**
+   * Pairing-code lifetime. Longer codes are more forgiving for someone walking
+   * to another room, but a code is a bearer credential until redeemed, so keep a
+   * hard ceiling and clamp garbage instead of failing startup.
+   */
+  const codeTtlMs = ((): number => {
+    const raw = Number(process.env['DSH_REGISTRATION_CODE_TTL_MS'])
+    if (!Number.isSafeInteger(raw) || raw <= 0) return 10 * 60_000
+    return Math.min(Math.max(raw, 60_000), 60 * 60_000)
+  })()
   const limits = new Map<string, { count: number; until: number }>()
   function rate(key: string, max: number) {
     for (const [k, v] of limits) if (v.until < Date.now()) limits.delete(k)
@@ -260,7 +269,7 @@ export function createRemoteServer(config: Config) {
       const body = normalize(random())
       code = `${body.slice(0, 4)}-${body.slice(4, 8)}`
     } while (registrationCodes.has(code))
-    const expiresAt = Date.now() + CODE_TTL_MS
+    const expiresAt = Date.now() + codeTtlMs
     registrationCodes.set(code, { accountId, expires: expiresAt })
     return { code, expiresAt }
   }
