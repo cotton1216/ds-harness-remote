@@ -16,6 +16,28 @@ const cleanupContract1 = async () => {
 afterEach(cleanupContract1)
 
 describe('HostServerApi', () => {
+  it('mints a fresh pairing code using the authenticated Host device token', async () => {
+    const directory = await mkdtemp(join(tmpdir(), 'dsh-pairing-code-'))
+    directories.push(directory)
+    const identity = hostIdentity()
+    const store = new ServerCredentialStore(directory)
+    await store.save({
+      serverUrl: 'https://dsh.r2049.cn', deviceId: identity.deviceId,
+      authorizationMethod: 'host_registration_code', ...tokens(),
+    })
+    const expiresAt = Date.now() + 600_000
+    const fetchMock = vi.fn(async (_input: string | URL | Request, _init?: RequestInit) =>
+      json({ code: 'ABCD-EFGH', expiresAt })) as unknown as typeof fetch
+    const api = new HostServerApi('https://dsh.r2049.cn', store, fetchMock)
+    api.bindIdentity(identity)
+
+    await expect(api.createPairingCode()).resolves.toEqual({ code: 'ABCD-EFGH', expiresAt })
+    const [url, init] = vi.mocked(fetchMock).mock.calls[0]!
+    expect(String(url)).toBe('https://dsh.r2049.cn/api/v1/account/registration-codes')
+    expect(init?.method).toBe('POST')
+    expect(init?.headers).toMatchObject({ Authorization: `Bearer ${tokens().accessToken}` })
+  })
+
   it('cancels runtime-owned HTTP work through response consumption and rejects requests after close', async () => {
     await runScenarios([
       { name: 'close before response headers', body: false, timeout: false },

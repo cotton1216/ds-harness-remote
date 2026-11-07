@@ -189,6 +189,14 @@ export function createRemoteWorkspaceAction(React: ClientReact, portal?: PortalR
     const [pairingImage, setPairingImage] = React.useState<string | undefined>(undefined)
     const [pairingBusy, setPairingBusy] = React.useState(false)
     const [pairingError, setPairingError] = React.useState<string | undefined>(undefined)
+    const [pairingNow, setPairingNow] = React.useState(Date.now())
+    React.useEffect(() => {
+      if (pairing === undefined) return
+      const timer = window.setInterval(() => setPairingNow(Date.now()), 1000)
+      return () => window.clearInterval(timer)
+    }, [pairing])
+    const pairingExpired = pairing !== undefined && pairing.expiresAt <= pairingNow
+    const pairingSeconds = pairing === undefined ? 0 : Math.max(0, Math.ceil((pairing.expiresAt - pairingNow) / 1000))
     const [qrExpired, setQrExpired] = React.useState(false)
     const [hostEmail, setHostEmail] = React.useState('')
     const [hostPassword, setHostPassword] = React.useState('')
@@ -412,6 +420,14 @@ export function createRemoteWorkspaceAction(React: ClientReact, portal?: PortalR
     const selectedProvider = oauthProviders.find(item => `oauth:${item.id}` === loginMethod)
     const scanLabel = t('scanWithProvider', { provider: selectedProvider?.displayName ?? '' })
     const pairVisible = !savingServer && !serverDirty && loginMethod === 'pair'
+    // 进入「扫码连接手机」时自动出码。挂在副作用上而不是点击回调里：
+    // 从任何路径进入该面板都会发码，不依赖某一次点击是否命中。
+    React.useEffect(() => {
+      if (!pairVisible || pairing !== undefined || pairingBusy) return
+      void startPairing()
+      // startPairing 每次渲染都是新引用，故意只跟随进入面板与当前码状态。
+      // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [pairVisible, pairing, pairingBusy])
     const passwordVisible = !savingServer && !serverDirty && loginMethod === 'password' && (
       loginMethodManuallySelected.current || (!providersLoading && !providersFailed && oauthProviders.length === 0)
     )
@@ -892,8 +908,12 @@ export function createRemoteWorkspaceAction(React: ClientReact, portal?: PortalR
      * 手机扫完就能直接连这台机器，不用再从列表里挑。
      */
     const startPairing = async (): Promise<void> => {
+      if (pairingBusy) return
       setPairingBusy(true)
       setPairingError(undefined)
+      setPairing(undefined)
+      setPairingImage(undefined)
+      setPairingNow(Date.now())
       try {
         const pair = await props.control<{
           code: string
@@ -909,13 +929,18 @@ export function createRemoteWorkspaceAction(React: ClientReact, portal?: PortalR
           ...(pair.hostDeviceId === undefined ? [] : [`h=${encodeURIComponent(pair.hostDeviceId)}`]),
           ...(pair.hostName === undefined ? [] : [`n=${encodeURIComponent(pair.hostName)}`]),
         ].join('&')
-        const image = await QRCode.toDataURL(`dsh-remote://bind?${query}`, {
-          width: 208,
-          margin: 1,
-          errorCorrectionLevel: 'M',
-        })
+        // 先落地码值：即便下面的二维码渲染失败，用户仍能读到 8 位码手动输入。
         setPairing(pair)
-        setPairingImage(image)
+        try {
+          const image = await QRCode.toDataURL(`dsh-remote://bind?${query}`, {
+            width: 208,
+            margin: 1,
+            errorCorrectionLevel: 'M',
+          })
+          setPairingImage(image)
+        } catch (renderError) {
+          setPairingError(messageOf(renderError, t))
+        }
       } catch (reason) {
         setPairingError(connectionErrorMessageFor(reason, t))
       } finally {
@@ -1314,25 +1339,26 @@ export function createRemoteWorkspaceAction(React: ClientReact, portal?: PortalR
                 type: 'button', disabled: busy || savingServer || serverDirty,
                 onClick: () => { setError(undefined); setProviderReload(value => value + 1) },
               }, t('retryLoginProviders')) : null,
-              !savingServer && !serverDirty && !providersLoading && !providersFailed && oauthProviders.length === 0
+              !pairVisible && !savingServer && !serverDirty && !providersLoading && !providersFailed && oauthProviders.length === 0
                 ? React.createElement('p', { role: 'status' }, t('noLoginProviders')) : null,
               pairVisible
                 ? React.createElement('div', {
                   className: 'dshRemoteQrLogin', role: 'tabpanel', id: 'dsh-remote-pair-panel',
                   'aria-labelledby': 'dsh-remote-pair-tab',
                 },
-                  pairingImage === undefined
+                  pairingImage === undefined || pairingExpired
                     ? React.createElement('div', { className: 'dshRemoteQrPlaceholder', 'aria-busy': pairingBusy },
-                      React.createElement('span', null, pairingBusy ? t('loadingSettings') : t('pairWithPhone')))
+                      React.createElement('span', null, pairingExpired ? t('pairingExpired') : pairingBusy ? t('loadingSettings') : t('pairWithPhone')))
                     : React.createElement('img', { src: pairingImage, width: 184, height: 184, alt: t('pairWithPhone') }),
-                  React.createElement('strong', null, pairing?.code ?? ''),
+                  React.createElement('strong', null, pairingExpired ? '' : pairing?.code ?? ''),
+                  pairing === undefined || pairingExpired ? null : React.createElement('p', { role: 'status' }, t('pairingCountdown', { seconds: String(pairingSeconds) })),
                   React.createElement('p', null, t('pairingExpiresHint')),
                   pairingError === undefined
                     ? null
                     : React.createElement('p', { className: 'dshRemoteConnectionIssue', role: 'status' }, pairingError),
                   React.createElement('button', {
                     type: 'button', disabled: pairingBusy || busy, onClick: () => void startPairing(),
-                  }, t(pairingBusy ? 'loadingSettings' : 'pairWithPhone')))
+                  }, t(pairingBusy ? 'loadingSettings' : 'pairingRegenerate')))
                 : passwordVisible
                 ? React.createElement('div', {
                   className: 'dshRemoteClientLogin', role: 'tabpanel', id: 'dsh-remote-password-panel',
