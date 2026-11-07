@@ -120,7 +120,7 @@ export interface OAuthQrSession {
 
 export type OAuthProvider = string
 
-export type LoginMethod = `oauth:${string}` | 'password'
+export type LoginMethod = `oauth:${string}` | 'password' | 'code'
 
 export interface OAuthQrPollResult {
   status: 'pending' | 'expired' | 'complete'

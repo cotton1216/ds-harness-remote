@@ -81,6 +81,9 @@ export function createRemotePluginOptions(React: ClientReact) {
     const [signInOpen, setSignInOpen] = React.useState(false)
     const [loginEmail, setLoginEmail] = React.useState('')
     const [loginPassword, setLoginPassword] = React.useState('')
+    // 设备授权码：用于服务端不允许口令登录的部署（例如企业 IAM），
+    // 由已登录的一方生成一次性码，这台设备用它换设备令牌。
+    const [loginCode, setLoginCode] = React.useState('')
     const [loginMethod, setLoginMethod] = React.useState<LoginMethod>('password')
     const [oauthProviders, setOAuthProviders] = React.useState<OAuthProviderInfo[]>([])
     const [providersLoading, setProvidersLoading] = React.useState(false)
@@ -306,6 +309,33 @@ export function createRemotePluginOptions(React: ClientReact) {
         applyView(result.settings)
         setSignInOpen(false)
         setLoginPassword('')
+        setNotice({ key: 'authorizationComplete' })
+      } catch (reason) {
+        setError(messageOf(reason, t))
+      } finally {
+        setBusy(false)
+      }
+    }
+
+    /**
+     * 设备授权码登录：把本机作为 Host 绑定到码所属的账号。
+     * 走的是服务端既有协议（/api/v1/devices/register-with-code），
+     * 因此服务端不需要允许口令登录，本机也不会保存账号口令。
+     */
+    const signInHostWithCode = async (): Promise<void> => {
+      const code = loginCode.trim().toUpperCase()
+      if (code === '') return
+      setBusy(true)
+      setError(undefined)
+      try {
+        const result = await props.control<PluginConfigureResult>('settings.configure', {
+          role: 'host',
+          serverUrl: serverUrl.trim() || 'https://dsh.r2049.cn',
+          registrationCode: code,
+        })
+        applyView(result.settings)
+        setSignInOpen(false)
+        setLoginCode('')
         setNotice({ key: 'authorizationComplete' })
       } catch (reason) {
         setError(messageOf(reason, t))
@@ -588,6 +618,9 @@ export function createRemotePluginOptions(React: ClientReact) {
     const passwordVisible = loginMethod === 'password' && (
       loginMethodManuallySelected.current || (!providersLoading && !providersFailed && oauthProviders.length === 0)
     )
+    const codeVisible = loginMethod === 'code'
+    // 「授权方式」始终可见：即使服务端没有 OAuth provider，也必须能选到
+    // 账号密码 / 设备授权码，否则授权码入口无处可点。
 
     const qrLoginTab = (provider: OAuthProviderInfo): unknown => React.createElement('button', {
       key: provider.id, type: 'button', role: 'tab', id: `dsh-remote-settings-oauth:${provider.id}-tab`,
@@ -600,20 +633,41 @@ export function createRemotePluginOptions(React: ClientReact) {
       id: 'dsh-remote-inline-signin',
       className: 'dshRemoteInlineSignIn',
     },
-      oauthProviders.length === 0 && !providersLoading && !providersFailed ? null : React.createElement('div', { className: 'dshRemoteLoginTabs', role: 'tablist' },
+      React.createElement('div', { className: 'dshRemoteLoginTabs', role: 'tablist' },
         ...orderedQrProviders.map(qrLoginTab),
         React.createElement('button', {
           type: 'button', role: 'tab', id: 'dsh-remote-settings-password-tab',
           'aria-selected': passwordVisible, 'aria-controls': 'dsh-remote-settings-password-panel',
           className: passwordVisible ? 'isActive' : '', disabled: busy,
           onClick: () => selectLoginMethod('password'),
-        }, t('accountPasswordLogin'))),
+        }, t('accountPasswordLogin')),
+        React.createElement('button', {
+          type: 'button', role: 'tab', id: 'dsh-remote-settings-code-tab',
+          'aria-selected': codeVisible, 'aria-controls': 'dsh-remote-settings-code-panel',
+          className: codeVisible ? 'isActive' : '', disabled: busy,
+          onClick: () => selectLoginMethod('code'),
+        }, t('deviceCodeLogin'))),
       providersLoading ? React.createElement('p', { className: 'dshRemoteSettingsState', role: 'status' }, t('loadingLoginProviders')) : null,
       providersFailed ? React.createElement('button', {
         type: 'button', className: 'dshRemoteReconnect', disabled: busy,
         onClick: () => { setError(undefined); setProviderReload(v => v + 1) },
       }, t('retryLoginProviders')) : null,
-      passwordVisible
+      codeVisible
+        ? React.createElement('div', {
+          className: 'dshRemoteClientLogin', role: 'tabpanel', id: 'dsh-remote-settings-code-panel',
+          'aria-labelledby': 'dsh-remote-settings-code-tab',
+        },
+          React.createElement('input', {
+            type: 'text', value: loginCode, disabled: busy, autoComplete: 'off', spellCheck: false,
+            placeholder: t('deviceCodePlaceholder'), 'aria-label': t('deviceCodeLogin'),
+            onChange: (event: Event) => setLoginCode((event.target as HTMLInputElement).value.toUpperCase()),
+          }),
+          React.createElement('button', {
+            type: 'button', disabled: busy || loginCode.trim() === '',
+            onClick: () => void signInHostWithCode(),
+          }, t(busy ? 'signingIn' : 'signInWithCode')),
+          React.createElement('p', { className: 'dshRemotePasswordHint' }, t('deviceCodeHint')))
+        : passwordVisible
         ? React.createElement('div', {
           className: 'dshRemoteClientLogin', role: 'tabpanel', id: 'dsh-remote-settings-password-panel',
           'aria-labelledby': 'dsh-remote-settings-password-tab',
