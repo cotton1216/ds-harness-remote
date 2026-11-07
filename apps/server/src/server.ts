@@ -8,6 +8,7 @@ import { z } from 'zod'
 import { accountDeviceDescriptorSchema, deviceRegistrationRequestSchema, deviceRefreshRequestSchema, PROTOCOL_VERSION } from '@dsh-remote/protocol'
 import { ApiError, Store, hash, secret, validateAccounts, type AccountConfig } from './store.js'
 import { IamError, iamLogin, iamProfile, type IamConfig, type IamUser } from './iam.js'
+import { OidcError, oidcConfigFromEnv, oidcIdentityFromCode, type OidcConfig } from './iam-oidc.js'
 import { Gateway } from './gateway.js'
 import { buildIceServers, parseIceConfig, type IceConfig } from './ice.js'
 import { Logger, type LogLevel } from './logger.js'
@@ -38,6 +39,11 @@ export interface Config {
   ice?: IceConfig
   /** When set, logins are delegated to this IAM deployment instead of local accounts. */
   iam?: IamConfig
+  /**
+   * 标准 OIDC 换票配置（`/api/v1/auth/iam/oidc`）。缺省时从
+   * `DSH_IAM_OIDC_*` 环境变量读取；都没有就视为未启用，路由返回 404。
+   */
+  oidc?: OidcConfig
   /**
    * Allow a device to move to another account when it re-presents the same identity
    * key. Off by default: only enable it while migrating accounts deliberately.
@@ -163,6 +169,8 @@ export function clientAddress(req: IncomingMessage, trustedProxyIps: ReadonlySet
 export function createRemoteServer(config: Config) {
   if (config.accounts !== undefined && (config.account !== undefined || config.password !== undefined)) throw new Error('DSH_SERVER_ACCOUNTS_JSON cannot be combined with DSH_SERVER_ACCOUNT or DSH_SERVER_PASSWORD.')
   const iam = config.iam
+  // OIDC 三个环境变量齐全才启用；缺省时 /auth/iam/oidc 返回 404。
+  const oidcConfig = config.oidc ?? oidcConfigFromEnv(process.env)
   const accounts = validateAccounts(
     config.accounts ?? (iam ? [] : [{ account: config.account ?? '', password: config.password ?? '' }]),
     { allowEmpty: iam !== undefined },
@@ -374,6 +382,32 @@ export function createRemoteServer(config: Config) {
       rate(`iam:${client}`, 60)
       const { token: accessToken } = z.object({ token: z.string().min(20).max(8192) }).strict().parse(await body(req))
       json(res, 200, openSession(res, await iamFromToken(iam, accessToken))); return
+    }
+    // 标准 OIDC 换票：手机只送来一次性 code 与 PKCE verifier，
+    // client_secret 只在本进程内存里，绝不进 App。
+    if (method === 'POST' && path === '/api/v1/auth/iam/oidc') {
+      if (oidcConfig === undefined) throw new ApiError('METHOD_NOT_FOUND', 404)
+      rate(`oidc:${client}`, 30)
+      const input = z.object({
+        code: z.string().min(1).max(4096),
+        codeVerifier: z.string().min(43).max(128),
+        redirectUri: z.string().url().max(2048),
+        nonce: z.string().min(1).max(256).optional(),
+      }).strict().parse(await body(req))
+      let identity
+      try {
+        identity = await oidcIdentityFromCode(oidcConfig, input)
+      } catch (error) {
+        if (!(error instanceof OidcError)) throw error
+        logger.warn('iam_oidc_failed', { code: error.code, status: error.status ?? null, detail: error.detail ?? null })
+        if (error.code === 'RATE_LIMITED') throw new ApiError('RATE_LIMITED', 429)
+        if (error.code === 'AUTH_INVALID') throw new ApiError('AUTH_INVALID', 401)
+        throw new ApiError('IAM_UNAVAILABLE', 503)
+      }
+      const account = `iam:${identity.subject}`
+      const displayName = identity.username?.trim() || identity.email?.trim() || account
+      json(res, 200, openSession(res, { account, accountId: store.ensureOidcAccount(identity.subject, displayName), displayName }))
+      return
     }
     if (method === 'GET' && path === '/api/v1/auth/me') {
       const session = accountAuth(req); json(res, 200, profile(session.account, session.displayName)); return
