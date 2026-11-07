@@ -32,7 +32,16 @@ export interface IamGrant {
 }
 
 export class IamError extends Error {
-  constructor(readonly code: 'AUTH_INVALID' | 'UNAVAILABLE') { super(code) }
+  /**
+   * `status` is the upstream HTTP status when there was a response at all; it is
+   * logged for diagnosis but never echoed to the caller.
+   */
+  constructor(
+    readonly code: 'AUTH_INVALID' | 'UNAVAILABLE' | 'RATE_LIMITED',
+    readonly status?: number,
+    /** Coarse failure kind (e.g. TimeoutError) for logs. Never contains credentials. */
+    readonly detail?: string,
+  ) { super(code) }
 }
 
 const DEFAULT_TIMEOUT_MS = 10_000
@@ -58,10 +67,10 @@ const envelope = (raw: unknown): unknown => {
 }
 
 function toUser(value: unknown): IamUser {
-  if (value === null || typeof value !== 'object') throw new IamError('UNAVAILABLE')
+  if (value === null || typeof value !== 'object') throw new IamError('UNAVAILABLE', undefined, 'missing-user')
   const record = value as Record<string, unknown>
   const id = record['id']
-  if (typeof id !== 'number' || !Number.isInteger(id) || id <= 0) throw new IamError('UNAVAILABLE')
+  if (typeof id !== 'number' || !Number.isInteger(id) || id <= 0) throw new IamError('UNAVAILABLE', undefined, 'invalid-user-id')
   return {
     id,
     email: typeof record['email'] === 'string' ? record['email'] : '',
@@ -77,26 +86,29 @@ async function call(config: IamConfig, path: string, init: RequestInit): Promise
       headers: { 'Content-Type': 'application/json', ...(init.headers ?? {}) },
       signal: AbortSignal.timeout(config.timeoutMs),
     })
-  } catch {
-    throw new IamError('UNAVAILABLE')
+  } catch (error) {
+    throw new IamError('UNAVAILABLE', undefined, error instanceof Error ? error.name : 'unknown')
   }
   let payload: unknown
   try { payload = await response.json() } catch { payload = undefined }
-  if (response.status === 401 || response.status === 403) throw new IamError('AUTH_INVALID')
+  if (response.status === 401 || response.status === 403) throw new IamError('AUTH_INVALID', response.status)
+  // Keep throttling distinct: a burst of retries must not look like an outage to the user.
+  if (response.status === 429) throw new IamError('RATE_LIMITED', 429)
   // A 404 here means the deployment does not expose the expected API; treat it as
   // unavailability rather than as a bad credential so operators see a 503, not a 401.
-  if (!response.ok) throw new IamError('UNAVAILABLE')
+  if (!response.ok) throw new IamError('UNAVAILABLE', response.status)
   return payload
 }
 
 /** Password grant. Used when the caller typed an IAM e-mail and password. */
 export async function iamLogin(config: IamConfig, email: string, password: string): Promise<IamGrant> {
-  const data = envelope(await call(config, '/api/v1/auth/login', {
-    method: 'POST', body: JSON.stringify({ email, password }),
-  })) as Record<string, unknown> | undefined
-  if (!data || typeof data !== 'object') throw new IamError('UNAVAILABLE')
+  const payload = await call(config, '/api/v1/auth/login', { method: 'POST', body: JSON.stringify({ email, password }) })
+  const data = envelope(payload) as Record<string, unknown> | undefined
+  // Field names only (never values) so an unexpected success shape is diagnosable from logs.
+  const keys = data && typeof data === 'object' ? Object.keys(data).join(',') : String(typeof data)
+  if (!data || typeof data !== 'object') throw new IamError('UNAVAILABLE', 200, `empty-data:${keys}`)
   const accessToken = data['access_token']
-  if (typeof accessToken !== 'string' || accessToken.length === 0) throw new IamError('UNAVAILABLE')
+  if (typeof accessToken !== 'string' || accessToken.length === 0) throw new IamError('UNAVAILABLE', 200, `no-access-token:${keys}`)
   const expiresIn = typeof data['expires_in'] === 'number' && Number.isFinite(data['expires_in']) ? data['expires_in'] : undefined
   return { user: toUser(data['user']), accessToken, ...(expiresIn === undefined ? {} : { expiresIn }) }
 }
