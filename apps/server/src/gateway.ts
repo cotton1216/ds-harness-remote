@@ -211,7 +211,9 @@ export class Gateway {
     if (link === undefined) return false
     if (link.host !== deviceId && link.client !== deviceId) return false
     if (link.stage !== 'accepted' && link.stage !== 'handshake') return false
+    const owner = this.store.get(deviceId).accountId
     return this.peers.has(link.host) && this.peers.has(link.client)
+      && this.store.owns(link.host, owner) && this.store.owns(link.client, owner)
   }
   private supportedCapabilities(): string[] {
     return SUPPORTED_TRANSPORTS.filter(capability => capability !== 'transport.turn' || this.turnEnabled)
@@ -321,6 +323,8 @@ export class Gateway {
           // Re-assert the state: if the deadline fired while credentials were
           // checked, the timeout wins and none of the side effects below run.
           if (state !== 'awaiting_hello') return
+          // 持久化成功后才替换在线连接；失败仅关闭当前未认证 socket。
+          this.store.touch(device.deviceId, p.clientVersion, p.harnessVersion)
           state = 'authenticated'
           clearDeadline()
           this.disconnect(device.deviceId, 'CONNECTION_REPLACED')
@@ -329,7 +333,6 @@ export class Gateway {
           // while no TURN deployment is configured.
           peer = { ws, id: device.deviceId, role: device.role, capabilities: this.negotiatedCapabilities(p.capabilities), version: p.clientVersion ?? device.clientVersion, lastPong: Date.now() }
           this.peers.set(peer.id, peer)
-          this.store.touch(peer.id, p.clientVersion, p.harnessVersion)
           this.logger.info('ws_hello_authenticated', {
             deviceId: safeText(peer.id),
             role: peer.role,
@@ -392,6 +395,8 @@ export class Gateway {
     if (frame.type === 'connect.request') {
       const request = frame.payload as ConnectRequestPayload
       if (peer.role !== 'client') throw new ApiError('MEMBERSHIP_REQUIRED')
+      const accountId = this.store.get(peer.id).accountId
+      if (!this.store.owns(request.hostDeviceId, accountId)) throw new ApiError('MEMBERSHIP_REQUIRED')
       const host = this.peers.get(request.hostDeviceId)
       if (!host || host.role !== 'host') { this.send(peer, createControlFrame('error', { code: 'HOST_OFFLINE', message: 'Host is offline.', retryable: true })); return }
       this.store.get(host.id)
@@ -429,6 +434,8 @@ export class Gateway {
     if (!link || (peer.id !== link.host && peer.id !== link.client)) throw new ApiError('CONNECTION_NOT_FOUND')
     const otherId = peer.id === link.host ? link.client : link.host
     const other = this.peers.get(otherId)
+    const accountId = this.store.get(peer.id).accountId
+    if (!this.store.owns(link.host, accountId) || !this.store.owns(link.client, accountId)) throw new ApiError('MEMBERSHIP_REQUIRED')
     this.store.get(otherId)
     if (!other) throw new ApiError('CONNECTION_FAILED')
     if (frame.type === 'connect.accepted' || frame.type === 'connect.rejected') {

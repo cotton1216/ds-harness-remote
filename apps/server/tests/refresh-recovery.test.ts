@@ -88,7 +88,7 @@ it('does not consume a refresh token on failed persistence or exhausted storage'
   rewrite(state => {
     const count = Object.keys(state.tokens).length
     for (let i = count; i < 16383; i++) state.tokens[hash('filler-' + i)] = {
-      kind: 'access', deviceId: d.deviceId, expires: now + 60_000, used: false,
+      kind: 'access', deviceId: d.deviceId, accountId: hash(account), expires: now + 60_000, used: false,
     }
   })
   expect(() => store.refresh(d.deviceId, pair.refreshToken)).toThrow('RATE_LIMITED')
@@ -101,10 +101,20 @@ it('fails closed on damaged recovery metadata without revoking valid credentials
   await runScenarios(['nonce', 'missing-successor', 'wrong-device', 'missing-access'].map(kind => ({
     name: kind, run: () => {
       const d = descriptor(), old = store.register(d), pair = store.refresh(d.deviceId, old.refreshToken)
+      if (kind === 'wrong-device') {
+        const state = saved()
+        state.tokens[hash(pair.refreshToken)].deviceId = randomUUID()
+        writeFileSync(file, JSON.stringify(state))
+        const damaged = readFileSync(file, 'utf8')
+        // v2 rejects inconsistent token ownership at load, earlier than refresh.
+        expect(() => new Store(file, account, password)).toThrow('Invalid stored token ownership')
+        expect(readFileSync(file, 'utf8')).toBe(damaged)
+        expect(store.authenticate(pair.accessToken).descriptor.deviceId).toBe(d.deviceId)
+        return
+      }
       rewrite(state => {
         if (kind === 'nonce') state.tokens[hash(old.refreshToken)].recovery.nonce = secret()
         if (kind === 'missing-successor') delete state.tokens[hash(pair.refreshToken)]
-        if (kind === 'wrong-device') state.tokens[hash(pair.refreshToken)].deviceId = randomUUID()
         if (kind === 'missing-access') delete state.tokens[hash(pair.accessToken)]
       })
       try { store.refresh(d.deviceId, old.refreshToken); expect.unreachable() }

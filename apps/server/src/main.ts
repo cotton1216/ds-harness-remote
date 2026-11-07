@@ -8,6 +8,7 @@ import {
 } from './server.js'
 import { parseLogLevel } from './logger.js'
 import { parseIceConfig } from './ice.js'
+import { parseAccountsEnvironment } from './store.js'
 
 const port = Number(process.env.DSH_SERVER_PORT ?? '8080')
 if (!Number.isInteger(port) || port < 1 || port > 65535) throw new Error('Invalid DSH_SERVER_PORT.')
@@ -19,8 +20,7 @@ const forceTerminateGraceMs = parseForceTerminateGrace(process.env.DSH_SERVER_FO
 const logLevel = parseLogLevel(process.env.DSH_SERVER_LOG_LEVEL)
 
 const app = createRemoteServer({
-  account: process.env.DSH_SERVER_ACCOUNT ?? '',
-  password: process.env.DSH_SERVER_PASSWORD ?? '',
+  accounts: parseAccountsEnvironment(process.env.DSH_SERVER_ACCOUNTS_JSON, process.env.DSH_SERVER_ACCOUNT, process.env.DSH_SERVER_PASSWORD),
   publicUrl: process.env.DSH_SERVER_PUBLIC_URL ?? `http://localhost:${port}`,
   dataFile: resolve(process.env.DSH_SERVER_DATA_FILE ?? 'data/state.json'),
   trustedProxyIps: (process.env.DSH_SERVER_TRUSTED_PROXY_IPS ?? '').split(',').map(value => value.trim()).filter(Boolean),

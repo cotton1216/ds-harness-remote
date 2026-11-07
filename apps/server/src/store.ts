@@ -1,5 +1,5 @@
 import { createHash, createHmac, randomBytes, scryptSync, timingSafeEqual } from 'node:crypto'
-import { existsSync, mkdirSync, readFileSync, renameSync, writeFileSync } from 'node:fs'
+import { chmodSync, closeSync, existsSync, fsyncSync, lstatSync, mkdirSync, openSync, readFileSync, renameSync, unlinkSync, writeFileSync } from 'node:fs'
 import { dirname } from 'node:path'
 import { accountDeviceDescriptorSchema, type AccountDeviceDescriptor } from '@dsh-remote/protocol'
 import { z } from 'zod'
@@ -10,14 +10,52 @@ export class ApiError extends Error {
 export const hash = (value: string): string => createHash('sha256').update(value).digest('hex')
 export const secret = (): string => randomBytes(32).toString('base64url')
 export const equal = (left: string, right: string): boolean => timingSafeEqual(Buffer.from(hash(left)), Buffer.from(hash(right)))
+export type AccountConfig = { account: string; password: string; disabled?: boolean }
+
+export function validateAccounts(accounts: readonly AccountConfig[]): AccountConfig[] {
+  if (!Array.isArray(accounts) || accounts.length === 0) throw new Error('At least one DSH_SERVER account is required.')
+  const seen = new Set<string>()
+  const normalized = accounts.map((entry) => {
+    if (!entry || typeof entry.account !== 'string' || !entry.account.trim() || entry.account.length > 254 ||
+      typeof entry.password !== 'string' || entry.password.length < 12 || entry.password.length > 1024 ||
+      (entry.disabled !== undefined && typeof entry.disabled !== 'boolean')) {
+      throw new Error('Invalid DSH_SERVER account configuration (account and password of at least 12 characters required).')
+    }
+    const account = entry.account.trim()
+    if (seen.has(account)) throw new Error('Duplicate DSH_SERVER account configuration.')
+    seen.add(account)
+    return { account, password: entry.password, disabled: entry.disabled ?? false }
+  })
+  if (normalized.every(entry => entry.disabled)) throw new Error('At least one enabled DSH_SERVER account is required.')
+  return normalized
+}
+
+export function parseAccountsEnvironment(raw: string | undefined, legacyAccount?: string, legacyPassword?: string): AccountConfig[] {
+  if (raw !== undefined) {
+    if (legacyAccount !== undefined || legacyPassword !== undefined) throw new Error('DSH_SERVER_ACCOUNTS_JSON cannot be combined with DSH_SERVER_ACCOUNT or DSH_SERVER_PASSWORD.')
+    let parsed: unknown
+    try { parsed = JSON.parse(raw) } catch { throw new Error('Invalid DSH_SERVER_ACCOUNTS_JSON.') }
+    const schema = z.array(z.object({ account: z.string(), password: z.string(), disabled: z.boolean().optional() }).strict())
+    const result = schema.safeParse(parsed)
+    if (!result.success) throw new Error('Invalid DSH_SERVER_ACCOUNTS_JSON.')
+    return validateAccounts(result.data)
+  }
+  return validateAccounts([{ account: legacyAccount ?? '', password: legacyPassword ?? '' }])
+}
+
 const tokenSchema = z.object({
   kind: z.enum(['access', 'refresh']), deviceId: z.string(), expires: z.number(), used: z.boolean(),
   recovery: z.object({ nonce: z.string().regex(/^[A-Za-z0-9_-]{43}$/), accessExpires: z.number().int().positive() }).optional(),
 })
 const savedDeviceSchema = z.object({ descriptor: accountDeviceDescriptorSchema, revoked: z.boolean(), lastSeenAt: z.number() })
-const stateSchema = z.object({ version: z.literal(1), account: z.string(), salt: z.string(), verifier: z.string(), devices: z.record(z.string(), savedDeviceSchema), tokens: z.record(z.string(), tokenSchema) })
-type SavedDevice = z.infer<typeof savedDeviceSchema>
-type SavedToken = z.infer<typeof tokenSchema>
+const oldStateSchema = z.object({ version: z.literal(1), account: z.string(), salt: z.string(), verifier: z.string(), devices: z.record(z.string(), savedDeviceSchema), tokens: z.record(z.string(), tokenSchema) })
+const accountSchema = z.object({ account: z.string(), salt: z.string(), verifier: z.string(), disabled: z.boolean() })
+const ownedDeviceSchema = savedDeviceSchema.extend({ accountId: z.string().length(64) })
+const ownedTokenSchema = tokenSchema.extend({ accountId: z.string().length(64) })
+const stateSchema = z.object({ version: z.literal(2), accounts: z.record(z.string(), accountSchema), devices: z.record(z.string(), ownedDeviceSchema), tokens: z.record(z.string(), ownedTokenSchema) })
+export type SavedDevice = z.infer<typeof ownedDeviceSchema>
+type SavedToken = z.infer<typeof ownedTokenSchema>
+type State = z.infer<typeof stateSchema>
 
 // Domain-separated HMACs keyed by the presented bearer, NOT its stored digest.
 // The nonce alone cannot recover credentials from a copy of state.json.
@@ -29,42 +67,213 @@ function successor(token: string, nonce: string, deviceId: string) {
 
 /** Single-process store. Only token digests and public identities reach disk. */
 export class Store {
-  private state: z.infer<typeof stateSchema>
+  private state: State
+  private devicesByAccount = new Map<string, Set<string>>()
+  private tokensByDevice = new Map<string, Set<string>>()
+  private sortedDevices = new Map<string, { all: string[]; host: string[]; client: string[] }>()
+  private readonly dummySalt = secret()
+  private readonly legacyAccount: string | undefined
+  readonly account: string
   onInvalidate: (id: string) => void = () => {}
-  constructor(private readonly file: string, readonly account: string, password: string) {
-    const previous = existsSync(file) ? stateSchema.parse(JSON.parse(readFileSync(file, 'utf8'))) : undefined
-    const salt = previous?.salt ?? secret()
-    const verifier = scryptSync(password, salt, 32).toString('hex')
-    this.state = previous ?? { version: 1, account, salt, verifier, devices: {}, tokens: {} }
-    if (this.state.account !== account) this.state.devices = {}
-    if (this.state.account !== account || !equal(this.state.verifier, verifier)) this.state.tokens = {}
-    Object.assign(this.state, { account, verifier })
-    this.save()
+  constructor(file: string, account: string, password: string)
+  constructor(file: string, accounts: readonly AccountConfig[])
+  constructor(private readonly file: string, accountOrAccounts: string | readonly AccountConfig[], password?: string) {
+    const accounts = validateAccounts(typeof accountOrAccounts === 'string'
+      ? [{ account: accountOrAccounts, password: password ?? '' }] : accountOrAccounts)
+    this.legacyAccount = typeof accountOrAccounts === 'string' ? accounts[0]!.account : undefined
+    this.account = accounts.length === 1 ? accounts[0]!.account : ''
+    const original = existsSync(file) ? readFileSync(file) : undefined
+    const existing = original ? JSON.parse(original.toString('utf8')) as { version?: unknown } : undefined
+    if (existing?.version === 1) {
+      const old = oldStateSchema.parse(existing)
+      const accountId = hash(old.account)
+      this.state = {
+        version: 2,
+        accounts: { [accountId]: { account: old.account, salt: old.salt, verifier: old.verifier, disabled: true } },
+        devices: Object.fromEntries(Object.entries(old.devices).map(([id, device]) => [id, { ...device, accountId }])),
+        tokens: Object.fromEntries(Object.entries(old.tokens).map(([id, record]) => [id, { ...record, accountId }])),
+      }
+    } else if (original !== undefined) this.state = stateSchema.parse(existing)
+    else this.state = { version: 2, accounts: {}, devices: {}, tokens: {} }
+    // 配置变更前验证全部旧记录，不能用令牌清理掩盖损坏的归属。
+    for (const [id, entry] of Object.entries(this.state.accounts)) {
+      if (id !== hash(entry.account)) throw new Error('Invalid stored account identity.')
+    }
+    for (const [id, device] of Object.entries(this.state.devices)) {
+      if (id !== device.descriptor.deviceId || !Object.hasOwn(this.state.accounts, device.accountId)) throw new Error('Invalid stored device ownership.')
+    }
+    for (const record of Object.values(this.state.tokens)) {
+      if (!Object.hasOwn(this.state.devices, record.deviceId) || this.state.devices[record.deviceId]!.accountId !== record.accountId) throw new Error('Invalid stored token ownership.')
+    }
+    const previousEnabled = new Set(Object.entries(this.state.accounts).filter(([, entry]) => !entry.disabled).map(([id]) => id))
+    for (const entry of Object.values(this.state.accounts)) entry.disabled = true
+    for (const entry of accounts) {
+      const id = hash(entry.account)
+      const previous = this.state.accounts[id]
+      const salt = previous?.salt ?? secret()
+      const verifier = scryptSync(entry.password, salt, 32).toString('hex')
+      if (previous && (!equal(previous.verifier, verifier) || (!previousEnabled.has(id) && existing?.version !== 1))) {
+        for (const [key, record] of Object.entries(this.state.tokens)) {
+          if (record.accountId === id) delete this.state.tokens[key]
+        }
+      }
+      this.state.accounts[id] = { account: entry.account, salt, verifier, disabled: entry.disabled ?? false }
+    }
+    for (const [key, record] of Object.entries(this.state.tokens)) {
+      if (this.state.accounts[record.accountId]!.disabled) delete this.state.tokens[key]
+    }
+    if (existing?.version === 1) {
+      const backup = `${file}.v1.bak`
+      if (existsSync(backup)) {
+        if (!lstatSync(backup).isFile() || !readFileSync(backup).equals(original!)) throw new Error('Existing v1 backup differs from source.')
+        chmodSync(backup, 0o600)
+      } else {
+        const fd = openSync(backup, 'wx', 0o600)
+        try {
+          try { writeFileSync(fd, original!); fsyncSync(fd) } finally { closeSync(fd) }
+        } catch (error) {
+          // 只清理本次创建但未完整写入的备份；既有备份永不覆盖。
+          try { unlinkSync(backup) } catch { /* 保留原错误。 */ }
+          throw error
+        }
+      }
+    }
+    this.save(this.state)
+    this.reindexDevices()
+    this.reindexTokens()
   }
-  private save(): void {
+  private save(state: State): void {
     mkdirSync(dirname(this.file), { recursive: true, mode: 0o700 })
     const tmp = `${this.file}.tmp`
-    writeFileSync(tmp, JSON.stringify(this.state), { mode: 0o600 })
-    renameSync(tmp, this.file)
+    const fd = openSync(tmp, 'wx', 0o600)
+    try {
+      try { writeFileSync(fd, JSON.stringify(state)); fsyncSync(fd) } finally { closeSync(fd) }
+      renameSync(tmp, this.file)
+    } catch (error) {
+      // 只清理由本次独占创建的临时文件，不触碰已有文件或目录。
+      try { unlinkSync(tmp) } catch { /* 保留原错误。 */ }
+      throw error
+    }
+  }
+  private commit(next: State): void {
+    this.save(next)
+    this.state = next
+  }
+  private reindexDevices(): void {
+    this.devicesByAccount.clear()
+    this.sortedDevices.clear()
+    for (const [id, device] of Object.entries(this.state.devices)) {
+      let owned = this.devicesByAccount.get(device.accountId)
+      if (!owned) { owned = new Set(); this.devicesByAccount.set(device.accountId, owned) }
+      owned.add(id)
+      if (device.revoked) continue
+      let sorted = this.sortedDevices.get(device.accountId)
+      if (!sorted) { sorted = { all: [], host: [], client: [] }; this.sortedDevices.set(device.accountId, sorted) }
+      sorted.all.push(id)
+      sorted[device.descriptor.role].push(id)
+    }
+    for (const sorted of this.sortedDevices.values()) { sorted.all.sort(); sorted.host.sort(); sorted.client.sort() }
+  }
+  private reindexAccountDevices(accountId: string): void {
+    const sorted: { all: string[]; host: string[]; client: string[] } = { all: [], host: [], client: [] }
+    for (const id of this.devicesByAccount.get(accountId) ?? []) {
+      const device = this.state.devices[id]!
+      if (device.revoked) continue
+      sorted.all.push(id)
+      sorted[device.descriptor.role].push(id)
+    }
+    sorted.all.sort(); sorted.host.sort(); sorted.client.sort()
+    this.sortedDevices.set(accountId, sorted)
+  }
+  getAccount(account: string): string {
+    const id = hash(account)
+    const record = Object.hasOwn(this.state.accounts, id) ? this.state.accounts[id] : undefined
+    if (!record || record.disabled || record.account !== account) throw new ApiError('AUTH_INVALID', 401)
+    return id
+  }
+  accountName(accountId: string): string {
+    const record = Object.hasOwn(this.state.accounts, accountId) ? this.state.accounts[accountId] : undefined
+    if (!record || record.disabled) throw new ApiError('AUTH_INVALID', 401)
+    return record.account
+  }
+  verifyLogin(account: string, password: string): string {
+    const id = hash(account)
+    const stored = this.state.accounts[id]
+    const candidate = scryptSync(password, stored?.salt ?? this.dummySalt, 32).toString('hex')
+    const valid = equal(stored?.verifier ?? '0'.repeat(64), candidate)
+    if (!valid || !stored || stored.disabled || stored.account !== account) throw new ApiError('AUTH_INVALID', 401)
+    return id
   }
   get(id: string): SavedDevice {
     const d = Object.hasOwn(this.state.devices, id) ? this.state.devices[id] : undefined
     if (!d) throw new ApiError('DEVICE_NOT_FOUND', 404)
     if (d.revoked) throw new ApiError('DEVICE_REVOKED', 403)
+    if (this.state.accounts[d.accountId]?.disabled) throw new ApiError('AUTH_INVALID', 401)
     return d
   }
-  list(): SavedDevice[] { return Object.values(this.state.devices).filter(d => !d.revoked) }
-  register(descriptor: AccountDeviceDescriptor): ReturnType<Store['issue']> {
-    const old = this.state.devices[descriptor.deviceId]
+  owns(id: string, accountId: string): boolean {
+    const d = Object.hasOwn(this.state.devices, id) ? this.state.devices[id] : undefined
+    return !!d && !d.revoked && d.accountId === accountId && Object.hasOwn(this.state.accounts, accountId) && !this.state.accounts[accountId]!.disabled
+  }
+  getOwned(id: string, accountId: string): SavedDevice {
+    if (!this.owns(id, accountId)) throw new ApiError('DEVICE_NOT_FOUND', 404)
+    return this.get(id)
+  }
+  private selectedAccount(account?: string): string {
+    if (account !== undefined) return this.getAccount(account)
+    if (this.legacyAccount === undefined) throw new ApiError('ACCOUNT_AUTH_REQUIRED', 401)
+    return this.getAccount(this.legacyAccount)
+  }
+  list(account?: string): SavedDevice[] {
+    const id = this.selectedAccount(account)
+    return [...(this.devicesByAccount.get(id) ?? [])].map(deviceId => this.state.devices[deviceId]!).filter(d => !d.revoked)
+  }
+  page(account: string, role?: 'host' | 'client', cursor?: string, limit = 50): { items: SavedDevice[]; nextCursor: string | null } {
+    if (!Number.isInteger(limit) || limit < 1 || limit > 100 || (cursor !== undefined && cursor.length > 512)) throw new ApiError('INVALID_MESSAGE')
+    const owner = this.getAccount(account), scope = role ?? 'all'
+    const sign = (payload: string) => createHmac('sha256', this.state.accounts[owner]!.salt)
+      .update(JSON.stringify(['dsh/page/v1', owner, scope, payload])).digest('base64url')
+    let last = ''
+    if (cursor !== undefined) {
+      const parts = cursor.split('.')
+      if (parts.length !== 2 || !/^[A-Za-z0-9_-]+$/.test(parts[0]!) || !equal(sign(parts[0]!), parts[1]!)) throw new ApiError('INVALID_MESSAGE')
+      last = Buffer.from(parts[0]!, 'base64url').toString('utf8')
+      if (!last || last.length > 128) throw new ApiError('INVALID_MESSAGE')
+    }
+    const ids = this.sortedDevices.get(owner)?.[scope] ?? []
+    let low = 0, high = ids.length
+    while (low < high) {
+      const mid = (low + high) >>> 1
+      if (ids[mid]! <= last) low = mid + 1
+      else high = mid
+    }
+    const selected = ids.slice(low, low + limit)
+    const payload = selected.length ? Buffer.from(selected.at(-1)!).toString('base64url') : ''
+    return {
+      items: selected.map(id => this.state.devices[id]!),
+      nextCursor: low + limit < ids.length ? `${payload}.${sign(payload)}` : null,
+    }
+  }
+  register(descriptor: AccountDeviceDescriptor, account?: string): ReturnType<Store['issue']> {
+    const accountId = this.selectedAccount(account)
+    const old = Object.hasOwn(this.state.devices, descriptor.deviceId) ? this.state.devices[descriptor.deviceId] : undefined
+    if (old && old.accountId !== accountId) throw new ApiError('DEVICE_NOT_FOUND', 404)
     if (old?.revoked) throw new ApiError('DEVICE_REVOKED', 403)
     if (old && (old.descriptor.identityKey !== descriptor.identityKey || old.descriptor.role !== descriptor.role)) throw new ApiError('PEER_IDENTITY_MISMATCH', 409)
-    if (!old && Object.keys(this.state.devices).length >= 256) throw new ApiError('RATE_LIMITED', 429)
-    this.state.devices[descriptor.deviceId] = { descriptor, revoked: false, lastSeenAt: old?.lastSeenAt ?? 0 }
-    this.invalidate(descriptor.deviceId)
-    return this.issue(descriptor.deviceId)
-  }
-  private issue(deviceId: string, refreshTokenExpiresAt = Date.now() + 30 * 86400_000, previous?: { token: string; record: SavedToken }) {
+    if (!old && (this.devicesByAccount.get(accountId)?.size ?? 0) >= 256) throw new ApiError('RATE_LIMITED', 429)
+    const devices = { ...this.state.devices, [descriptor.deviceId]: { descriptor: structuredClone(descriptor), accountId, revoked: false, lastSeenAt: old?.lastSeenAt ?? 0 } }
     const tokens = { ...this.state.tokens }
+    for (const key of this.tokensByDevice.get(descriptor.deviceId) ?? []) delete tokens[key]
+    const result = this.issue(descriptor.deviceId, undefined, undefined, { ...this.state, devices, tokens })
+    let owned = this.devicesByAccount.get(accountId)
+    if (!owned) { owned = new Set(); this.devicesByAccount.set(accountId, owned) }
+    owned.add(descriptor.deviceId)
+    this.reindexAccountDevices(accountId)
+    this.onInvalidate(descriptor.deviceId)
+    return result
+  }
+  private issue(deviceId: string, refreshTokenExpiresAt = Date.now() + 30 * 86400_000, previous?: { token: string; record: SavedToken }, base: State = this.state) {
+    const tokens = { ...base.tokens }
     for (const [key, value] of Object.entries(tokens)) if (value.expires <= Date.now()) delete tokens[key]
     if (Object.keys(tokens).length + 2 > 16384) throw new ApiError('RATE_LIMITED', 429)
     const accessTokenExpiresAt = Date.now() + 60 * 60_000
@@ -75,58 +284,74 @@ export class Store {
     if (previous) tokens[hash(previous.token)] = {
       ...previous.record, used: true, recovery: { nonce, accessExpires: accessTokenExpiresAt },
     }
-    tokens[hash(accessToken)] = { kind: 'access', deviceId, expires: accessTokenExpiresAt, used: false }
-    tokens[hash(refreshToken)] = { kind: 'refresh', deviceId, expires: refreshTokenExpiresAt, used: false }
-    const before = this.state.tokens
-    this.state.tokens = tokens
-    // Commit consumption, recovery metadata and the successor together. A failed
-    // write must leave the previous token usable both in memory and after restart.
-    try { this.save() } catch (error) { this.state.tokens = before; throw error }
+    const accountId = base.devices[deviceId]!.accountId
+    tokens[hash(accessToken)] = { kind: 'access', deviceId, accountId, expires: accessTokenExpiresAt, used: false }
+    tokens[hash(refreshToken)] = { kind: 'refresh', deviceId, accountId, expires: refreshTokenExpiresAt, used: false }
+    // 设备注册、旧令牌消费和后继令牌作为一次事务持久化。
+    this.commit({ ...base, tokens })
+    this.reindexTokens()
     return { accessToken, refreshToken, accessTokenExpiresAt, refreshTokenExpiresAt }
   }
+  private reindexTokens(): void {
+    this.tokensByDevice.clear()
+    for (const [key, record] of Object.entries(this.state.tokens)) {
+      let set = this.tokensByDevice.get(record.deviceId)
+      if (!set) { set = new Set(); this.tokensByDevice.set(record.deviceId, set) }
+      set.add(key)
+    }
+  }
   authenticate(token: string): SavedDevice {
-    const record = this.state.tokens[hash(token)]
+    const digest = hash(token)
+    const record = Object.hasOwn(this.state.tokens, digest) ? this.state.tokens[digest] : undefined
     if (!record || record.kind !== 'access') throw new ApiError('AUTH_INVALID', 401)
     if (record.expires <= Date.now()) throw new ApiError('TOKEN_EXPIRED', 401)
-    return this.get(record.deviceId)
+    const device = this.get(record.deviceId)
+    if (record.accountId !== device.accountId) throw new ApiError('AUTH_INVALID', 401)
+    return device
   }
   refresh(deviceId: string, token: string) {
-    this.get(deviceId)
-    const record = this.state.tokens[hash(token)]
+    const digest = hash(token)
+    const record = Object.hasOwn(this.state.tokens, digest) ? this.state.tokens[digest] : undefined
     if (!record || record.kind !== 'refresh' || record.deviceId !== deviceId) throw new ApiError('AUTH_INVALID', 401)
+    const device = this.get(deviceId)
+    if (record.accountId !== device.accountId) throw new ApiError('AUTH_INVALID', 401)
     if (record.expires <= Date.now()) throw new ApiError('TOKEN_EXPIRED', 401)
     if (!record.used) return this.issue(deviceId, record.expires, { token, record })
-    // Legacy consumed tokens have no recovery record. Reject them without
-    // invalidating credentials that may already be in use by this device.
     if (!record.recovery) throw new ApiError('AUTH_INVALID', 401)
     const pair = successor(token, record.recovery.nonce, deviceId)
     const next = this.state.tokens[hash(pair.refreshToken)]
-    if (!next || next.kind !== 'refresh' || next.deviceId !== deviceId || next.expires !== record.expires) {
+    if (!next || next.kind !== 'refresh' || next.accountId !== device.accountId || next.deviceId !== deviceId || next.expires !== record.expires) {
       throw new ApiError('INTERNAL_ERROR', 503)
     }
     if (next.used) throw new ApiError('AUTH_INVALID', 401)
     const access = this.state.tokens[hash(pair.accessToken)]
-    if (access ? access.kind !== 'access' || access.deviceId !== deviceId || access.expires !== record.recovery.accessExpires
+    if (access ? access.kind !== 'access' || access.accountId !== device.accountId || access.deviceId !== deviceId || access.expires !== record.recovery.accessExpires
       : record.recovery.accessExpires > Date.now()) throw new ApiError('INTERNAL_ERROR', 503)
-    // Return the original expiry, including an expired access bearer. The
-    // recovered, still-valid refresh token can then rotate normally.
     return { ...pair, accessTokenExpiresAt: record.recovery.accessExpires, refreshTokenExpiresAt: next.expires }
   }
   invalidate(deviceId: string): void {
-    for (const [key, value] of Object.entries(this.state.tokens)) if (value.deviceId === deviceId) delete this.state.tokens[key]
+    const tokens = { ...this.state.tokens }
+    for (const key of this.tokensByDevice.get(deviceId) ?? []) delete tokens[key]
+    this.commit({ ...this.state, tokens })
+    this.tokensByDevice.delete(deviceId)
     this.onInvalidate(deviceId)
-    this.save()
   }
-  revoke(id: string): void { this.get(id).revoked = true; this.invalidate(id) }
+  revoke(id: string): void {
+    const device = this.get(id), tokens = { ...this.state.tokens }
+    for (const key of this.tokensByDevice.get(id) ?? []) delete tokens[key]
+    this.commit({ ...this.state, tokens, devices: { ...this.state.devices, [id]: { ...device, revoked: true } } })
+    this.tokensByDevice.delete(id)
+    this.reindexAccountDevices(device.accountId)
+    this.onInvalidate(id)
+  }
   rename(id: string, name: string): void {
-    this.get(id).descriptor.name = name
-    this.save()
+    const device = this.get(id)
+    this.commit({ ...this.state, devices: { ...this.state.devices, [id]: { ...device, descriptor: { ...device.descriptor, name } } } })
   }
   touch(id: string, clientVersion?: string, harnessVersion?: string): void {
-    const d = this.get(id)
-    d.lastSeenAt = Date.now()
-    if (clientVersion) d.descriptor.clientVersion = clientVersion.slice(0, 64)
-    if (d.descriptor.role === 'host' && harnessVersion) d.descriptor.harnessVersion = harnessVersion.slice(0, 64)
-    this.save()
+    const device = this.get(id), descriptor = { ...device.descriptor }
+    if (clientVersion) descriptor.clientVersion = clientVersion.slice(0, 64)
+    if (descriptor.role === 'host' && harnessVersion) descriptor.harnessVersion = harnessVersion.slice(0, 64)
+    this.commit({ ...this.state, devices: { ...this.state.devices, [id]: { ...device, descriptor, lastSeenAt: Date.now() } } })
   }
 }
