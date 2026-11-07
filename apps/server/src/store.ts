@@ -18,6 +18,13 @@ export interface StoreOptions {
    * never disabled by the local-account configuration pass.
    */
   iam?: boolean
+  /**
+   * Allows an existing device to change owner, but only when it re-presents the
+   * same identity public key. Off by default: turning it on trades a strict
+   * "devices never change accounts" rule for a smooth account migration
+   * (e.g. local account -> IAM) without touching server state by hand.
+   */
+  rebind?: boolean
 }
 
 export function validateAccounts(accounts: readonly AccountConfig[], options?: { allowEmpty?: boolean }): AccountConfig[] {
@@ -86,6 +93,7 @@ export class Store {
   private readonly dummySalt = secret()
   private readonly legacyAccount: string | undefined
   private readonly iam: boolean
+  private readonly rebind: boolean
   readonly account: string
   onInvalidate: (id: string) => void = () => {}
   constructor(file: string, account: string, password: string, options?: StoreOptions)
@@ -97,6 +105,7 @@ export class Store {
       ? (explicitOptions ?? {})
       : ((passwordOrOptions as StoreOptions | undefined) ?? {})
     this.iam = options.iam === true
+    this.rebind = options.rebind === true
     const accounts = validateAccounts(legacyInput
       ? [{ account: accountOrAccounts, password: typeof passwordOrOptions === 'string' ? passwordOrOptions : '' }]
       : accountOrAccounts, { allowEmpty: this.iam })
@@ -311,10 +320,14 @@ export class Store {
   register(descriptor: AccountDeviceDescriptor, account?: string): ReturnType<Store['issue']> {
     const accountId = this.selectedAccount(account)
     const old = Object.hasOwn(this.state.devices, descriptor.deviceId) ? this.state.devices[descriptor.deviceId] : undefined
-    if (old && old.accountId !== accountId) throw new ApiError('DEVICE_NOT_FOUND', 404)
+    const previousOwner = old?.accountId
+    if (old && old.accountId !== accountId) {
+      // 同一物理设备换账号只认「设备公钥一致」，否则一律按不存在处理，不暴露归属差异。
+      if (!this.rebind || old.descriptor.identityKey !== descriptor.identityKey) throw new ApiError('DEVICE_NOT_FOUND', 404)
+    }
     if (old?.revoked) throw new ApiError('DEVICE_REVOKED', 403)
     if (old && (old.descriptor.identityKey !== descriptor.identityKey || old.descriptor.role !== descriptor.role)) throw new ApiError('PEER_IDENTITY_MISMATCH', 409)
-    if (!old && (this.devicesByAccount.get(accountId)?.size ?? 0) >= 256) throw new ApiError('RATE_LIMITED', 429)
+    if ((!old || previousOwner !== accountId) && (this.devicesByAccount.get(accountId)?.size ?? 0) >= 256) throw new ApiError('RATE_LIMITED', 429)
     const devices = { ...this.state.devices, [descriptor.deviceId]: { descriptor: structuredClone(descriptor), accountId, revoked: false, lastSeenAt: old?.lastSeenAt ?? 0 } }
     const tokens = { ...this.state.tokens }
     for (const key of this.tokensByDevice.get(descriptor.deviceId) ?? []) delete tokens[key]
@@ -323,6 +336,11 @@ export class Store {
     if (!owned) { owned = new Set(); this.devicesByAccount.set(accountId, owned) }
     owned.add(descriptor.deviceId)
     this.reindexAccountDevices(accountId)
+    // 换账号时必须把旧账号的索引也重建，否则旧账号仍能在自己的列表里看到这台设备。
+    if (previousOwner !== undefined && previousOwner !== accountId) {
+      this.devicesByAccount.get(previousOwner)?.delete(descriptor.deviceId)
+      this.reindexAccountDevices(previousOwner)
+    }
     this.onInvalidate(descriptor.deviceId)
     return result
   }

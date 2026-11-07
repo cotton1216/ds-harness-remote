@@ -91,10 +91,11 @@ afterEach(async () => {
   rmSync(dir, { recursive: true, force: true })
 })
 
-async function start(extra: { accounts?: { account: string; password: string }[]; iamBase?: string } = {}) {
+async function start(extra: { accounts?: { account: string; password: string }[]; iamBase?: string; allowDeviceRebind?: boolean } = {}) {
   const baseUrl = extra.iamBase ?? iam.base
   app = createRemoteServer({
     ...(extra.accounts === undefined ? {} : { accounts: extra.accounts }),
+    ...(extra.allowDeviceRebind === undefined ? {} : { allowDeviceRebind: extra.allowDeviceRebind }),
     iam: parseIamConfig(baseUrl, '5000'),
     dataFile: join(dir, 'state.json'),
     publicUrl: 'http://localhost:8080',
@@ -252,6 +253,53 @@ describe('IAM 身份适配', () => {
     const store = new Store(join(dir, 'state.json'), [{ account: 'local@example.test', password: '{{SECRET_localpwd1}}' }], {})
     expect(() => store.getAccount(`iam:${alice.id}`)).toThrow()
     expect(() => store.authenticate(client.accessToken)).toThrow()
+  })
+})
+
+describe('设备换账号（DSH_ALLOW_DEVICE_REBIND）', () => {
+  // 末位必须是合法的 base64url 32 字节尾字符，否则会被协议 schema 拒绝。
+  const identityKey = `${'B'.repeat(42)}A`
+  async function registerSame(session: string, deviceId: string, key = identityKey) {
+    return call('/devices/register', 'POST', {
+      v: 1,
+      device: { deviceId, identityKey: key, name: 'same-device', role: 'host', platform: 'darwin', clientVersion: '0.6.3' },
+    }, session)
+  }
+
+  it('默认关闭：换账号一律拒绝，且不暴露归属差异', async () => {
+    await start()
+    const [alice, bob] = [iam.users[0]!, iam.users[1]!]
+    const deviceId = randomUUID()
+    const aliceSession = (await signIn(alice)).data.token as string
+    expect((await registerSame(aliceSession, deviceId)).status).toBe(200)
+    const bobSession = (await signIn(bob)).data.token as string
+    const taken = await registerSame(bobSession, deviceId)
+    expect(taken.status).toBe(404)
+    expect(taken.data.error.code).toBe('DEVICE_NOT_FOUND')
+  })
+
+  it('开启后：同一设备公钥可以换账号，旧账号随即看不到它', async () => {
+    await start({ allowDeviceRebind: true })
+    const [alice, bob] = [iam.users[0]!, iam.users[1]!]
+    const deviceId = randomUUID()
+    expect((await registerSame((await signIn(alice)).data.token as string, deviceId)).status).toBe(200)
+
+    const bobSession = (await signIn(bob)).data.token as string
+    expect((await registerSame(bobSession, deviceId)).status).toBe(200)
+    const bobClient = await register(bobSession, 'client', 'bob-phone')
+    expect((await call('/devices', 'GET', undefined, bobClient.accessToken)).data.items.map((item: any) => item.deviceId)).toEqual([deviceId])
+
+    const aliceClient = await register((await signIn(alice)).data.token as string, 'client', 'alice-phone')
+    expect((await call('/devices', 'GET', undefined, aliceClient.accessToken)).data.items).toEqual([])
+  })
+
+  it('开启后：公钥不同的同名 deviceId 仍被拒绝（不能夺取他人设备）', async () => {
+    await start({ allowDeviceRebind: true })
+    const [alice, bob] = [iam.users[0]!, iam.users[1]!]
+    const deviceId = randomUUID()
+    expect((await registerSame((await signIn(alice)).data.token as string, deviceId)).status).toBe(200)
+    const stolen = await registerSame((await signIn(bob)).data.token as string, deviceId, `${'C'.repeat(42)}A`)
+    expect(stolen.status).toBe(404)
   })
 })
 

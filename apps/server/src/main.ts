@@ -28,6 +28,7 @@ const localAccounts = iam && process.env.DSH_SERVER_ACCOUNTS_JSON === undefined 
 const app = createRemoteServer({
   accounts: localAccounts,
   iam,
+  allowDeviceRebind: process.env.DSH_ALLOW_DEVICE_REBIND === '1',
   publicUrl: process.env.DSH_SERVER_PUBLIC_URL ?? `http://localhost:${port}`,
   dataFile: resolve(process.env.DSH_SERVER_DATA_FILE ?? 'data/state.json'),
   trustedProxyIps: (process.env.DSH_SERVER_TRUSTED_PROXY_IPS ?? '').split(',').map(value => value.trim()).filter(Boolean),

@@ -38,6 +38,11 @@ export interface Config {
   ice?: IceConfig
   /** When set, logins are delegated to this IAM deployment instead of local accounts. */
   iam?: IamConfig
+  /**
+   * Allow a device to move to another account when it re-presents the same identity
+   * key. Off by default: only enable it while migrating accounts deliberately.
+   */
+  allowDeviceRebind?: boolean
 }
 
 /**
@@ -166,7 +171,7 @@ export function createRemoteServer(config: Config) {
   if (!['http:', 'https:'].includes(url.protocol) || url.username || url.password || url.pathname !== '/' || url.search || url.hash) throw new Error('DSH_SERVER_PUBLIC_URL must be an HTTP(S) origin.')
   const trustedProxyIps = normalizeTrustedProxyIps(config.trustedProxyIps)
   const ice = config.ice ?? parseIceConfig({})
-  const store = new Store(config.dataFile, accounts, { iam: iam !== undefined })
+  const store = new Store(config.dataFile, accounts, { iam: iam !== undefined, rebind: config.allowDeviceRebind === true })
   const assets = readAssets()
   const sessions = new Map<string, { expires: number; account: string; accountId: string; displayName: string }>()
   const limits = new Map<string, { count: number; until: number }>()
