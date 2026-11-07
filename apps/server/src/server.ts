@@ -7,6 +7,7 @@ import { isIP } from 'node:net'
 import { z } from 'zod'
 import { deviceRegistrationRequestSchema, deviceRefreshRequestSchema } from '@dsh-remote/protocol'
 import { ApiError, Store, hash, secret, validateAccounts, type AccountConfig } from './store.js'
+import { IamError, iamLogin, iamProfile, type IamConfig, type IamUser } from './iam.js'
 import { Gateway } from './gateway.js'
 import { buildIceServers, parseIceConfig, type IceConfig } from './ice.js'
 import { Logger, type LogLevel } from './logger.js'
@@ -35,6 +36,8 @@ export interface Config {
   forceTerminateGraceMs?: number
   logLevel?: LogLevel
   ice?: IceConfig
+  /** When set, logins are delegated to this IAM deployment instead of local accounts. */
+  iam?: IamConfig
 }
 
 /**
@@ -154,14 +157,18 @@ export function clientAddress(req: IncomingMessage, trustedProxyIps: ReadonlySet
 }
 export function createRemoteServer(config: Config) {
   if (config.accounts !== undefined && (config.account !== undefined || config.password !== undefined)) throw new Error('DSH_SERVER_ACCOUNTS_JSON cannot be combined with DSH_SERVER_ACCOUNT or DSH_SERVER_PASSWORD.')
-  const accounts = validateAccounts(config.accounts ?? [{ account: config.account ?? '', password: config.password ?? '' }])
+  const iam = config.iam
+  const accounts = validateAccounts(
+    config.accounts ?? (iam ? [] : [{ account: config.account ?? '', password: config.password ?? '' }]),
+    { allowEmpty: iam !== undefined },
+  )
   const url = new URL(config.publicUrl)
   if (!['http:', 'https:'].includes(url.protocol) || url.username || url.password || url.pathname !== '/' || url.search || url.hash) throw new Error('DSH_SERVER_PUBLIC_URL must be an HTTP(S) origin.')
   const trustedProxyIps = normalizeTrustedProxyIps(config.trustedProxyIps)
   const ice = config.ice ?? parseIceConfig({})
-  const store = new Store(config.dataFile, accounts)
+  const store = new Store(config.dataFile, accounts, { iam: iam !== undefined })
   const assets = readAssets()
-  const sessions = new Map<string, { expires: number; account: string; accountId: string }>()
+  const sessions = new Map<string, { expires: number; account: string; accountId: string; displayName: string }>()
   const limits = new Map<string, { count: number; until: number }>()
   function rate(key: string, max: number) {
     for (const [k, v] of limits) if (v.until < Date.now()) limits.delete(k)
@@ -181,12 +188,50 @@ export function createRemoteServer(config: Config) {
     try { store.getAccount(session.account) } catch { sessions.delete(key); throw new ApiError('ACCOUNT_AUTH_REQUIRED', 401) }
     return session
   }
+  type Identity = { account: string; accountId: string; displayName: string }
+  function openSession(res: ServerResponse, identity: Identity) {
+    for (const [key, session] of sessions) if (session.expires <= Date.now()) sessions.delete(key)
+    if (sessions.size >= 256) throw new ApiError('RATE_LIMITED', 429)
+    const value = secret(), expiresAt = Date.now() + 8 * 3600_000
+    sessions.set(hash(value), { expires: expiresAt, ...identity })
+    res.setHeader('Set-Cookie', cookie(value, 8 * 3600))
+    return { ...profile(identity.account, identity.displayName), token: value, expiresAt }
+  }
+  /** Map an IAM failure onto the relay's own error vocabulary, never echoing IAM's body. */
+  function iamFailure(error: unknown): never {
+    if (error instanceof IamError && error.code === 'AUTH_INVALID') throw new ApiError('AUTH_INVALID', 401)
+    throw new ApiError('IAM_UNAVAILABLE', 503)
+  }
+  /** Owner identity is always derived from the IAM user id, never from client-supplied text. */
+  function iamIdentity(user: IamUser): Identity {
+    const account = `iam:${user.id}`
+    const displayName = user.username.trim() || user.email.trim() || account
+    return { account, accountId: store.ensureIamAccount(account, displayName), displayName }
+  }
+  async function iamFromToken(config: IamConfig, accessToken: string): Promise<Identity> {
+    try { return iamIdentity(await iamProfile(config, accessToken)) } catch (error) { return iamFailure(error) }
+  }
+  /**
+   * Password login. IAM wins when configured; a locally configured account is kept
+   * as a break-glass path so an IAM outage does not lock every operator out. Only
+   * when neither accepts the credentials do we surface the IAM error shape — and we
+   * keep the original IamError, not the local 401, so 401-vs-503 stays meaningful.
+   */
+  async function passwordIdentity(config: IamConfig | undefined, email: string, password: string): Promise<Identity> {
+    const local = (): Identity => ({ account: email, accountId: store.verifyLogin(email, password), displayName: email })
+    if (!config) return local()
+    let failure: unknown
+    try {
+      return iamIdentity((await iamLogin(config, email, password)).user)
+    } catch (error) { failure = error }
+    try { return local() } catch { return iamFailure(failure) }
+  }
   function deviceAuth(req: IncomingMessage) {
     if (!req.headers.authorization?.startsWith('Bearer ')) throw new ApiError('AUTH_REQUIRED', 401)
     return store.authenticate(req.headers.authorization.slice(7))
   }
   function cookie(value: string, age: number): string { return `dsh_session=${value}; Path=/; HttpOnly; SameSite=Strict; Max-Age=${age}${url.protocol === 'https:' ? '; Secure' : ''}` }
-  const profile = (account: string) => ({ account, profile: { displayName: account }, isAdmin: false })
+  const profile = (account: string, displayName = account) => ({ account: displayName, profile: { displayName }, isAdmin: false })
   const server = createServer({ requestTimeout: 15000, headersTimeout: 10000 }, (req, res) => {
     res.setHeader('Cache-Control', 'no-store')
     res.setHeader('X-Content-Type-Options', 'nosniff')
@@ -256,15 +301,19 @@ export function createRemoteServer(config: Config) {
       rate(`login:${client}`, 20)
       const credentials = loginSchema.parse(await body(req))
       const account = credentials.email.trim()
-      const accountId = store.verifyLogin(account, credentials.password)
-      for (const [key, session] of sessions) if (session.expires <= Date.now()) sessions.delete(key)
-      if (sessions.size >= 256) throw new ApiError('RATE_LIMITED', 429)
-      const value = secret(), expiresAt = Date.now() + 8 * 3600_000
-      sessions.set(hash(value), { expires: expiresAt, account, accountId })
-      res.setHeader('Set-Cookie', cookie(value, 8 * 3600))
-      json(res, 200, { ...profile(account), token: value, expiresAt }); return
+      const identity = await passwordIdentity(iam, account, credentials.password)
+      json(res, 200, openSession(res, identity)); return
     }
-    if (method === 'GET' && path === '/api/v1/auth/me') { json(res, 200, profile(accountAuth(req).account)); return }
+    // Token exchange for a caller that already holds an IAM grant (the desktop Host).
+    if (method === 'POST' && path === '/api/v1/auth/iam') {
+      if (!iam) throw new ApiError('METHOD_NOT_FOUND', 404)
+      rate(`iam:${client}`, 60)
+      const { token: accessToken } = z.object({ token: z.string().min(20).max(8192) }).strict().parse(await body(req))
+      json(res, 200, openSession(res, await iamFromToken(iam, accessToken))); return
+    }
+    if (method === 'GET' && path === '/api/v1/auth/me') {
+      const session = accountAuth(req); json(res, 200, profile(session.account, session.displayName)); return
+    }
     if (method === 'POST' && path === '/api/v1/auth/logout') {
       sessions.delete(hash(token(req))); res.setHeader('Set-Cookie', cookie('', 0)); json(res, 200, { status: 'ok' }); return
     }

@@ -11,9 +11,17 @@ export const hash = (value: string): string => createHash('sha256').update(value
 export const secret = (): string => randomBytes(32).toString('base64url')
 export const equal = (left: string, right: string): boolean => timingSafeEqual(Buffer.from(hash(left)), Buffer.from(hash(right)))
 export type AccountConfig = { account: string; password: string; disabled?: boolean }
+export interface StoreOptions {
+  /**
+   * Enables externally authenticated accounts (IAM). Those records carry no
+   * password verifier, are created on first successful identity check and are
+   * never disabled by the local-account configuration pass.
+   */
+  iam?: boolean
+}
 
-export function validateAccounts(accounts: readonly AccountConfig[]): AccountConfig[] {
-  if (!Array.isArray(accounts) || accounts.length === 0) throw new Error('At least one DSH_SERVER account is required.')
+export function validateAccounts(accounts: readonly AccountConfig[], options?: { allowEmpty?: boolean }): AccountConfig[] {
+  if (!Array.isArray(accounts) || (accounts.length === 0 && options?.allowEmpty !== true)) throw new Error('At least one DSH_SERVER account is required.')
   const seen = new Set<string>()
   const normalized = accounts.map((entry) => {
     if (!entry || typeof entry.account !== 'string' || !entry.account.trim() || entry.account.length > 254 ||
@@ -26,7 +34,7 @@ export function validateAccounts(accounts: readonly AccountConfig[]): AccountCon
     seen.add(account)
     return { account, password: entry.password, disabled: entry.disabled ?? false }
   })
-  if (normalized.every(entry => entry.disabled)) throw new Error('At least one enabled DSH_SERVER account is required.')
+  if (normalized.length > 0 && normalized.every(entry => entry.disabled)) throw new Error('At least one enabled DSH_SERVER account is required.')
   return normalized
 }
 
@@ -49,7 +57,11 @@ const tokenSchema = z.object({
 })
 const savedDeviceSchema = z.object({ descriptor: accountDeviceDescriptorSchema, revoked: z.boolean(), lastSeenAt: z.number() })
 const oldStateSchema = z.object({ version: z.literal(1), account: z.string(), salt: z.string(), verifier: z.string(), devices: z.record(z.string(), savedDeviceSchema), tokens: z.record(z.string(), tokenSchema) })
-const accountSchema = z.object({ account: z.string(), salt: z.string(), verifier: z.string(), disabled: z.boolean() })
+const accountSchema = z.object({
+  account: z.string(), salt: z.string(), verifier: z.string(), disabled: z.boolean(),
+  // Defaulted so a v2 file written before IAM support still parses unchanged.
+  kind: z.enum(['local', 'iam']).default('local'), displayName: z.string().optional(),
+})
 const ownedDeviceSchema = savedDeviceSchema.extend({ accountId: z.string().length(64) })
 const ownedTokenSchema = tokenSchema.extend({ accountId: z.string().length(64) })
 const stateSchema = z.object({ version: z.literal(2), accounts: z.record(z.string(), accountSchema), devices: z.record(z.string(), ownedDeviceSchema), tokens: z.record(z.string(), ownedTokenSchema) })
@@ -73,14 +85,22 @@ export class Store {
   private sortedDevices = new Map<string, { all: string[]; host: string[]; client: string[] }>()
   private readonly dummySalt = secret()
   private readonly legacyAccount: string | undefined
+  private readonly iam: boolean
   readonly account: string
   onInvalidate: (id: string) => void = () => {}
-  constructor(file: string, account: string, password: string)
-  constructor(file: string, accounts: readonly AccountConfig[])
-  constructor(private readonly file: string, accountOrAccounts: string | readonly AccountConfig[], password?: string) {
-    const accounts = validateAccounts(typeof accountOrAccounts === 'string'
-      ? [{ account: accountOrAccounts, password: password ?? '' }] : accountOrAccounts)
-    this.legacyAccount = typeof accountOrAccounts === 'string' ? accounts[0]!.account : undefined
+  constructor(file: string, account: string, password: string, options?: StoreOptions)
+  constructor(file: string, accounts: readonly AccountConfig[], options?: StoreOptions)
+  constructor(private readonly file: string, accountOrAccounts: string | readonly AccountConfig[], passwordOrOptions?: string | StoreOptions, explicitOptions?: StoreOptions) {
+    const legacyInput = typeof accountOrAccounts === 'string'
+    // 三参构造沿用 password: string；数组构造的第三个参数是 options。
+    const options: StoreOptions = legacyInput
+      ? (explicitOptions ?? {})
+      : ((passwordOrOptions as StoreOptions | undefined) ?? {})
+    this.iam = options.iam === true
+    const accounts = validateAccounts(legacyInput
+      ? [{ account: accountOrAccounts, password: typeof passwordOrOptions === 'string' ? passwordOrOptions : '' }]
+      : accountOrAccounts, { allowEmpty: this.iam })
+    this.legacyAccount = legacyInput ? accounts[0]!.account : undefined
     this.account = accounts.length === 1 ? accounts[0]!.account : ''
     const original = existsSync(file) ? readFileSync(file) : undefined
     const existing = original ? JSON.parse(original.toString('utf8')) as { version?: unknown } : undefined
@@ -89,7 +109,7 @@ export class Store {
       const accountId = hash(old.account)
       this.state = {
         version: 2,
-        accounts: { [accountId]: { account: old.account, salt: old.salt, verifier: old.verifier, disabled: true } },
+        accounts: { [accountId]: { account: old.account, salt: old.salt, verifier: old.verifier, disabled: true, kind: 'local' as const } },
         devices: Object.fromEntries(Object.entries(old.devices).map(([id, device]) => [id, { ...device, accountId }])),
         tokens: Object.fromEntries(Object.entries(old.tokens).map(([id, record]) => [id, { ...record, accountId }])),
       }
@@ -106,7 +126,8 @@ export class Store {
       if (!Object.hasOwn(this.state.devices, record.deviceId) || this.state.devices[record.deviceId]!.accountId !== record.accountId) throw new Error('Invalid stored token ownership.')
     }
     const previousEnabled = new Set(Object.entries(this.state.accounts).filter(([, entry]) => !entry.disabled).map(([id]) => id))
-    for (const entry of Object.values(this.state.accounts)) entry.disabled = true
+    // IAM 账号不在本地配置里出现，其启用状态只由「是否开启 IAM」决定，不能被这轮配置重置关掉。
+    for (const entry of Object.values(this.state.accounts)) entry.disabled = entry.kind === 'iam' ? !this.iam : true
     for (const entry of accounts) {
       const id = hash(entry.account)
       const previous = this.state.accounts[id]
@@ -117,7 +138,7 @@ export class Store {
           if (record.accountId === id) delete this.state.tokens[key]
         }
       }
-      this.state.accounts[id] = { account: entry.account, salt, verifier, disabled: entry.disabled ?? false }
+      this.state.accounts[id] = { account: entry.account, salt, verifier, disabled: entry.disabled ?? false, kind: 'local' }
     }
     for (const [key, record] of Object.entries(this.state.tokens)) {
       if (this.state.accounts[record.accountId]!.disabled) delete this.state.tokens[key]
@@ -196,12 +217,45 @@ export class Store {
     if (!record || record.disabled) throw new ApiError('AUTH_INVALID', 401)
     return record.account
   }
+  /** Human-readable label for an account id (falls back to the login string). */
+  displayNameOf(accountId: string): string {
+    const record = Object.hasOwn(this.state.accounts, accountId) ? this.state.accounts[accountId] : undefined
+    return record?.displayName ?? record?.account ?? ''
+  }
+  /**
+   * Provision (or look up) an externally authenticated account.
+   *
+   * The caller has already proven the identity against IAM, so this is the only
+   * path that can materialise an account at runtime. The record carries a random
+   * verifier, which makes password login impossible for it by construction.
+   */
+  ensureIamAccount(account: string, displayName?: string): string {
+    if (!this.iam) throw new ApiError('AUTH_INVALID', 401)
+    if (!/^iam:[1-9][0-9]{0,18}$/.test(account)) throw new ApiError('AUTH_INVALID', 401)
+    const id = hash(account)
+    const existing = Object.hasOwn(this.state.accounts, id) ? this.state.accounts[id] : undefined
+    if (existing) {
+      if (existing.disabled || existing.kind !== 'iam') throw new ApiError('AUTH_INVALID', 401)
+      if (displayName !== undefined && displayName !== existing.displayName) {
+        // 只更新展示名，不改动 salt/verifier，避免影响分页游标的签名密钥。
+        this.commit({ ...this.state, accounts: { ...this.state.accounts, [id]: { ...existing, displayName } } })
+      }
+      return id
+    }
+    const record = {
+      account, salt: secret(), verifier: secret(), disabled: false, kind: 'iam' as const,
+      ...(displayName === undefined ? {} : { displayName }),
+    }
+    this.commit({ ...this.state, accounts: { ...this.state.accounts, [id]: record } })
+    return id
+  }
   verifyLogin(account: string, password: string): string {
     const id = hash(account)
     const stored = this.state.accounts[id]
     const candidate = scryptSync(password, stored?.salt ?? this.dummySalt, 32).toString('hex')
     const valid = equal(stored?.verifier ?? '0'.repeat(64), candidate)
-    if (!valid || !stored || stored.disabled || stored.account !== account) throw new ApiError('AUTH_INVALID', 401)
+    // IAM 账号没有口令，必须显式拒绝，不能依赖随机 verifier 的不可能性。
+    if (!valid || !stored || stored.disabled || stored.account !== account || stored.kind === 'iam') throw new ApiError('AUTH_INVALID', 401)
     return id
   }
   get(id: string): SavedDevice {
