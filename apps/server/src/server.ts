@@ -273,6 +273,15 @@ export function createRemoteServer(config: Config) {
     registrationCodes.delete(code)
     return entry.accountId
   }
+  /** Who may mint a pairing code: an account session or an already-authorized device. */
+  function codeIssuerAccount(req: IncomingMessage): string {
+    const bearer = req.headers.authorization?.startsWith('Bearer ') ? req.headers.authorization.slice(7) : undefined
+    if (bearer === undefined) throw new ApiError('AUTH_REQUIRED', 401)
+    // 设备令牌与会话令牌互不通用，先按设备校验，失败再按会话校验。
+    try { return store.authenticate(bearer).accountId } catch { /* 不是设备令牌，下面按账号会话处理 */ }
+    try { return accountAuth(req).accountId } catch { /* 两种都不是 */ }
+    throw new ApiError('AUTH_REQUIRED', 401)
+  }
   function deviceAuth(req: IncomingMessage) {
     if (!req.headers.authorization?.startsWith('Bearer ')) throw new ApiError('AUTH_REQUIRED', 401)
     return store.authenticate(req.headers.authorization.slice(7))  }
@@ -368,11 +377,12 @@ export function createRemoteServer(config: Config) {
       const { items, nextCursor } = store.page(session.account, undefined, paginationCursor(requestUrl), paginationLimit(requestUrl))
       json(res, 200, { items: items.map(descriptor), nextCursor, serverUrl: url.origin, transport: 'webrtc' }); return
     }
-    // 已登录的设备/账号换一个一次性授权码，供另一台设备免口令接入同一账号（M1 绑定）。
+    // 已登录的账号会话、或**已授权的设备**都可以发码。
+    // 设备发码是扫码配对的基础：桌面上只有设备令牌（授权码绑定拿不到账号会话），
+    // 但这台设备本来就属于该账号，它有权再拉一台设备进来。
     if (method === 'POST' && path === '/api/v1/account/registration-codes') {
       rate(`code:${client}`, 10)
-      const session = accountAuth(req)
-      json(res, 200, issueRegistrationCode(session.accountId)); return
+      json(res, 200, issueRegistrationCode(codeIssuerAccount(req))); return
     }
     // 协议既有端点：插件/客户端本来就会调它，只是上游服务端没实现。
     if (method === 'POST' && path === '/api/v1/devices/register-with-code') {

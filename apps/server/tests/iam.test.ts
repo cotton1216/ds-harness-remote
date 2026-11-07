@@ -339,6 +339,29 @@ describe('设备授权码（绑定码）', () => {
     expect((await call('/devices', 'GET', undefined, bobClient.accessToken)).data.items).toEqual([])
   })
 
+  it('已授权的 Host 设备也能发码，且码仍归属于同一账号', async () => {
+    await start()
+    const session = (await signIn(iam.users[0]!)).data.token as string
+    const host = await register(session, 'host', 'alice-host')
+
+    // 桌面端没有账号会话，只有设备令牌；扫码配对依赖这条路径。
+    const issued = await call('/account/registration-codes', 'POST', {}, host.accessToken)
+    expect(issued.status).toBe(200)
+    expect(issued.data.code).toMatch(/^[A-Z0-9]{4}-[A-Z0-9]{4}$/)
+
+    const redeemed = await redeem(issued.data.code as string, 'client')
+    expect(redeemed.status).toBe(200)
+    // 新设备与发码的 Host 同属一个账号，因此能看见它。
+    const devices = await call('/devices', 'GET', undefined, redeemed.data.accessToken)
+    expect(devices.data.items.map((item: any) => item.name)).toContain('alice-host')
+  })
+
+  it('凭无效令牌不能发码', async () => {
+    await start()
+    const result = await call('/account/registration-codes', 'POST', {}, 'not-a-real-token-value')
+    expect(result.status).toBe(401)
+  })
+
   it('未登录不能发码', async () => {
     await start()
     const result = await call('/account/registration-codes', 'POST', {})
