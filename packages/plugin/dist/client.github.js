@@ -3880,11 +3880,11 @@ Minimum version required to store current data is: ` + bestVersion + `.
         };
       }, [open, loginMethod, qrSession, savingServer, serverDirty]);
       let selectLoginMethod = (method) => {
-        loginMethodManuallySelected.current = !0, method !== loginMethod && (method === "pair" && pairingImage === void 0 && startPairing(), qrFlowRun.current += 1, setLoginMethod(method), setQrSession(void 0), setQrImage(void 0), setQrExpired(!1), setError(void 0));
+        loginMethodManuallySelected.current = !0, method === "pair" && startPairing(), method !== loginMethod && (qrFlowRun.current += 1, setLoginMethod(method), setQrSession(void 0), setQrImage(void 0), setQrExpired(!1), setError(void 0));
       }, orderedQrProviders = [...oauthProviders].sort((a, b) => +(b.id === props.preferredQrProvider) - +(a.id === props.preferredQrProvider)), selectedProvider = oauthProviders.find((item) => `oauth:${item.id}` === loginMethod), scanLabel = t("scanWithProvider", { provider: selectedProvider?.displayName ?? "" }), pairVisible = !savingServer && !serverDirty && loginMethod === "pair";
       React.useEffect(() => {
-        !pairVisible || pairing !== void 0 || pairingBusy || startPairing();
-      }, [pairVisible, pairing, pairingBusy]);
+        !open || !pairVisible || pairingBusy || pairingError !== void 0 || pairing !== void 0 && !pairingExpired || startPairing();
+      }, [open, pairVisible, pairing, pairingExpired, pairingBusy, pairingError]);
       let passwordVisible = !savingServer && !serverDirty && loginMethod === "password" && (loginMethodManuallySelected.current || !providersLoading && !providersFailed && oauthProviders.length === 0), qrLoginTab = (provider) => React.createElement("button", {
         key: provider.id,
         type: "button",
