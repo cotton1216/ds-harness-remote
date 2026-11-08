@@ -150,7 +150,22 @@ IAM 签发一次性 `code` 时只认谜题；换票方必须出示答案，IAM �
 | `tool/l10n_merge.py` + `flutter gen-l10n` | 47 个 part / 5479 key 校验通过，中英文案重新生成 |
 | `flutter build ios --simulator --debug --no-codesign --no-pub` | **通过**（`Runner.app`），Swift 深链通道编译无误；真机签名与系统浏览器回跳仍需实机验收 |
 | `flutter build apk --debug --flavor arm64 --target-platform android-arm64 --no-pub` | **通过**，产出 `app/build/app/outputs/flutter-apk/app-arm64-debug.apk`，已带 `DSH_DEFAULT_RELAY` 指向测试中继，可直接装到 Android 设备 |
-| 真机完整登录 | **未做**：线上中继尚未注入 OIDC 配置（现在点登录会提示「中继尚未配置 IAM 单点登录」），且需要 `xubinbin` 本人在系统浏览器输入口令 |
+| 真机完整登录 | **未做**：线上中继尚未注入 OIDC 配置（回跳换票会提示「中继尚未配置 IAM 单点登录」），且需要 `xubinbin` 本人在系统浏览器输入口令 |
+
+### 8.4 真机联调修复：Android 深链回跳丢失（2026-11-08 下午）
+
+在开发测试机（`M2102K1AC` / HyperOS 2.0 / Android 14）上首次真机点 IAM 登录时发现：系统浏览器输完账密回到 App 后，页面一直停在「IAM 账号登录」，反复点「重新发起登录 / 在系统浏览器中继续登录」只会来回跳转，5 分钟后显示「等待登录超时，请重新发起」。**这不是 OIDC 参数或中继配置问题，是 App 的 Android 深链通道整体失效**：连自带的 `dshgo://open/forum`、故意不存在的 `dshgo://nobody-xyz/nope`（本应弹「无法打开这个链接」）都毫无反应。该缺陷早于本次 OIDC 改造存在。
+
+两个根因与修复（`dsh-Go` 提交 `8bf626a`）：
+
+| # | 根因 | 证据 | 修复 |
+|---|---|---|---|
+| 1 | `LinkTrampolineActivity` 的 `NEW_TASK \| CLEAR_TOP \| SINGLE_TOP` 在该 OEM 上让 ActivityStarter 返回 `START_TASK_TO_FRONT (2)`，只把 task 前置，不派发 `NewIntentListener` | logcat 中 `START ... dat=dshgo://auth/... → LinkTrampolineActivity` 后转 MainActivity 为 `result code=2`；直接投 MainActivity 为 `result code=3` | 去掉 `CLEAR_TOP`；`MainActivity.onNewIntent` 增加 `LinksPlugin.deliverFromHost(intent)` 兜底，按 intent identity 去重 |
+| 2 | `LinksPlugin.ready` 恒为 false，链接全部堆在原生 `pending`；Dart 的 `AppLinks` 只在 home_shell 挂载时懒创建，`_ready()` 单次调用失败被静默吞掉 | 日志 `deliver ready=false event={uri=...}`；走完首次引导进入 home_shell 后才出现 `ready: flushing` | `AppLinks._ready()` 重试 8 次 × 250ms，并加全链路 `DshLinks` 诊断日志 |
+
+**验证**：`flutter analyze --no-pub` 0 issues；重出 `1.0.9+11081258` arm64 debug 包（仍带 `DSH_DEFAULT_RELAY`），真机上发 `dshgo://open/forum` 得到 `deliver ready=true → native link → arrived`，论坛页正常打开。冷启动回跳仍走原生 `pending` → `ready` flush 的既有机制；App 在浏览器期间被回收会按设计提示「登录已中断，请重新发起」（`code_verifier` 只在内存）。
+
+> 排障注意：`am force-stop` 会让该 App 回到 4 步首次引导，引导期间 home_shell 未挂载、`ready` 不会到达，别据此误判深链仍坏。
 
 > 运行 dsh-Go 的 Flutter 测试需要 `DSH_TEST_FONT_DIR=/Users/binny/dev/fonts/noto-cjk`，并清掉 `HTTP(S)_PROXY`（否则 `flutter_tester` 的本地 WebSocket 被代理拦截）。这只是本机环境，不是代码约束。
 
