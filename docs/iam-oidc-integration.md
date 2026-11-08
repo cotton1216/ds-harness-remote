@@ -2,7 +2,7 @@
 
 > 对接信息由企业 IAM 管理员于 2026-11-08 提供；同日完成端点连通性与服务端换票链路实测，并按约定改造了手机端登录链路。
 > **本文档不包含任何 `client_secret` 或令牌**，密钥只存在于中继服务器的运行环境变量中。
-> 当前状态：**服务端与 IAM 的链路已打通（含本地实际起服务验证）、手机端已改造并通过静态与单元校验**；**线上中继尚未注入 OIDC 配置，真实账号完整登录尚未验收**（见 §8、§9）。
+> 当前状态：**服务端 ↔ IAM 链路、手机端 OIDC 授权与深链回跳链路均已在真机闭环**（2026-11-08 下午，见 §8.4 / §8.5）；**唯一阻塞是线上中继尚未注入 OIDC 配置** —— 真机换票返回 404 `METHOD_NOT_FOUND`，App 按预期提示「中继尚未配置 IAM 单点登录」。真实 `id_token` 验签与 Host/Client 发现待运维配置完成后验收（§9）。
 
 ## 1. 对接参数
 
@@ -129,7 +129,7 @@ IAM 签发一次性 `code` 时只认谜题；换票方必须出示答案，IAM �
 | # | 项 | 改造前 | 改造后 |
 |---|---|---|---|
 | 1 | `redirectUri` | `http://127.0.0.1:8765/callback` | 常量 `iamOidcRedirectUri = 'dshgo://auth/callback'`，授权请求与换票请求共用，逐字一致、不附加 query |
-| 2 | 登录容器 | `webview_flutter` + `HttpServer.bind(127.0.0.1, 8765)` | `url_launcher` 的 `LaunchMode.externalApplication` 打开系统浏览器（iOS Safari / Android 浏览器或 Custom Tabs）；WebView 与回环监听整体删除，页面改为状态页 + 「在系统浏览器中继续登录」按钮 |
+| 2 | 登录容器 | `webview_flutter` + `HttpServer.bind(127.0.0.1, 8765)` | 外部系统浏览器：Android 由 `dsh/app` 原生通道优先交给 Chromium 内核浏览器（见 §8.5），无该通道时回退 `url_launcher` 的 `LaunchMode.externalApplication`；iOS 直接用系统 Safari。WebView 与回环监听整体删除，页面改为状态页 + 「在系统浏览器中继续登录」按钮 |
 | 3 | Android 回跳 | 原生已注册 `dshgo`，Dart 侧缺路由 | 复用 `LinkTrampolineActivity` → `LinksPlugin`（`dsh/links`）；新增常驻 `IamLinkHost` 注册 `auth/callback` handler，只吃 IAM 回跳，不吞分享码/页面链接；`flutter_deeplinking_enabled=false` 保持不变，避免重复投递 |
 | 4 | iOS 回跳 | **完全接不住**：无 URL Scheme，也没有原生投递通道 | `Info.plist` 加 `CFBundleURLTypes`（`dshgo`）；`AppDelegate.swift` 新增 `DshLinksChannel`（与 Android 同契约：`ready` 之前缓冲、之后推 `link`，双入口按 URL 去重）；`SceneDelegate.swift` 接 `openURLContexts`，AppDelegate 的 `application(_:open:options:)` 兜底 |
 | 5 | 编译参数 | `DSH_IAM_OIDC_CLIENT_ID` 默认空，不带就登录不了 | 默认 `dsh-remote-mobile`（公开标识，不是密钥），仍可用 dart-define 覆盖；issuer 默认已是管理员给的值 |
@@ -139,7 +139,7 @@ IAM 签发一次性 `code` 时只认谜题；换票方必须出示答案，IAM �
 
 保留不改：成功回跳的 `state` 校验、PKCE S256、换票四参数（`code` / `codeVerifier` / `redirectUri` / `nonce`）、404 与无效码的不同提示。
 
-**与 RFC 8252 的取舍**：本次用 `externalApplication` 打开系统浏览器，没有引入 `ASWebAuthenticationSession` / Custom Tabs SDK（会新增依赖与 iOS 构建面）。系统浏览器同样满足「不在 App 内 WebView 里输入企业口令」，SSO 会话走系统浏览器；后续若要更贴合 RFC 8252，可在不动服务端与回跳协议的前提下只替换打开方式。
+**与 RFC 8252 的取舍**：全程用外部系统浏览器，不引入 `ASWebAuthenticationSession` / Custom Tabs SDK（会新增依赖与 iOS 构建面）。同样满足「不在 App 内 WebView 里输入企业口令」，SSO 会话保存在系统浏览器；Android 只是额外指定用哪个系统浏览器（§8.5），不改变回跳协议与服务端。后续若要更贴合 RFC 8252，可只替换打开方式。
 
 ### 8.3 改造后的验证（2026-11-08）
 
@@ -150,7 +150,7 @@ IAM 签发一次性 `code` 时只认谜题；换票方必须出示答案，IAM �
 | `tool/l10n_merge.py` + `flutter gen-l10n` | 47 个 part / 5479 key 校验通过，中英文案重新生成 |
 | `flutter build ios --simulator --debug --no-codesign --no-pub` | **通过**（`Runner.app`），Swift 深链通道编译无误；真机签名与系统浏览器回跳仍需实机验收 |
 | `flutter build apk --debug --flavor arm64 --target-platform android-arm64 --no-pub` | **通过**，产出 `app/build/app/outputs/flutter-apk/app-arm64-debug.apk`，已带 `DSH_DEFAULT_RELAY` 指向测试中继，可直接装到 Android 设备 |
-| 真机完整登录 | **未做**：线上中继尚未注入 OIDC 配置（回跳换票会提示「中继尚未配置 IAM 单点登录」），且需要 `xubinbin` 本人在系统浏览器输入口令 |
+| 真机端到端 | **已走到换票并拿到明确结果**：`1.0.9+11081315` 装在开发机后，点 IAM 登录 → 系统浏览器打开 → 立即回跳 `dshgo://auth/callback?code=…&state=…` → `LinkTrampolineActivity` 投递成功 → App 换票 → 中继 404 → 页面显示「中继尚未配置 IAM 单点登录，请联系管理员。」（§8.5）。**App 侧全通**；线上中继未注入 OIDC 配置是唯一阻塞 |
 
 ### 8.4 真机联调修复：Android 深链回跳丢失（2026-11-08 下午）
 
@@ -169,6 +169,32 @@ IAM 签发一次性 `code` 时只认谜题；换票方必须出示答案，IAM �
 
 > 运行 dsh-Go 的 Flutter 测试需要 `DSH_TEST_FONT_DIR=/Users/binny/dev/fonts/noto-cjk`，并清掉 `HTTP(S)_PROXY`（否则 `flutter_tester` 的本地 WebSocket 被代理拦截）。这只是本机环境，不是代码约束。
 
+### 8.5 真机联调修复：默认浏览器夸克白板（2026-11-08 下午）
+
+深链修好后再测，出现新现象：点「IAM 账号登录」跳到系统默认浏览器**夸克**，整页纯白、地址栏是正确的 authorize URL，没有任何表单或报错，用户没法输入账密。
+
+定位过程（与 IAM 参数无关）：
+
+| 检查 | 结果 |
+|---|---|
+| 从 `dumpsys activity activities` 取出浏览器收到的完整 URL | `client_id` / `redirect_uri` / `scope` / `state` / `nonce` / `code_challenge` 全部正确，与 §3 一致 |
+| `curl -k --noproxy '*'` 直接请求该 URL | `302` → `/iam/sso/login?redirect=…&appCode=mcp-gateway&tenantCode=xxt`；跟随重定向得到 `200 text/html`（1561 字节） |
+| SSO 页面内容 | Vue SPA 骨架，渲染依赖 `/iam/static/js/index-*.js`（ES module + `crossorigin`）与两个 CSS；这些静态资源逐个 curl 均 `200`，大小 1.1MB / 1.0MB / 692KB |
+| 对照：`am start -a VIEW -d <同一 URL> -p com.android.chrome` | **Chrome 正常显示**「欢迎回来 / 用户名 / 密码 / 进入工作台」 |
+| 设备默认浏览器 | `cmd package resolve-activity` 指向 `com.quark.browser/com.ucpro.MainActivity`；日志里夸克以 `LAUNCH_SINGLE_TASK` 复用 task（`result code=3`） |
+
+结论：**夸克内核渲染不了 IAM 的 Vue 登录页**，白板既不是 URL 拼错，也不是 IAM 服务或中继的问题。
+
+修复（`dsh-Go` 提交 `4ab1150`）：
+
+- `MainActivity` 的既有 `dsh/app` 通道新增 `openSignInBrowser(url)`：按 `com.android.chrome` → Beta / Dev → Edge 的顺序 `setPackage` 显式打开**外部系统浏览器**；都不存在才回退系统默认。仍是浏览器而非 WebView，OIDC 安全属性不变，回跳继续走 `dshgo://` 深链。
+- `IamLoginPage._launchBrowser()` 先调该通道；`MissingPluginException` / `PlatformException` / 返回 false 时回退 `url_launcher` 的 `LaunchMode.externalApplication`。iOS、桌面、widget 测试不受影响，仍用系统 Safari / 原行为。
+- 收到回跳时调用项目已有的 `appForegroundProvider`（`dsh/app bringToFront`），把结果页从浏览器上方带回前台，避免「换票其实结束了但仍停在浏览器」。
+
+**验证**（`1.0.9+11081315`，仍带 `DSH_DEFAULT_RELAY` 指向测试中继）：`flutter analyze --no-pub` 0 issues、IAM 单测 13/13；真机点登录后日志依次是 `START … cmp=com.android.chrome/…ChromeTabbedActivity` → `START … dat=dshgo://auth/… cmp=…LinkTrampolineActivity` → MainActivity 转发 + `bringToFront`，App 显示「中继尚未配置 IAM 单点登录，请联系管理员。」—— 白板与来回跳转都消失，App 侧链路闭环。
+
+> 两条真机注意：① MIUI 首次会弹「启动应用：如意 AI 想要打开 Chrome，是否允许?」，点一次「始终允许」即可，这是显式跨应用启动的链式启动确认；② 浏览器里已有 SSO 会话时，authorize 会**立刻 302 回跳**而不再显示表单，看到浏览器一闪而过属正常；会话失效后才会要求 `xubinbin` 本人输入口令（该表单已在 Chrome 中确认可正常显示）。
+
 ## 9. 联调步骤（代码侧已完成，剩运维与真机）
 
 1. ~~按 §8.2 改造手机端~~ —— 2026-11-08 已完成，静态验证见 §8.3。
@@ -182,7 +208,7 @@ IAM 签发一次性 `code` 时只认谜题；换票方必须出示答案，IAM �
    # iOS：cd dsh-Go/app && flutter build ios --dart-define=DSH_DEFAULT_RELAY=https://118.196.18.181:8443
    ```
    直接 `flutter build apk` 不带 flavor 会因项目自定义 buildDir + ABI 分包报「Gradle 没有产出 .apk」（Gradle 其实产出了 `app-arm64-debug.apk`）；`--split-per-abi` 又与 `android/build.gradle.kts` 的 ndk abiFilters 冲突。两者都是既有构建配置，与 OIDC 无关。也可以在 App 的「连接如意 AI」里直接改中继地址，自建 IAM 再覆盖 `DSH_IAM_OIDC_ISSUER` / `DSH_IAM_OIDC_CLIENT_ID`。
-5. 用系统浏览器以 `xubinbin` 登录 → 回跳 `dshgo://auth/callback` → 换票 → 注册设备 → 验证 Host / Client 互相发现。口令由本人在系统浏览器输入，不代填、不索取。
+5. 用系统浏览器以 `xubinbin` 登录 → 回跳 `dshgo://auth/callback` → 换票 → 注册设备 → 验证 Host / Client 互相发现。口令由本人在系统浏览器输入，不代填、不索取；浏览器已有 SSO 会话时会直接回跳（§8.5），要重走账密输入需先退出 IAM 会话。Android 上授权页由 App 交给 Chromium 内核浏览器，首次可能需点一次「始终允许」。
 6. 验收点：`id_token` 本地验签通过（`iss` / `aud` / `nonce`）；`error=access_denied` 显示「没有权限」；`state` 不匹配的中止换票；iOS / Android 都能接住回跳；中继日志无密钥泄露。
 
 ## 10. 安全约束（硬约束）
