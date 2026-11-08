@@ -195,13 +195,13 @@ IAM 签发一次性 `code` 时只认谜题；换票方必须出示答案，IAM �
 
 > 两条真机注意：① MIUI 首次会弹「启动应用：如意 AI 想要打开 Chrome，是否允许?」，点一次「始终允许」即可，这是显式跨应用启动的链式启动确认；② 浏览器里已有 SSO 会话时，authorize 会**立刻 302 回跳**而不再显示表单，看到浏览器一闪而过属正常；会话失效后才会要求 `xubinbin` 本人输入口令（该表单已在 Chrome 中确认可正常显示）。
 
-## 9. 联调步骤（代码侧已完成，剩运维与真机）
+## 9. 联调步骤（中继侧已完成，剩真机端到端）
 
 1. ~~按 §8.2 改造手机端~~ —— 2026-11-08 已完成，静态验证见 §8.3。
-2. **待办（运维）**：中继服务器注入三个 `DSH_IAM_OIDC_*` 环境变量并重启（服务端**不自动读** `.env`，需 `node --env-file=.env dist/main.js` 或容器注入）。`client_secret` 只从密钥渠道取，不写进文件、命令行历史或日志。
-   - **Docker Compose 部署注意**：`apps/server/compose.yaml` 的 `environment:` 是白名单，只透传列出的变量。2026-11-08 已补上这三个键；线上若用的是更早的 compose 文件，光在 `.env` 里填值容器也收不到，必须同步更新 compose 并执行 `docker compose up -d --force-recreate`（重建容器才会重新读环境变量）。
+2. ~~**待办（运维）**：中继服务器注入三个 `DSH_IAM_OIDC_*` 环境变量并重启~~ —— **2026-11-08 14:12 已完成**，过程见 §9.1。注意线上原镜像不含 OIDC 代码，**只加变量重启无效，必须替换镜像**。
+   - **Docker Compose 部署注意**：`apps/server/compose.yaml` 的 `environment:` 是白名单，只透传列出的变量。2026-11-08 已补上这三个键；线上若用的是更早的 compose 文件，光在 `.env` 里填值容器也收不到，必须同步更新 compose 并执行 `docker compose up -d --force-recreate`（重建容器才会重新读环境变量）。当前线上是裸 `docker run`，不走 compose。
    - 配置落在**中继服务端进程**，不是 IAM、也不是手机 App。「请联系管理员」指的是**这台中继的部署者**；自建中继就是自己，无需再找 IAM 管理员。IAM 侧（client 注册、回调白名单、账号权限、`client_secret` 发放）已全部完成。
-3. **待办（验收）**：确认 `POST /api/v1/auth/iam/oidc` 不再返回 404（GET 同路径仍应 404）。
+3. ~~**待办（验收）**：确认 `POST /api/v1/auth/iam/oidc` 不再返回 404~~ —— **已完成**：POST 由 404 `METHOD_NOT_FOUND` 变为 400 `INVALID_MESSAGE`，GET 同路径仍 404，`/healthz` 200；直连 `127.0.0.1:18081` 与经 Nginx `8443` 结果一致。
 4. 构建手机端。`client_id` / `issuer` 已有管理员给的默认值，联调只需把中继指到测试机；**Android 必须走仓库出包脚本**（它带 `--flavor` / `--target-platform`）：
    ```sh
    cd dsh-Go
@@ -212,6 +212,26 @@ IAM 签发一次性 `code` 时只认谜题；换票方必须出示答案，IAM �
    直接 `flutter build apk` 不带 flavor 会因项目自定义 buildDir + ABI 分包报「Gradle 没有产出 .apk」（Gradle 其实产出了 `app-arm64-debug.apk`）；`--split-per-abi` 又与 `android/build.gradle.kts` 的 ndk abiFilters 冲突。两者都是既有构建配置，与 OIDC 无关。也可以在 App 的「连接如意 AI」里直接改中继地址，自建 IAM 再覆盖 `DSH_IAM_OIDC_ISSUER` / `DSH_IAM_OIDC_CLIENT_ID`。
 5. 用系统浏览器以 `xubinbin` 登录 → 回跳 `dshgo://auth/callback` → 换票 → 注册设备 → 验证 Host / Client 互相发现。口令由本人在系统浏览器输入，不代填、不索取；浏览器已有 SSO 会话时会直接回跳（§8.5），要重走账密输入需先退出 IAM 会话。Android 上授权页由 App 交给 Chromium 内核浏览器，首次可能需点一次「始终允许」。
 6. 验收点：`id_token` 本地验签通过（`iss` / `aud` / `nonce`）；`error=access_denied` 显示「没有权限」；`state` 不匹配的中止换票；iOS / Android 都能接住回跳；中继日志无密钥泄露。
+
+### 9.1 线上中继切换记录（2026-11-08 14:12）
+
+- **前提**：线上原镜像 `dsh-relay-multi:0.7.1` 的 `dist/` 里 `iam/oidc` 出现 0 次，只注入环境变量重启不会注册路由。新镜像 `dsh-relay-multi:0.8.0-oidc` 由 `apps/server/Dockerfile` 本地 buildx（`--platform linux/amd64`）构建，再 `docker save | ssh docker load` 传到服务器。
+- **切换脚本**：服务器 `/root/dsh-relay-multi/switch-to-oidc.sh`（权限 700，脚本内不含任何密钥）。三个子命令：`check`（免密钥自检）、`switch`（默认）、`rollback`。它用 Docker Go template 的 NUL 分隔完整继承旧容器环境变量，停旧容器并改名 `dsh-relay-multi-pre-oidc` 保留，再以同名、同端口 `127.0.0.1:18081:8080`、同卷 `dsh-relay-multi-data:/data`、同 `--restart unless-stopped` 启动新容器；等 healthy 后验收 `/healthz=200`、POST 非 404、GET 404、日志不含密钥，任一失败自动回滚。
+  > 不要用 `{{println .}}` + 按行读环境变量：`docker inspect --format` 会在输出末尾补一个换行，凭空多出一条空记录。
+- **`client_secret` 注入方式**：部署者交互式 `read -rsp`（不回显、不进命令行历史、不生成 `oidc.env`），只存在于容器进程环境；也可改用 0600 的 `oidc.env` + `--env-file`。`docker restart` 不受影响，但**删除并重建容器会丢失配置**，需重新注入。
+- **凭据正确性验证**：在容器内由 Node 从 `process.env` 读密钥，用无效授权码请求 IAM token 端点，返回 `400 invalid_grant`（而非 `invalid_client`），证明 client 认证通过、`client_secret` 正确；全过程不打印密钥、Basic 头或令牌。
+
+| 复核项 | 结果 |
+|---|---|
+| 容器 | `dsh-relay-multi` = `0.8.0-oidc` Up healthy；备份 `dsh-relay-multi-pre-oidc` = `0.7.1` Exited(0) |
+| OIDC 环境变量 | `DSH_IAM_OIDC_ISSUER` / `CLIENT_ID` / `CLIENT_SECRET` 三个键齐备（值不落文档、日志） |
+| `POST /api/v1/auth/iam/oidc` | 18081 = 400，8443 = 400（切换前两者均 404 `METHOD_NOT_FOUND`） |
+| `GET` 同路径 | 404 |
+| `/healthz` | 18081 = 200，8443 = 200 |
+| 中继日志 | 未发现 `client_secret` |
+| 443 上 `dsh-relay-server-1` | Up healthy，不受影响 |
+
+- 回滚：`ssh root@118.196.18.181 '/root/dsh-relay-multi/switch-to-oidc.sh rollback'`（回滚后 OIDC 会恢复 404，符合预期）。
 
 ## 10. 安全约束（硬约束）
 
