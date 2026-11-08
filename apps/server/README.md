@@ -92,9 +92,9 @@ Open <http://localhost:8080>. Set the same Server URL on your Host and Client, t
 
 ## IAM OIDC sign-in
 
-`POST /api/v1/auth/iam/oidc` is registered only when all three `DSH_IAM_OIDC_*` variables are non-empty; with any missing, it returns 404. The mobile app sends just a one-time `code`, the PKCE `codeVerifier`, `redirectUri` and `nonce`; the Server exchanges the code with `client_secret`, verifies the `id_token` locally and uses `sub` as the account key. Full setup notes and mobile build flags are in [`.env.example`](.env.example).
+`POST /api/v1/auth/iam/oidc` is registered only when all three `DSH_IAM_OIDC_*` variables are non-empty; with any missing, it returns 404. The mobile app sends just a one-time `code`, the PKCE `codeVerifier`, `redirectUri` and `nonce`; the Server exchanges the code with `client_secret`, verifies the `id_token` locally and uses `sub` as the account key. Full setup notes and mobile build flags are in [`.env.example`](.env.example). Endpoints, integration parameters, probe results and the remaining mobile-side gaps are in the [IAM OIDC integration guide](../../docs/iam-oidc-integration.md).
 
-- Register `http://127.0.0.1:8765/callback` as an allowed `redirect_uri` in IAM (RFC 8252 loopback; the port is fixed).
+- Register `dshgo://auth/callback` as an allowed `redirect_uri` in IAM — **exact match**, no extra query string. Open the authorization page in the system browser and handle both `?code=...&state=...` and `?error=access_denied&state=...` callbacks. The current mobile build still uses an in-app WebView with `http://127.0.0.1:8765/callback` and **must be updated before sign-in works** (see §8.2 of the integration guide).
 - Build the mobile app with `--dart-define=DSH_IAM_OIDC_ISSUER=<same issuer>` and `--dart-define=DSH_IAM_OIDC_CLIENT_ID=<same client id>`; an empty client id makes the app show a "not configured" state instead of the sign-in page.
 - `client_secret` lives only in the Server's environment. Never send it to the mobile app.
 - Enabling OIDC alone does **not** remove the local account: unless `DSH_IAM_BASE` is also configured, keep `DSH_SERVER_ACCOUNT` / `DSH_SERVER_PASSWORD` populated.
