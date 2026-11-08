@@ -1,8 +1,8 @@
 # 企业 IAM OIDC 对接说明（如意 AI 手机客户端）
 
-> 对接信息由企业 IAM 管理员于 2026-11-08 提供；同日完成端点连通性与服务端换票链路实测。
+> 对接信息由企业 IAM 管理员于 2026-11-08 提供；同日完成端点连通性与服务端换票链路实测，并按约定改造了手机端登录链路。
 > **本文档不包含任何 `client_secret` 或令牌**，密钥只存在于中继服务器的运行环境变量中。
-> 当前状态：**服务端与 IAM 的链路已打通（含本地实际起服务验证），线上中继尚未配置；手机端登录链路尚未改造**（见 §8、§9）。
+> 当前状态：**服务端与 IAM 的链路已打通（含本地实际起服务验证）、手机端已改造并通过静态与单元校验**；**线上中继尚未注入 OIDC 配置，真实账号完整登录尚未验收**（见 §8、§9）。
 
 ## 1. 对接参数
 
@@ -122,34 +122,59 @@ IAM 签发一次性 `code` 时只认谜题；换票方必须出示答案，IAM �
 - `client_secret` 只从服务端环境变量读取，手机端全程不接触。
 - 单测 `apps/server/tests/iam-oidc.test.ts`：10/10 通过（本地假 IdP + 自签 RS256）。
 
-### 8.2 手机端：存在冲突，尚未改造
+### 8.2 手机端：2026-11-08 已按约定改造
 
-仓库 `dsh-Go`（分支 `ios-ruyi-handoff`）当前实现是「App 内 WebView + 回环端口」，与本次 IAM 约定的「系统浏览器 + 自定义 scheme」不同，**按现状点击 IAM 登录必然失败**：
+仓库 `dsh-Go`（分支 `ios-ruyi-handoff`）。改造前是「App 内 WebView + 回环端口」，与管理员约定的「系统浏览器 + 自定义 scheme」冲突，点 IAM 登录必然失败；下表是**改造后**状态：
 
-| # | 项 | 当前实现 | 要求 | 影响 |
-|---|---|---|---|---|
-| 1 | `redirectUri` | `IamLoginPage.redirectUri = http://127.0.0.1:8765/callback` | `dshgo://auth/callback`，一字不差 | IAM 拒绝授权请求（`invalid_redirect_uri`） |
-| 2 | 登录容器 | `webview_flutter` + `HttpServer.bind(127.0.0.1, 8765)` 接回跳 | 系统浏览器 / `ASWebAuthenticationSession` / Custom Tabs | 与管理员约定不符；WebView 无法承载 `dshgo://` 回跳 |
-| 3 | Android scheme | **已注册**：`LinkTrampolineActivity` 的 `VIEW/BROWSABLE` intent-filter 收全部 `dshgo://`，`LinksPlugin.take()` 原样把 URI 投递到 Dart | Dart 侧订阅深链并识别 `/auth/callback`，不要被分享码解析逻辑吞掉 | 原生链路可复用，缺 Dart 侧路由；`MainActivity` 有 `flutter_deeplinking_enabled=false`，需评估是否改用现有 Channel |
-| 4 | iOS scheme | `Info.plist` 无 `CFBundleURLTypes` | 注册 `dshgo` URL Scheme | iOS 完全接不住回跳 |
-| 5 | 编译参数 | `DSH_IAM_OIDC_ISSUER` 默认已是 `https://ai.thchengtay.com/iam`；`DSH_IAM_OIDC_CLIENT_ID` **默认空** | 构建时带 `--dart-define=DSH_IAM_OIDC_CLIENT_ID=dsh-remote-mobile` | 不带该参数时登录页直接显示「未配置」，release 下相关代码还会被 tree-shaking 剔除 |
-| 6 | 中继地址 | 默认 `https://dsh.r2049.cn` | 联调指向测试中继 | 换票会发错服务器；用 `DSH_DEFAULT_RELAY` 或在 App 内改地址 |
-| 7 | 失败回跳 | `_fail(error_description ?? error)`，界面显示 `access_denied` 原文 | 提示「没有权限」 | 文案不符合要求 |
+| # | 项 | 改造前 | 改造后 |
+|---|---|---|---|
+| 1 | `redirectUri` | `http://127.0.0.1:8765/callback` | 常量 `iamOidcRedirectUri = 'dshgo://auth/callback'`，授权请求与换票请求共用，逐字一致、不附加 query |
+| 2 | 登录容器 | `webview_flutter` + `HttpServer.bind(127.0.0.1, 8765)` | `url_launcher` 的 `LaunchMode.externalApplication` 打开系统浏览器（iOS Safari / Android 浏览器或 Custom Tabs）；WebView 与回环监听整体删除，页面改为状态页 + 「在系统浏览器中继续登录」按钮 |
+| 3 | Android 回跳 | 原生已注册 `dshgo`，Dart 侧缺路由 | 复用 `LinkTrampolineActivity` → `LinksPlugin`（`dsh/links`）；新增常驻 `IamLinkHost` 注册 `auth/callback` handler，只吃 IAM 回跳，不吞分享码/页面链接；`flutter_deeplinking_enabled=false` 保持不变，避免重复投递 |
+| 4 | iOS 回跳 | **完全接不住**：无 URL Scheme，也没有原生投递通道 | `Info.plist` 加 `CFBundleURLTypes`（`dshgo`）；`AppDelegate.swift` 新增 `DshLinksChannel`（与 Android 同契约：`ready` 之前缓冲、之后推 `link`，双入口按 URL 去重）；`SceneDelegate.swift` 接 `openURLContexts`，AppDelegate 的 `application(_:open:options:)` 兜底 |
+| 5 | 编译参数 | `DSH_IAM_OIDC_CLIENT_ID` 默认空，不带就登录不了 | 默认 `dsh-remote-mobile`（公开标识，不是密钥），仍可用 dart-define 覆盖；issuer 默认已是管理员给的值 |
+| 6 | 中继地址 | 默认 `https://dsh.r2049.cn` | 默认值不动；联调构建带 `DSH_DEFAULT_RELAY`，或在 App 内改中继地址 |
+| 7 | 失败回跳 | 显示 `access_denied` 原文 | 单独分类并提示「没有权限：该账号未被授权使用如意 AI…」；其它错误显示「IAM 登录失败：\<error\>：\<description\>」，都不发 code |
+| 8 | 冷启动 | loopback 监听随页面销毁 | 深链 handler 常驻 home shell；浏览器登录期间进程若被回收，`code_verifier` 只存内存已丢失，回跳记成 orphan，页面提示「登录已中断，请重新发起」，绝不用对不上的 verifier 换票 |
 
-补充：成功回跳的 `state` 校验、PKCE S256、换票参数（`code` / `codeVerifier` / `redirectUri` / `nonce`）在现有 `iam_login_page.dart` 与 `iam_oidc_client.dart` 中已经正确实现，改造时保留即可。
+保留不改：成功回跳的 `state` 校验、PKCE S256、换票四参数（`code` / `codeVerifier` / `redirectUri` / `nonce`）、404 与无效码的不同提示。
 
-## 9. 联调步骤（待执行）
+**与 RFC 8252 的取舍**：本次用 `externalApplication` 打开系统浏览器，没有引入 `ASWebAuthenticationSession` / Custom Tabs SDK（会新增依赖与 iOS 构建面）。系统浏览器同样满足「不在 App 内 WebView 里输入企业口令」，SSO 会话走系统浏览器；后续若要更贴合 RFC 8252，可在不动服务端与回跳协议的前提下只替换打开方式。
 
-1. 中继服务器注入三个 `DSH_IAM_OIDC_*` 环境变量并重启（服务端**不自动读** `.env`，需 `node --env-file=.env dist/main.js` 或容器注入）。
-2. 确认 `POST /api/v1/auth/iam/oidc` 不再返回 404。
-3. 按 §8.2 改造手机端，带两个 dart-define 构建，中继地址指向测试机。
-4. 用系统浏览器以 `xubinbin` 登录 → 回跳 `dshgo://auth/callback` → 换票 → 注册设备 → 验证 Host / Client 互相发现。
-5. 验收点：`id_token` 本地验签通过（`iss` / `aud` / `nonce`）；`error=access_denied` 显示「没有权限」；`state` 不匹配的中止换票；中继日志无密钥泄露。
+### 8.3 改造后的验证（2026-11-08）
+
+| 检查 | 结果 |
+|---|---|
+| `flutter analyze --no-pub`（`app/` 全仓） | **0 issues**（顺带清掉 `integration_test/remote_connect_test.dart` 4 个既有 lint） |
+| `flutter test test/remote/iam_oidc_flow_test.dart test/remote/iam_oidc_client_test.dart` | **13/13 通过**：授权地址参数与逐字编码、PKCE S256、state 校验、access_denied 分类、其它错误、深链不吞别的链接、换票报文字段、404 / 401 / 无效响应 |
+| `tool/l10n_merge.py` + `flutter gen-l10n` | 47 个 part / 5479 key 校验通过，中英文案重新生成 |
+| `flutter build ios --simulator --debug --no-codesign --no-pub` | **通过**（`Runner.app`），Swift 深链通道编译无误；真机签名与系统浏览器回跳仍需实机验收 |
+| `flutter build apk --debug --flavor arm64 --target-platform android-arm64 --no-pub` | **通过**，产出 `app/build/app/outputs/flutter-apk/app-arm64-debug.apk`，已带 `DSH_DEFAULT_RELAY` 指向测试中继，可直接装到 Android 设备 |
+| 真机完整登录 | **未做**：线上中继尚未注入 OIDC 配置（现在点登录会提示「中继尚未配置 IAM 单点登录」），且需要 `xubinbin` 本人在系统浏览器输入口令 |
+
+> 运行 dsh-Go 的 Flutter 测试需要 `DSH_TEST_FONT_DIR=/Users/binny/dev/fonts/noto-cjk`，并清掉 `HTTP(S)_PROXY`（否则 `flutter_tester` 的本地 WebSocket 被代理拦截）。这只是本机环境，不是代码约束。
+
+## 9. 联调步骤（代码侧已完成，剩运维与真机）
+
+1. ~~按 §8.2 改造手机端~~ —— 2026-11-08 已完成，静态验证见 §8.3。
+2. **待办（运维）**：中继服务器注入三个 `DSH_IAM_OIDC_*` 环境变量并重启（服务端**不自动读** `.env`，需 `node --env-file=.env dist/main.js` 或容器注入）。`client_secret` 只从密钥渠道取，不写进文件、命令行历史或日志。
+3. **待办（验收）**：确认 `POST /api/v1/auth/iam/oidc` 不再返回 404（GET 同路径仍应 404）。
+4. 构建手机端。`client_id` / `issuer` 已有管理员给的默认值，联调只需把中继指到测试机；**Android 必须走仓库出包脚本**（它带 `--flavor` / `--target-platform`）：
+   ```sh
+   cd dsh-Go
+   tooling/build-apk.sh --debug -f arm64 -- --dart-define=DSH_DEFAULT_RELAY=https://118.196.18.181:8443
+   # 产物：app/build/app/outputs/flutter-apk/app-arm64-debug.apk
+   # iOS：cd dsh-Go/app && flutter build ios --dart-define=DSH_DEFAULT_RELAY=https://118.196.18.181:8443
+   ```
+   直接 `flutter build apk` 不带 flavor 会因项目自定义 buildDir + ABI 分包报「Gradle 没有产出 .apk」（Gradle 其实产出了 `app-arm64-debug.apk`）；`--split-per-abi` 又与 `android/build.gradle.kts` 的 ndk abiFilters 冲突。两者都是既有构建配置，与 OIDC 无关。也可以在 App 的「连接如意 AI」里直接改中继地址，自建 IAM 再覆盖 `DSH_IAM_OIDC_ISSUER` / `DSH_IAM_OIDC_CLIENT_ID`。
+5. 用系统浏览器以 `xubinbin` 登录 → 回跳 `dshgo://auth/callback` → 换票 → 注册设备 → 验证 Host / Client 互相发现。口令由本人在系统浏览器输入，不代填、不索取。
+6. 验收点：`id_token` 本地验签通过（`iss` / `aud` / `nonce`）；`error=access_denied` 显示「没有权限」；`state` 不匹配的中止换票；iOS / Android 都能接住回跳；中继日志无密钥泄露。
 
 ## 10. 安全约束（硬约束）
 
 - `client_secret` **绝不**进手机端、dart-define、代码库、文档、命令行历史或日志；只在服务端运行环境的环境变量中。
 - 管理员密钥绝不落手机端，联调时也不临时塞进去。
 - `redirect_uri` 必须与白名单逐字一致，不能附加额外 query。
-- `state` / `nonce` 每次登录重新生成并校验；PKCE `code_verifier` 不出 App。
+- `state` / `nonce` 每次登录重新生成并校验；PKCE `code_verifier` 不出 App、只存进程内存，不落盘、不进日志。App 在登录期间被回收即作废本次登录（§8.2 第 8 项）。
+- `client_id` 是公开标识，允许作为代码库默认值与 dart-define；这不改变对 `client_secret` 与管理员密钥的排除。
 - 业务方不保存 IAM 令牌（`refresh_token_ttl=0`），中继只签发自己的账号会话。
