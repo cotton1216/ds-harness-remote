@@ -415,6 +415,19 @@ export function createRemoteServer(config: Config) {
     if (method === 'POST' && path === '/api/v1/auth/logout') {
       sessions.delete(hash(token(req))); res.setHeader('Set-Cookie', cookie('', 0)); json(res, 200, { status: 'ok' }); return
     }
+    // 设备令牌或账号会话都可以读自己账号的显示名。授权码换来的设备只有设备
+    // 令牌，用它渲染账号名，避免界面只剩一个 `code` 占位。
+    if (method === 'GET' && path === '/api/v1/account/profile') {
+      let accountId: string
+      try {
+        accountId = deviceAuth(req).accountId
+      } catch {
+        accountId = accountAuth(req).accountId
+      }
+      let account = ''
+      try { account = store.accountName(accountId) } catch { /* 账号被禁用时只给显示名 */ }
+      json(res, 200, { account, displayName: store.displayNameOf(accountId) }); return
+    }
     if (method === 'GET' && path === '/api/v1/account/devices') {
       const session = accountAuth(req)
       const { items, nextCursor } = store.page(session.account, undefined, paginationCursor(requestUrl), paginationLimit(requestUrl))
