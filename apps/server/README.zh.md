@@ -86,6 +86,18 @@ node --env-file=.env dist/main.js
 | `DSH_SERVER_TURN_USERNAME` | 无法使用共享密钥的部署的静态 TURN 用户名；与 `DSH_SERVER_TURN_SECRET` 互斥 |
 | `DSH_SERVER_TURN_PASSWORD` | 静态 TURN 密码；必须与 `DSH_SERVER_TURN_USERNAME` 同时配置 |
 | `DSH_SERVER_TURN_TTL_SECONDS` | TURN credential 有效期秒数，60–3600，默认 `300`（仅对短期凭据生效） |
+| `DSH_IAM_OIDC_ISSUER` | 可选。OIDC issuer 根地址，不带尾部斜杠；三个 `DSH_IAM_OIDC_*` 齐全才启用 |
+| `DSH_IAM_OIDC_CLIENT_ID` | 可选。IAM 注册的客户端 ID，必须与手机端同名编译参数一致 |
+| `DSH_IAM_OIDC_CLIENT_SECRET` | 可选。**仅服务端保存**，绝不进 App、代码库或日志 |
+
+## IAM OIDC 登录
+
+三个 `DSH_IAM_OIDC_*` 变量全部非空时，`POST /api/v1/auth/iam/oidc` 才会注册；缺任意一个都返回 404。手机端只提交一次性 `code`、PKCE `codeVerifier`、`redirectUri` 与 `nonce`，由服务端用 `client_secret` 换取 `id_token` 并本地验签，取 `sub` 作为账号主键。完整配置说明与手机端编译参数见 [`.env.example`](.env.example)。
+
+- IAM 需把 `http://127.0.0.1:8765/callback` 注册为允许的 `redirect_uri`（RFC 8252 回环地址，端口固定）。
+- 手机端必须带 `--dart-define=DSH_IAM_OIDC_ISSUER=<同一 issuer>` 与 `--dart-define=DSH_IAM_OIDC_CLIENT_ID=<同一 client id>` 构建；client id 为空时登录页直接显示「未配置」。
+- `client_secret` 只存在于服务端环境变量，任何情况下都不要下发到手机端。
+- 仅启用 OIDC 时**仍需保留** `DSH_SERVER_ACCOUNT` / `DSH_SERVER_PASSWORD`；只有同时配置了 `DSH_IAM_BASE` 才允许本地账号为空。
 
 公网使用 HTTPS 反向代理，并将 `DSH_SERVER_PUBLIC_URL` 设为实际域名；代理需支持 `/ws/v1/connect` 的 WebSocket Upgrade，空闲超时大于 75 秒。
 

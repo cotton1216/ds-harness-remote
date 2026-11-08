@@ -86,6 +86,18 @@ Open <http://localhost:8080>. Set the same Server URL on your Host and Client, t
 | `DSH_SERVER_TURN_USERNAME` | Static TURN username for deployments that cannot use a shared secret; mutually exclusive with `DSH_SERVER_TURN_SECRET` |
 | `DSH_SERVER_TURN_PASSWORD` | Static TURN password; must be set together with `DSH_SERVER_TURN_USERNAME` |
 | `DSH_SERVER_TURN_TTL_SECONDS` | TURN credential lifetime in seconds, 60–3600, default `300` (applies to short-lived credentials only) |
+| `DSH_IAM_OIDC_ISSUER` | Optional. OIDC issuer base without trailing slash; all three `DSH_IAM_OIDC_*` values are required to enable it |
+| `DSH_IAM_OIDC_CLIENT_ID` | Optional. Client id registered with IAM; must match the mobile app's dart-define of the same name |
+| `DSH_IAM_OIDC_CLIENT_SECRET` | Optional. **Server side only** — never ship it to the app, commit it, or log it |
+
+## IAM OIDC sign-in
+
+`POST /api/v1/auth/iam/oidc` is registered only when all three `DSH_IAM_OIDC_*` variables are non-empty; with any missing, it returns 404. The mobile app sends just a one-time `code`, the PKCE `codeVerifier`, `redirectUri` and `nonce`; the Server exchanges the code with `client_secret`, verifies the `id_token` locally and uses `sub` as the account key. Full setup notes and mobile build flags are in [`.env.example`](.env.example).
+
+- Register `http://127.0.0.1:8765/callback` as an allowed `redirect_uri` in IAM (RFC 8252 loopback; the port is fixed).
+- Build the mobile app with `--dart-define=DSH_IAM_OIDC_ISSUER=<same issuer>` and `--dart-define=DSH_IAM_OIDC_CLIENT_ID=<same client id>`; an empty client id makes the app show a "not configured" state instead of the sign-in page.
+- `client_secret` lives only in the Server's environment. Never send it to the mobile app.
+- Enabling OIDC alone does **not** remove the local account: unless `DSH_IAM_BASE` is also configured, keep `DSH_SERVER_ACCOUNT` / `DSH_SERVER_PASSWORD` populated.
 
 For public access, use an HTTPS reverse proxy and set `DSH_SERVER_PUBLIC_URL` to your domain. The proxy must support WebSocket Upgrade at `/ws/v1/connect` with an idle timeout above 75 seconds.
 
