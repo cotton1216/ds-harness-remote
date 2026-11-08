@@ -387,11 +387,11 @@ Plugin bundle 构建统一 esbuild 的依赖模块路径标签，避免 pnpm iso
 
 `.npmrc` 固定 `node-linker=hoisted`，这是 Windows 260 字符路径限制与 Android AGP/prefab 所需，不要为本机便利改成 `isolated`。CI 使用 pnpm 9.15.4 + Node 24.9 + `pnpm install --frozen-lockfile`，构建后以 `git diff --exit-code -- packages/plugin/dist/index.js packages/plugin/dist/client.github.js` 校验已提交 bundle。
 
-- 切换 `node-linker` 或遇到 `ERR_PNPM_LOCKFILE_MISSING_DEPENDENCY`（`@react-native-community/netinfo`）时，先清空全部 `node_modules`（含 `packages/*`、`apps/*`）再按锁文件重装。isolated / hoisted 混合残留会遮蔽依赖，历史上引发过隐蔽的 Peer/createPeer 兼容错误与缺依赖报错。
-- hoisted 布局下根 `node_modules` 平铺的 esbuild 是 `tsx` 传递依赖的 0.28.2（`__commonJS` 含 try/catch），插件自身声明的是 0.25.12。isolated 安装让插件拿到 0.25.12，重建出的 bundle 与已提交版本相差约 3.3 万行，提交即挂 CI 的 bundle 一致性校验；已提交的 `dist` 对应 hoisted / 0.28.2。
+- 切换 `node-linker` 或遇到 `ERR_PNPM_LOCKFILE_MISSING_DEPENDENCY`（`@react-native-community/netinfo`）时，先清空全部 `node_modules`（含 `packages/*`、`apps/*`、`examples/*`）再按锁文件重装。isolated / hoisted 混合残留会遮蔽依赖，历史上引发过隐蔽的 Peer/createPeer 兼容错误与缺依赖报错。2026-11-08 清空后 `pnpm install --frozen-lockfile` 一次通过，证实此前报错来自残留而非锁文件。
+- 干净 hoisted 环境下根 `node_modules/esbuild` 是插件声明的 0.25.12；0.28.2（`tsx` 传递依赖）只位于 `node_modules/tsx/node_modules/esbuild`。历史污染环境曾把 0.28.2 平铺到根并据此生成已提交 bundle，导致 clean build 与仓库产物相差约 3.3 万行、CI 的 bundle 一致性校验失败，且旧 `index.js` 缺少 werift 0.26 的 `connect timed out`。2026-11-08 已用 clean build 产物更新 `dist`，`git diff --exit-code` 以更新后的产物为基线。
 - 提交 `packages/plugin/dist/` 前必须按下方顺序先构建 `./packages/**` 再重建插件，并确认一致性校验无输出（exit 0）。只跑 `pnpm --filter ds-harness-remote build` 而未先构建 `./packages/**` 也会产生不一致产物。
-- 锁文件的已知冻结安装缺陷沿用既有约定：只在本地修复安装并恢复原 lockfile 字节，不提交依赖或锁文件变化；不要手工补 `packages` 段，不要提交从零重建的锁文件（曾造成 200+ 包版本漂移）。
-- 受限沙箱里 `pnpm` / `npm` 安装的宿主侧批量目录创建可能被拒（`ERR_PNPM_CODEBUDDY_BROKER_DENY`）。这类安装命令应交给开发者在本机终端执行，不要在沙箱内换源、换包管理器或反复重试；`curl` 下载 tarball 通常仍然可用，不要误判为网络故障。
+- `pnpm-lock.yaml` 不要提交修改：不要手工补 `packages` 段，不要提交从零重建的锁文件（曾造成 200+ 包版本漂移）。此前被归因为「锁文件缺 netinfo 记录」的冻结安装失败，2026-11-08 证实是混合布局残留所致；清空 `node_modules` 后冻结安装一次通过，锁文件字节未变。
+- 受限沙箱里 `pnpm` / `npm` **安装**的宿主侧批量目录创建可能被拒（`ERR_PNPM_CODEBUDDY_BROKER_DENY`）。安装命令应交给开发者在本机终端执行，不要在沙箱内换源、换包管理器或反复重试；`curl` 下载 tarball 通常仍然可用，不要误判为网络故障。**构建与校验不受此限制**：依赖装齐后，`pnpm --filter './packages/**' -r build`、`node scripts/verify-dsh-plugin.mjs` 可在沙箱内正常执行（26 秒，产物逐字节可复现）。`pnpm -r check` 需要 `PATH` 中存在裸 `pnpm`（`apps/android` 的 check 子脚本会调用它）；只有 `corepack pnpm` 的环境可加临时 shim。清理范围必须含 `examples/*`：`examples/mock-host/node_modules` 里残留的 isolated 时代 `tsc` wrapper 硬编码 `.pnpm/typescript@…` 路径，会让 check 报 `MODULE_NOT_FOUND` / TS2307；移走残留后需重跑 `pnpm install --frozen-lockfile` 重建 workspace 链接。本机 Node 22.22.2 与 CI 24.9.0 生成的 bundle 逐字节一致，`pnpm -r check` 仍建议在 Node 24 下运行。
 
 ```bash
 pnpm install
