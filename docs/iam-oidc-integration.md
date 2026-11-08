@@ -199,6 +199,8 @@ IAM 签发一次性 `code` 时只认谜题；换票方必须出示答案，IAM �
 
 1. ~~按 §8.2 改造手机端~~ —— 2026-11-08 已完成，静态验证见 §8.3。
 2. **待办（运维）**：中继服务器注入三个 `DSH_IAM_OIDC_*` 环境变量并重启（服务端**不自动读** `.env`，需 `node --env-file=.env dist/main.js` 或容器注入）。`client_secret` 只从密钥渠道取，不写进文件、命令行历史或日志。
+   - **Docker Compose 部署注意**：`apps/server/compose.yaml` 的 `environment:` 是白名单，只透传列出的变量。2026-11-08 已补上这三个键；线上若用的是更早的 compose 文件，光在 `.env` 里填值容器也收不到，必须同步更新 compose 并执行 `docker compose up -d --force-recreate`（重建容器才会重新读环境变量）。
+   - 配置落在**中继服务端进程**，不是 IAM、也不是手机 App。「请联系管理员」指的是**这台中继的部署者**；自建中继就是自己，无需再找 IAM 管理员。IAM 侧（client 注册、回调白名单、账号权限、`client_secret` 发放）已全部完成。
 3. **待办（验收）**：确认 `POST /api/v1/auth/iam/oidc` 不再返回 404（GET 同路径仍应 404）。
 4. 构建手机端。`client_id` / `issuer` 已有管理员给的默认值，联调只需把中继指到测试机；**Android 必须走仓库出包脚本**（它带 `--flavor` / `--target-platform`）：
    ```sh

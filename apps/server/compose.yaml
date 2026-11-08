@@ -21,6 +21,13 @@ services:
       DSH_SERVER_TURN_USERNAME: ${DSH_SERVER_TURN_USERNAME:-}
       DSH_SERVER_TURN_PASSWORD: ${DSH_SERVER_TURN_PASSWORD:-}
       DSH_SERVER_TURN_TTL_SECONDS: ${DSH_SERVER_TURN_TTL_SECONDS:-300}
+      # Optional IAM OIDC sign-in. compose only forwards variables listed here,
+      # so adding them to .env alone is not enough. All three must be non-empty
+      # or POST /api/v1/auth/iam/oidc stays unregistered (404). Never commit
+      # the secret to .env in source control; inject it from a secret store.
+      DSH_IAM_OIDC_ISSUER: ${DSH_IAM_OIDC_ISSUER:-}
+      DSH_IAM_OIDC_CLIENT_ID: ${DSH_IAM_OIDC_CLIENT_ID:-}
+      DSH_IAM_OIDC_CLIENT_SECRET: ${DSH_IAM_OIDC_CLIENT_SECRET:-}
     volumes:
       - server-data:/data
     restart: unless-stopped
