@@ -4391,11 +4391,11 @@ Minimum version required to store current data is: ` + bestVersion + `.
                   pairing === void 0 || pairingExpired ? null : React.createElement("p", { role: "status" }, t("pairingCountdown", { seconds: String(pairingSeconds) })),
                   React.createElement("p", null, t("pairingExpiresHint")),
                   pairingError === void 0 ? null : React.createElement("p", { className: "dshRemoteConnectionIssue", role: "status" }, pairingError),
-                  React.createElement("button", {
+                  pairingExpired || pairingError !== void 0 ? React.createElement("button", {
                     type: "button",
                     disabled: pairingBusy || busy,
                     onClick: () => void startPairing()
-                  }, t(pairingBusy ? "loadingSettings" : "pairingRegenerate"))
+                  }, t(pairingBusy ? "loadingSettings" : "pairingRegenerate")) : null
                 ) : passwordVisible ? React.createElement(
                   "div",
                   {

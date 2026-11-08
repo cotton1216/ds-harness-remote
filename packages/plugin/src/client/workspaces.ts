@@ -1361,9 +1361,11 @@ export function createRemoteWorkspaceAction(React: ClientReact, portal?: PortalR
                   pairingError === undefined
                     ? null
                     : React.createElement('p', { className: 'dshRemoteConnectionIssue', role: 'status' }, pairingError),
-                  React.createElement('button', {
-                    type: 'button', disabled: pairingBusy || busy, onClick: () => void startPairing(),
-                  }, t(pairingBusy ? 'loadingSettings' : 'pairingRegenerate')))
+                  pairingExpired || pairingError !== undefined
+                    ? React.createElement('button', {
+                      type: 'button', disabled: pairingBusy || busy, onClick: () => void startPairing(),
+                    }, t(pairingBusy ? 'loadingSettings' : 'pairingRegenerate'))
+                    : null)
                 : passwordVisible
                 ? React.createElement('div', {
                   className: 'dshRemoteClientLogin', role: 'tabpanel', id: 'dsh-remote-password-panel',
