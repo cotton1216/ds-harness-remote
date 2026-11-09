@@ -115,7 +115,7 @@ describe('oidcIdentityFromCode', () => {
     const identity = await oidcIdentityFromCode(config, {
       code: 'good-code', codeVerifier: verifier, redirectUri: 'http://127.0.0.1:8765/callback', nonce: 'nonce-1',
     })
-    expect(identity).toEqual({ subject: 'usr_test_0001', username: 'zhangsan', email: 'zhangsan@example.com' })
+    expect(identity).toEqual({ issuer: config.issuer, subject: 'usr_test_0001', username: 'zhangsan', email: 'zhangsan@example.com' })
   })
 
   it('验签失败时不返回身份', async () => {

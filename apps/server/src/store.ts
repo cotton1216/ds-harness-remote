@@ -13,9 +13,11 @@ export const equal = (left: string, right: string): boolean => timingSafeEqual(B
 export type AccountConfig = { account: string; password: string; disabled?: boolean }
 export interface StoreOptions {
   /**
-   * Enables externally authenticated accounts (IAM). Those records carry no
-   * password verifier, are created on first successful identity check and are
-   * never disabled by the local-account configuration pass.
+   * Enables externally authenticated accounts (IAM / OIDC). Those records carry
+   * no password verifier, are created on first successful identity check and are
+   * never disabled by the local-account configuration pass. Enabled when either
+   * the AI-Server adapter or the OIDC client is configured, so an OIDC-only
+   * deployment keeps its accounts across restarts.
    */
   iam?: boolean
   /**
@@ -234,23 +236,32 @@ export class Store {
   /**
    * Provision (or look up) an externally authenticated account.
    *
-   * The caller has already proven the identity against IAM, so this is the only
-   * path that can materialise an account at runtime. The record carries a random
-   * verifier, which makes password login impossible for it by construction.
+   * Both entry points (AI-Server profile and OIDC id_token) derive the same key:
+   * `iam:<sha256(JSON.stringify([issuer, subject]))>`. Hashing keeps the opaque
+   * subject out of state.json and forces the issuer into the key, so the same
+   * subject under two issuers can never collide. The caller has already proven
+   * the identity, so this is the only path that materialises an account at
+   * runtime; the record carries a random verifier, making password login
+   * impossible for it by construction.
    */
-  ensureIamAccount(account: string, displayName?: string): string {
+  ensureExternalAccount(account: string, displayName?: string): string {
     if (!this.iam) throw new ApiError('AUTH_INVALID', 401)
-    if (!/^iam:[1-9][0-9]{0,18}$/.test(account)) throw new ApiError('AUTH_INVALID', 401)
+    if (!/^iam:[0-9a-f]{64}$/.test(account)) throw new ApiError('AUTH_INVALID', 401)
     return this.upsertIamAccount(account, displayName)
   }
 
   /**
-   * OIDC 登录建立的账号。`sub` 是不透明字符串（如 `usr_01J...`），不能用上面的
-   * 数字规则；身份已由 id_token 验签证明，所以这里不再要求 IAM 口令通道已配置。
+   * Legacy account key `iam:<AI-Server numeric id>`.
+   *
+   * Still provisioned for an authenticated AI-Server user whose profile carries
+   * no usable OIDC binding: refusing it would lock that user out entirely, since
+   * the relay would have no key for them at all. Such accounts are NOT unified
+   * with the phone until the binding exists; the caller logs the reason.
    */
-  ensureOidcAccount(subject: string, displayName?: string): string {
-    if (!/^[A-Za-z0-9._-]{1,128}$/.test(subject)) throw new ApiError('AUTH_INVALID', 401)
-    return this.upsertIamAccount(`iam:${subject}`, displayName)
+  ensureLegacyIamAccount(account: string, displayName?: string): string {
+    if (!this.iam) throw new ApiError('AUTH_INVALID', 401)
+    if (!/^iam:[1-9][0-9]{0,18}$/.test(account)) throw new ApiError('AUTH_INVALID', 401)
+    return this.upsertIamAccount(account, displayName)
   }
 
   private upsertIamAccount(account: string, displayName?: string): string {

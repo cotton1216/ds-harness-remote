@@ -10,6 +10,7 @@ import { parseLogLevel } from './logger.js'
 import { parseIceConfig } from './ice.js'
 import { parseAccountsEnvironment } from './store.js'
 import { parseIamConfig } from './iam.js'
+import { oidcConfigFromEnv } from './iam-oidc.js'
 
 const port = Number(process.env.DSH_SERVER_PORT ?? '8080')
 if (!Number.isInteger(port) || port < 1 || port > 65535) throw new Error('Invalid DSH_SERVER_PORT.')
@@ -19,9 +20,15 @@ const heartbeatDisconnectMs = parseHeartbeatDisconnect(process.env.DSH_SERVER_HE
 const helloTimeoutMs = parseHelloTimeout(process.env.DSH_SERVER_HELLO_TIMEOUT_MS)
 const forceTerminateGraceMs = parseForceTerminateGrace(process.env.DSH_SERVER_FORCE_TERMINATE_GRACE_MS)
 const logLevel = parseLogLevel(process.env.DSH_SERVER_LOG_LEVEL)
-const iam = parseIamConfig(process.env.DSH_IAM_BASE, process.env.DSH_IAM_TIMEOUT_MS)
-// 纯 IAM 部署不需要本地口令账号；显式配置了本地账号时仍然并存，作为 IAM 不可用时的退路。
-const localAccounts = iam && process.env.DSH_SERVER_ACCOUNTS_JSON === undefined && process.env.DSH_SERVER_ACCOUNT === undefined
+// AI-Server 的 profile 不声明可信 issuer：优先 DSH_IAM_ISSUER，否则沿用 OIDC 的 issuer。
+const oidcConfigured = oidcConfigFromEnv(process.env) !== undefined
+const iam = parseIamConfig(
+  process.env.DSH_IAM_BASE,
+  process.env.DSH_IAM_TIMEOUT_MS,
+  process.env.DSH_IAM_ISSUER ?? process.env.DSH_IAM_OIDC_ISSUER,
+)
+// 纯 IAM/OIDC 部署不需要本地口令账号；显式配置了本地账号时仍然并存，作为 IAM 不可用时的退路。
+const localAccounts = (iam || oidcConfigured) && process.env.DSH_SERVER_ACCOUNTS_JSON === undefined && process.env.DSH_SERVER_ACCOUNT === undefined
   ? []
   : parseAccountsEnvironment(process.env.DSH_SERVER_ACCOUNTS_JSON, process.env.DSH_SERVER_ACCOUNT, process.env.DSH_SERVER_PASSWORD)
 

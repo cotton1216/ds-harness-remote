@@ -12,13 +12,13 @@ import { parseIamConfig } from '../src/iam.js'
 /**
  * A stand-in IAM deployment that mirrors the shapes observed on the live server:
  *   POST /api/v1/auth/login      { email, password } -> { code, message, data: { access_token, expires_in, user } }
- *   GET  /api/v1/user/profile    Authorization: Bearer -> { code, message, data: user }
+ *   GET  /api/v1/user/profile    Authorization: Bearer -> { code, message, data: user + identities.oidc }
  * It is deliberately strict so a wrong header or body fails loudly.
  */
 class FakeIam {
   readonly users = [
-    { id: 9, email: 'alice@example.test', username: '爱丽丝', password: '{{SECRET_yjulhtzo}}' },
-    { id: 12, email: 'bob@example.test', username: '鲍勃', password: '{{SECRET_hf2x4b7t}}' },
+    { id: 9, subject: 'usr_alice', email: 'alice@example.test', username: '爱丽丝', password: '{{SECRET_yjulhtzo}}' },
+    { id: 12, subject: 'usr_bob', email: 'bob@example.test', username: '鲍勃', password: '{{SECRET_hf2x4b7t}}' },
   ]
   readonly tokens = new Map<string, number>()
   mode: 'ok' | 'boom' | 'not-found' | 'throttle' = 'ok'
@@ -26,12 +26,15 @@ class FakeIam {
   profileCalls = 0
   private server?: Server
   base = ''
+  /** 可信 issuer；真实 IAM 返回的就是它自己的 issuer，这里用假服务地址代替。 */
+  issuer = ''
 
   async start(): Promise<void> {
     this.server = createServer((req, res) => { void this.handle(req, res) })
     this.server.listen(0, '127.0.0.1')
     await once(this.server, 'listening')
     this.base = `http://127.0.0.1:${(this.server.address() as { port: number }).port}`
+    this.issuer = this.base
   }
   async stop(): Promise<void> {
     this.server?.closeAllConnections()
@@ -71,8 +74,19 @@ class FakeIam {
       const userId = this.tokens.get(token)
       const user = this.users.find(candidate => candidate.id === userId)
       if (!user) return this.send(res, 401, { code: 401, message: 'Invalid token', reason: 'INVALID_TOKEN' })
-      const { password: _password, ...rest } = user
-      return this.send(res, 200, { code: 0, message: 'ok', data: rest })
+      return this.send(res, 200, {
+        code: 0,
+        message: 'ok',
+        data: {
+          id: user.id,
+          email: user.email,
+          username: user.username,
+          // 中继唯一信任的身份：严格嵌套的 identities.oidc。
+          identities: {
+            oidc: { provider: 'oidc', bound: true, subject: user.subject, issuer: this.issuer },
+          },
+        },
+      })
     }
     this.send(res, 404, { code: 404, message: 'not found' })
   }
@@ -97,7 +111,7 @@ async function start(extra: { accounts?: { account: string; password: string }[]
   app = createRemoteServer({
     ...(extra.accounts === undefined ? {} : { accounts: extra.accounts }),
     ...(extra.allowDeviceRebind === undefined ? {} : { allowDeviceRebind: extra.allowDeviceRebind }),
-    iam: parseIamConfig(baseUrl, '5000'),
+    iam: parseIamConfig(baseUrl, '5000', iam.issuer),
     dataFile: join(dir, 'state.json'),
     publicUrl: 'http://localhost:8080',
   })
@@ -142,8 +156,8 @@ describe('IAM 身份适配', () => {
     const state = JSON.parse(readFileSync(join(dir, 'state.json'), 'utf8'))
     const device = state.devices[host.descriptor.deviceId]
     expect(device.accountId).toHaveLength(64)
-    // owner 只由 IAM user id 决定，与邮箱大小写或显示名无关
-    expect(state.accounts[device.accountId].account).toBe(`iam:${alice.id}`)
+    // owner 由可信 (issuer, subject) 派生，与邮箱大小写、显示名和数字 id 无关
+    expect(state.accounts[device.accountId].account).toMatch(/^iam:[0-9a-f]{64}$/)
     expect(state.accounts[device.accountId].kind).toBe('iam')
 
     const client = await register(signed.data.token, 'client', 'alice-phone')
@@ -261,8 +275,10 @@ describe('IAM 身份适配', () => {
     const client = await register((await signIn(alice)).data.token as string, 'client', 'phone')
 
     // 同一份 state.json 以「无 IAM」配置重新打开：IAM 账号应被停用。
+    const state = JSON.parse(readFileSync(join(dir, 'state.json'), 'utf8'))
+    const account = state.accounts[state.devices[client.descriptor.deviceId].accountId].account as string
     const store = new Store(join(dir, 'state.json'), [{ account: 'local@example.test', password: '{{SECRET_localpwd1}}' }], {})
-    expect(() => store.getAccount(`iam:${alice.id}`)).toThrow()
+    expect(() => store.getAccount(account)).toThrow()
     expect(() => store.authenticate(client.accessToken)).toThrow()
   })
 })
@@ -420,6 +436,13 @@ describe('IAM 配置解析', () => {
   it('接受带反向代理前缀的 HTTPS 地址，去掉尾斜杠', () => {
     expect(parseIamConfig('https://ai.example.test/aiserver/')).toEqual({ baseUrl: 'https://ai.example.test/aiserver', timeoutMs: 10_000 })
   })
+  it('可信 issuer 去掉尾斜杠，非法值直接拒绝', () => {
+    expect(parseIamConfig('https://ai.example.test', undefined, 'https://iam.example.test/')?.expectedIssuer)
+      .toBe('https://iam.example.test')
+    for (const value of ['ftp://iam.example.test', 'https://user:pass@iam.example.test', 'https://iam.example.test/?x=1']) {
+      expect(() => parseIamConfig('https://ai.example.test', undefined, value)).toThrow()
+    }
+  })
   it('拒绝凭据、查询串、片段与非法协议', () => {
     for (const value of ['ftp://ai.example.test', 'https://user:pass@ai.example.test', 'https://ai.example.test/?x=1', 'https://ai.example.test/#x', 'not-a-url']) {
       expect(() => parseIamConfig(value)).toThrow()
@@ -436,39 +459,42 @@ describe('IAM 配置解析', () => {
   })
 })
 
-describe('store 的 IAM 账号约束', () => {
-  it('未开启 IAM 时不能凭空创建外部账号', () => {
+describe('store 的外部账号约束', () => {
+  const account = `iam:${'a'.repeat(64)}`
+  it('未开启外部身份时不能凭空创建账号', () => {
     const store = new Store(join(dir, 'plain.json'), [{ account: 'a@example.test', password: '{{SECRET_apwd1234}}' }])
-    expect(() => store.ensureIamAccount('iam:1')).toThrow()
+    expect(() => store.ensureExternalAccount(account)).toThrow()
   })
-  it('只接受 iam:<数字> 形式的账号标识', () => {
+  it('只接受 iam:<64 位小写十六进制> 形式的账号标识', () => {
     const store = new Store(join(dir, 'iam.json'), [], { iam: true })
-    for (const bad of ['iam:', 'iam:abc', 'alice', 'iam:0', 'iam:-1']) expect(() => store.ensureIamAccount(bad)).toThrow()
-    expect(store.ensureIamAccount('iam:7')).toHaveLength(64)
+    for (const bad of ['iam:', 'iam:abc', 'alice', 'iam:7', `iam:${'A'.repeat(64)}`, `iam:${'a'.repeat(63)}`]) {
+      expect(() => store.ensureExternalAccount(bad)).toThrow()
+    }
+    expect(store.ensureExternalAccount(account)).toHaveLength(64)
   })
-  it('IAM 账号不能用口令登录', () => {
+  it('外部账号不能用口令登录', () => {
     const store = new Store(join(dir, 'iam2.json'), [], { iam: true })
-    store.ensureIamAccount('iam:7')
-    expect(() => store.verifyLogin('iam:7', 'anything')).toThrow()
+    store.ensureExternalAccount(account)
+    expect(() => store.verifyLogin(account, 'anything')).toThrow()
   })
   it('重复登录只更新展示名，不重建账号（分页游标密钥保持稳定）', () => {
     const file = join(dir, 'iam3.json')
     const store = new Store(file, [], { iam: true })
-    const id = store.ensureIamAccount('iam:7', '旧名')
+    const id = store.ensureExternalAccount(account, '旧名')
     const before = JSON.parse(readFileSync(file, 'utf8')).accounts[id]
-    store.ensureIamAccount('iam:7', '新名')
+    store.ensureExternalAccount(account, '新名')
     const after = JSON.parse(readFileSync(file, 'utf8')).accounts[id]
     expect(after.displayName).toBe('新名')
     expect(after.salt).toBe(before.salt)
     expect(after.verifier).toBe(before.verifier)
   })
-  it('可以完全不开本地账号，只靠 IAM', () => {
+  it('可以完全不开本地账号，只靠外部身份', () => {
     const file = join(dir, 'iam4.json')
     const store = new Store(file, [], { iam: true })
     expect(store.account).toBe('')
-    store.ensureIamAccount('iam:7', '仅 IAM')
+    store.ensureExternalAccount(account, '仅 IAM')
     const reopened = new Store(file, [], { iam: true })
-    expect(reopened.getAccount('iam:7')).toHaveLength(64)
-    expect(reopened.displayNameOf(reopened.getAccount('iam:7'))).toBe('仅 IAM')
+    expect(reopened.getAccount(account)).toHaveLength(64)
+    expect(reopened.displayNameOf(reopened.getAccount(account))).toBe('仅 IAM')
   })
 })

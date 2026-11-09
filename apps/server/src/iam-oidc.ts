@@ -11,6 +11,7 @@
  * 作为账号主键——不额外调用 UserInfo，少一次网络往返也少一个失败点。
  */
 import { createPublicKey, verify as verifySignature } from 'node:crypto'
+import { validSubject } from './iam.js'
 
 export interface OidcConfig {
   /** 例如 https://ai.thchengtay.com/iam，不带尾部斜杠。 */
@@ -21,6 +22,8 @@ export interface OidcConfig {
 }
 
 export interface OidcIdentity {
+  /** 验签通过的 `iss`，与配置的 issuer 完全一致。 */
+  issuer: string
   /** IAM 用户 ID（`id_token.sub`）。 */
   subject: string
   username?: string
@@ -164,10 +167,12 @@ function verifyIdToken(
   if (typeof exp !== 'number' || exp * 1000 <= Date.now()) throw new OidcError('AUTH_INVALID', undefined, 'token-expired')
   if (nonce !== undefined && claims['nonce'] !== nonce) throw new OidcError('AUTH_INVALID', undefined, 'nonce-mismatch')
   const subject = claims['sub']
-  if (typeof subject !== 'string' || subject.length === 0 || subject.length > 200) {
+  // 与 AI-Server profile 共用同一套 subject 规则，避免两条入口对同一身份判断不一致。
+  if (!validSubject(subject)) {
     throw new OidcError('AUTH_INVALID', undefined, 'missing-subject')
   }
   return {
+    issuer: config.issuer,
     subject,
     ...(typeof claims['preferred_username'] === 'string' ? { username: claims['preferred_username'] } : {}),
     ...(typeof claims['email'] === 'string' ? { email: claims['email'] } : {}),

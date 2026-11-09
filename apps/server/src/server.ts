@@ -7,7 +7,7 @@ import { isIP } from 'node:net'
 import { z } from 'zod'
 import { accountDeviceDescriptorSchema, deviceRegistrationRequestSchema, deviceRefreshRequestSchema, PROTOCOL_VERSION } from '@dsh-remote/protocol'
 import { ApiError, Store, hash, secret, validateAccounts, type AccountConfig } from './store.js'
-import { IamError, iamLogin, iamProfile, type IamConfig, type IamUser } from './iam.js'
+import { IamError, iamLogin, iamProfile, type IamConfig, type IamIdentity, type IamUser } from './iam.js'
 import { OidcError, oidcConfigFromEnv, oidcIdentityFromCode, type OidcConfig } from './iam-oidc.js'
 import { Gateway } from './gateway.js'
 import { buildIceServers, parseIceConfig, type IceConfig } from './ice.js'
@@ -168,18 +168,31 @@ export function clientAddress(req: IncomingMessage, trustedProxyIps: ReadonlySet
 }
 export function createRemoteServer(config: Config) {
   if (config.accounts !== undefined && (config.account !== undefined || config.password !== undefined)) throw new Error('DSH_SERVER_ACCOUNTS_JSON cannot be combined with DSH_SERVER_ACCOUNT or DSH_SERVER_PASSWORD.')
-  const iam = config.iam
   // OIDC 三个环境变量齐全才启用；缺省时 /auth/iam/oidc 返回 404。
   const oidcConfig = config.oidc ?? oidcConfigFromEnv(process.env)
+  /**
+   * The AI-Server profile does not tell us which issuer is trustworthy, so one
+   * must be configured server-side. `DSH_IAM_ISSUER` overrides it; otherwise the
+   * OIDC client's issuer (already verified against id_tokens) is reused. Without
+   * either, IAM logins cannot be authenticated, so startup fails loudly instead
+   * of silently accepting a profile-supplied issuer.
+   */
+  const trustedIssuer = config.iam?.expectedIssuer ?? oidcConfig?.issuer
+  if (config.iam !== undefined && trustedIssuer === undefined) {
+    throw new Error('DSH_IAM_ISSUER (or DSH_IAM_OIDC_ISSUER) is required when DSH_IAM_BASE is set.')
+  }
+  const iam = config.iam === undefined ? undefined : { ...config.iam, expectedIssuer: trustedIssuer! }
   const accounts = validateAccounts(
-    config.accounts ?? (iam ? [] : [{ account: config.account ?? '', password: config.password ?? '' }]),
-    { allowEmpty: iam !== undefined },
+    config.accounts ?? (iam !== undefined || oidcConfig !== undefined ? [] : [{ account: config.account ?? '', password: config.password ?? '' }]),
+    { allowEmpty: iam !== undefined || oidcConfig !== undefined },
   )
   const url = new URL(config.publicUrl)
   if (!['http:', 'https:'].includes(url.protocol) || url.username || url.password || url.pathname !== '/' || url.search || url.hash) throw new Error('DSH_SERVER_PUBLIC_URL must be an HTTP(S) origin.')
   const trustedProxyIps = normalizeTrustedProxyIps(config.trustedProxyIps)
   const ice = config.ice ?? parseIceConfig({})
-  const store = new Store(config.dataFile, accounts, { iam: iam !== undefined, rebind: config.allowDeviceRebind === true })
+  // `iam: true` means "external identities are enabled", covering OIDC-only
+  // deployments so their accounts are not disabled by the local-account pass.
+  const store = new Store(config.dataFile, accounts, { iam: iam !== undefined || oidcConfig !== undefined, rebind: config.allowDeviceRebind === true })
   const assets = readAssets()
   const sessions = new Map<string, { expires: number; account: string; accountId: string; displayName: string }>()
   /**
@@ -240,11 +253,27 @@ export function createRemoteServer(config: Config) {
     }
     throw new ApiError('IAM_UNAVAILABLE', 503)
   }
-  /** Owner identity is always derived from the IAM user id, never from client-supplied text. */
+  /**
+   * Single owner mapping for every external identity. The key deliberately
+   * includes the issuer, so equal subjects from different issuers stay separate.
+   * It is built here and nowhere else: profile and id_token paths must agree.
+   */
+  function externalIdentity(identity: IamIdentity, user: { username?: string; email?: string } = {}): Identity {
+    const account = `iam:${hash(JSON.stringify([identity.issuer, identity.subject]))}`
+    const displayName = user.username?.trim() || user.email?.trim() || account
+    return { account, accountId: store.ensureExternalAccount(account, displayName), displayName }
+  }
   function iamIdentity(user: IamUser): Identity {
-    const account = `iam:${user.id}`
-    const displayName = user.username.trim() || user.email.trim() || account
-    return { account, accountId: store.ensureIamAccount(account, displayName), displayName }
+    if (user.identity !== undefined) return externalIdentity(user.identity, user)
+    // Authenticated, but no usable OIDC binding: keep the legacy key so the
+    // login still works. Two devices only unify once the binding exists.
+    if (user.id !== undefined) {
+      logger.warn('iam_profile_without_binding', { reason: user.identityProblem ?? 'unknown' })
+      const account = `iam:${user.id}`
+      const displayName = user.username?.trim() || user.email?.trim() || account
+      return { account, accountId: store.ensureLegacyIamAccount(account, displayName), displayName }
+    }
+    throw new IamError('AUTH_INVALID', undefined, user.identityProblem ?? 'missing-identity')
   }
   async function iamFromToken(config: IamConfig, accessToken: string): Promise<Identity> {
     try { return iamIdentity(await iamProfile(config, accessToken)) } catch (error) { return iamFailure(error) }
@@ -260,7 +289,9 @@ export function createRemoteServer(config: Config) {
     if (!config) return local()
     let failure: unknown
     try {
-      return iamIdentity((await iamLogin(config, email, password)).user)
+      // Login returns only a token; the trusted identity comes from the profile.
+      const grant = await iamLogin(config, email, password)
+      return iamIdentity(await iamProfile(config, grant.accessToken))
     } catch (error) { failure = error }
     try { return local() } catch { return iamFailure(failure) }
   }
@@ -404,9 +435,9 @@ export function createRemoteServer(config: Config) {
         if (error.code === 'AUTH_INVALID') throw new ApiError('AUTH_INVALID', 401)
         throw new ApiError('IAM_UNAVAILABLE', 503)
       }
-      const account = `iam:${identity.subject}`
-      const displayName = identity.username?.trim() || identity.email?.trim() || account
-      json(res, 200, openSession(res, { account, accountId: store.ensureOidcAccount(identity.subject, displayName), displayName }))
+      // Same helper and same key as the AI-Server profile path: an id_token and
+      // a profile naming the same (issuer, subject) must resolve to one account.
+      json(res, 200, openSession(res, externalIdentity({ issuer: identity.issuer, subject: identity.subject }, identity)))
       return
     }
     if (method === 'GET' && path === '/api/v1/auth/me') {

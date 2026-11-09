@@ -122,6 +122,63 @@ IAM 签发一次性 `code` 时只认谜题；换票方必须出示答案，IAM �
 - `client_secret` 只从服务端环境变量读取，手机端全程不接触。
 - 单测 `apps/server/tests/iam-oidc.test.ts`：10/10 通过（本地假 IdP + 自签 RS256）。
 
+### 8.1.1 统一身份（2026-11-09 更新）
+
+中继不再用 IAM 数字 `id`，也不再信任顶层或调用方传入的 `sub`。已核对
+`ai-server-new` origin/main `bdf0b88d6`：真实 router 是
+`authenticated.Group("/user")` + `GET("/profile")`，因此固定调用：
+
+```
+GET {base}/api/v1/user/profile
+Authorization: Bearer <access_token>
+
+{ "code": 0, "data": {
+    "id": 9, "email": "...", "username": "...",
+    "identities": { "oidc": {
+      "provider": "oidc", "bound": true,
+      "subject": "usr_xxx", "issuer": "https://iam..."
+    } }
+} }
+```
+
+字段来自 `service.UserIdentitySummary`（`identities` / `oidc` 的 JSON tag 已核实）；
+其中 OIDC 的 `subject` 取 `ProviderSubject`、`issuer` 取 `ProviderKey`（即
+`provider_key` 就是 issuer）。
+
+登录响应没有 `subject`，所以口令登录必须先 `POST /api/v1/auth/login` 拿到
+`access_token`，再调用上面的 profile 接口确定身份。
+
+服务端规则（`apps/server/src/iam.ts`）：
+
+- 只读严格嵌套的 `data.identities.oidc`，要求 `provider === "oidc"`、`bound === true`；
+  缺失、空串、含空白/控制字符或 `***` 掩码的 `subject` 一律拒绝且原样保留合法值。
+- `issuer` 必须与服务端可信 issuer **精确相等**（不做前缀/同域比较），否则拒绝。
+- 可信 issuer 取 `DSH_IAM_ISSUER`，未设置时回退 `DSH_IAM_OIDC_ISSUER`；配置了
+  `DSH_IAM_BASE` 却两者都没有时服务启动失败，绝不接受 profile 自称的 issuer。
+- profile 请求固定服务端 base 与路径，并设置 `redirect: "manual"`：3xx 直接按
+  上游不可用拒绝，避免 `Authorization` 头被带到其他源。
+- 不回退数字 `id`，也不接受请求 JSON 中的 `sub`。
+
+三条入口共用同一个账号键：
+
+```
+account = "iam:" + sha256(JSON.stringify([issuer, subject]))
+```
+
+`/api/v1/auth/iam`（桌面 token）、`/api/v1/auth/login`（口令）与
+`/api/v1/auth/iam/oidc`（id_token 验签）都调用同一个 `externalIdentity()`，
+所以同一 `(issuer, subject)` 必然落到同一个 `accountId`；issuer 参与哈希，
+不同 issuer 的同名 subject 不会串号。旧开发数据的 `iam:<数字>` 不做迁移。
+
+OIDC-only 部署（只配 `DSH_IAM_OIDC_*`、不配 `DSH_IAM_BASE`）现在允许无本地账号启动，
+且 Store 的外部身份开关在 OIDC 配置存在时也打开，重启后账号不会被本地账号扫描停用。
+本地口令账号仍然保留为 break-glass，不引入特权，也不自动清理任何数据。
+
+集成测试 `apps/server/tests/iam-unified-identity.test.ts` 使用假 AI-Server、真 RS256
+假 IdP 与真中继 HTTP 服务（无 mock 注册结论）：三条入口同账号、不同 subject 隔离、
+不同 issuer 拒绝、伪造 token、缺失/掩码 subject、未绑定、issuer 不匹配、profile
+重定向不跟随（下游 0 次命中）、OIDC-only 重启后账号仍可用。
+
 ### 8.2 手机端：2026-11-08 已按约定改造
 
 仓库 `dsh-Go`（分支 `ios-ruyi-handoff`）。改造前是「App 内 WebView + 回环端口」，与管理员约定的「系统浏览器 + 自定义 scheme」冲突，点 IAM 登录必然失败；下表是**改造后**状态：
