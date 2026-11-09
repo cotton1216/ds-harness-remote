@@ -341,6 +341,18 @@ export class HostPluginRuntime {
     if (revokeFailure !== undefined) throw revokeFailure
   }
 
+  /** 使用受信任中继交换 IAM 会话；已有凭据和设备身份保持不变。 */
+  async authorizeHostWithIamToken(accessToken: string, signal?: AbortSignal): Promise<DeviceAuthorization> {
+    if (this.closed) throw new ServerApiError('CONNECTION_CLOSED', 'Remote runtime is closed.', false)
+    if (this.serverApi === undefined) {
+      throw new ServerApiError('SERVER_NOT_CONFIGURED', 'Configure serverUrl before enabling Host access.', false)
+    }
+    const result = await this.serverApi.authorizeWithIamToken(this.currentIdentity(), accessToken, signal)
+    if (!this.closed) this.serverConnection?.resume()
+    this.logger.info('Host authorized through IAM session exchange')
+    return result
+  }
+
   async authorizeHostAsOwned(accessToken: string, account?: string): Promise<DeviceAuthorization> {
     if (this.serverApi === undefined) {
       throw new ServerApiError('SERVER_NOT_CONFIGURED', 'Configure serverUrl before enabling Host access.', false)

@@ -16,6 +16,84 @@ const cleanupContract1 = async () => {
 afterEach(cleanupContract1)
 
 describe('HostServerApi', () => {
+  it('交换 IAM 会话后用中继会话注册 Host，磁盘只保存设备凭据', async () => {
+    const directory = await mkdtemp(join(tmpdir(), 'dsh-iam-register-'))
+    directories.push(directory)
+    const identity = hostIdentity()
+    const store = new ServerCredentialStore(directory)
+    const iamToken = 'iam-access-token-fixture-value'
+    const sessionToken = 'relay-session-token-fixture-value'
+    const issued = tokens()
+    const fetchMock = vi.fn<typeof fetch>(async (url, init) => {
+      expect(init?.redirect).toBe('manual')
+      if (String(url).endsWith('/auth/iam')) {
+        expect(JSON.parse(String(init?.body))).toEqual({ token: iamToken })
+        expect(init?.headers).not.toHaveProperty('Authorization')
+        return json({ token: sessionToken, account: '员工', expiresAt: Date.now() + 60_000, isAdmin: false })
+      }
+      expect(String(url)).toBe('https://example.invalid/api/v1/devices/register')
+      expect(init?.headers).toMatchObject({ Authorization: `Bearer ${sessionToken}` })
+      expect(JSON.parse(String(init?.body))).toMatchObject({ v: 1, device: { deviceId: identity.deviceId, role: 'host', identityKey: identity.publicKey } })
+      return json(issued)
+    })
+    const api = new HostServerApi('https://example.invalid', store, fetchMock)
+    await expect(api.authorizeWithIamToken(identity, iamToken)).resolves.toMatchObject({ method: 'account', account: '员工' })
+    expect(fetchMock).toHaveBeenCalledTimes(2)
+    const saved = await readFile(join(directory, 'server-credentials.json'), 'utf8')
+    expect(saved).not.toContain(iamToken)
+    expect(saved).not.toContain(sessionToken)
+    expect(JSON.parse(saved)).toMatchObject({ authorizationMethod: 'account', account: '员工', ...issued })
+  })
+
+  it('IAM 注册拒绝错误类型、无效会话、重定向与晚到注销响应', async () => {
+    await runScenarios([
+      { name: 'IAM 404', stage: 1, response: errorJson('METHOD_NOT_FOUND', 'missing', 404), code: 'METHOD_NOT_FOUND' },
+      { name: 'IAM 401', stage: 1, response: errorJson('AUTH_INVALID', 'invalid', 401), code: 'AUTH_INVALID' },
+      { name: 'IAM 503', stage: 1, response: errorJson('IAM_UNAVAILABLE', 'unavailable', 503), code: 'CONNECTION_FAILED' },
+      { name: '错误令牌类型', stage: 1, response: json(tokens()), code: 'INVALID_MESSAGE' },
+      { name: '过期会话', stage: 1, response: json({ token: 'relay-session-token-fixture', account: '员工', expiresAt: 1, isAdmin: false }), code: 'INVALID_MESSAGE' },
+      { name: 'IAM 同源重定向', stage: 1, response: new Response(null, { status: 307, headers: { Location: '/api/v1/other' } }), code: 'CONNECTION_FAILED' },
+      { name: '注册异源重定向', stage: 2, response: new Response(null, { status: 302, headers: { Location: 'https://other.invalid' } }), code: 'CONNECTION_FAILED' },
+      { name: '设备令牌无效', stage: 2, response: json({ token: 'relay-session-token-fixture' }), code: 'INVALID_MESSAGE' },
+      { name: '注销时会话响应到达', stage: 1, abort: true, response: json({ token: 'relay-session-token-fixture', account: '员工', expiresAt: Date.now() + 60_000, isAdmin: false }) },
+    ].map(row => ({ name: row.name, run: async () => {
+      const directory = await mkdtemp(join(tmpdir(), 'dsh-iam-failure-'))
+      directories.push(directory)
+      const store = new ServerCredentialStore(directory)
+      const controller = new AbortController()
+      let calls = 0
+      const fetchMock = vi.fn<typeof fetch>(async (_url, init) => {
+        expect(init?.redirect).toBe('manual')
+        calls += 1
+        if (calls !== row.stage) return json({ token: 'relay-session-token-fixture', account: '员工', expiresAt: Date.now() + 60_000, isAdmin: false })
+        if (row.abort) controller.abort()
+        return row.response.clone()
+      })
+      const api = new HostServerApi('https://example.invalid', store, fetchMock)
+      const result = api.authorizeWithIamToken(hostIdentity(), 'iam-access-token-fixture-value', controller.signal)
+      if (row.code) await expect(result).rejects.toMatchObject({ code: row.code })
+      else await expect(result).rejects.toMatchObject({ code: 'CONNECTION_CLOSED' })
+      expect(calls).toBe(row.stage)
+      expect(await store.hasCredentials()).toBe(false)
+    } })))
+  })
+
+  it('已有相同或不同归属凭据一律不静默重绑', async () => {
+    await runScenarios(['相同归属', '其他 Server', '其他设备'].map(name => ({ name, run: async () => {
+      const directory = await mkdtemp(join(tmpdir(), 'dsh-iam-existing-'))
+      directories.push(directory)
+      const identity = hostIdentity()
+      const store = new ServerCredentialStore(directory)
+      await store.save({ serverUrl: name === '其他 Server' ? 'https://other.invalid' : 'https://example.invalid',
+        deviceId: name === '其他设备' ? 'other-device' : identity.deviceId, authorizationMethod: 'owned_device', ...tokens() })
+      const before = await readFile(join(directory, 'server-credentials.json'))
+      const fetchMock = vi.fn<typeof fetch>()
+      const api = new HostServerApi('https://example.invalid', store, fetchMock)
+      await expect(api.authorizeWithIamToken(identity, 'iam-access-token-fixture-value')).rejects.toMatchObject({ code: 'AUTHORIZATION_EXISTS' })
+      expect(fetchMock).not.toHaveBeenCalled()
+      expect(await readFile(join(directory, 'server-credentials.json'))).toEqual(before)
+    } })))
+  })
   it('mints a fresh pairing code using the authenticated Host device token', async () => {
     const directory = await mkdtemp(join(tmpdir(), 'dsh-pairing-code-'))
     directories.push(directory)

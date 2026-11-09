@@ -82884,6 +82884,10 @@ var ServerCredentialStore = class {
       await rm2(lock, { recursive: true });
     }
   }
+  /** 检查任意已有设备凭据，自动注册不得覆盖不同 Server 或身份的记录。 */
+  async hasCredentials() {
+    return exists(this.path);
+  }
   async load(serverUrl, deviceId) {
     if (!await exists(this.path)) return void 0;
     await assertPrivateMode(this.path);
@@ -84181,6 +84185,47 @@ var HostServerApi = class {
     });
     return { method: "host_registration_code" };
   }
+  /**
+   * 向调用方已信任的 Server 交换 IAM 账号会话，再注册 Host。
+   * IAM 与会话令牌只留在请求内存；不覆盖任何已有设备凭据、不轮换身份。
+   */
+  async authorizeWithIamToken(identity3, accessToken, signal) {
+    if (this.role !== "host") {
+      throw new ServerApiError("METHOD_NOT_ALLOWED", "IAM Host registration requires a Host device.", false);
+    }
+    this.bindIdentity(identity3);
+    try {
+      return await this.withRefreshLock(async () => {
+        this.lifetime.signal.throwIfAborted();
+        signal?.throwIfAborted();
+        if (await this.store.hasCredentials()) {
+          throw new ServerApiError("AUTHORIZATION_EXISTS", "Existing device credentials require explicit account migration.", false);
+        }
+        const login2 = validateWebLogin(await this.publicRequest("/api/v1/auth/iam", {
+          method: "POST",
+          body: JSON.stringify({ token: accessToken }),
+          signal
+        }));
+        if (login2.expiresAt <= Date.now()) {
+          throw new ServerApiError("INVALID_MESSAGE", "The Server returned an expired account session.", false);
+        }
+        const tokens = validateTokens(await this.publicRequest("/api/v1/devices/register", {
+          method: "POST",
+          body: JSON.stringify({ v: 1, device: this.deviceDescriptor(identity3) }),
+          signal
+        }, login2.token));
+        this.lifetime.signal.throwIfAborted();
+        signal?.throwIfAborted();
+        this.credentials = await this.saveTokens(identity3, tokens, { authorizationMethod: "account", account: login2.account });
+        return { method: "account", account: login2.account, expiresAt: login2.expiresAt, isAdmin: login2.isAdmin };
+      });
+    } catch (error62) {
+      if (error62 instanceof ServerCredentialsBusyError) {
+        throw new ServerApiError(error62.code, error62.message, false);
+      }
+      throw error62;
+    }
+  }
   async authorizeOwnedRole(identity3, authorizingAccessToken, account) {
     this.bindIdentity(identity3);
     const tokens = await this.publicRequest("/api/v1/devices/register-owned-role", {
@@ -84374,6 +84419,7 @@ var HostServerApi = class {
       signal.throwIfAborted();
       const response = await this.fetchImplementation(`${this.baseUrl}${path}`, {
         ...init,
+        redirect: "manual",
         signal,
         headers: {
           Accept: "application/json",
@@ -84382,6 +84428,9 @@ var HostServerApi = class {
           ...init.headers
         }
       });
+      if (response.status >= 300 && response.status < 400) {
+        throw new ServerApiError("CONNECTION_FAILED", "Server redirects are not allowed.", false, response.status);
+      }
       const body = await parseBody(response);
       signal.throwIfAborted();
       if (!response.ok) {
@@ -84408,6 +84457,7 @@ var HostServerApi = class {
       return body;
     } catch (error62) {
       if (this.lifetime.signal.aborted) throw this.lifetime.signal.reason;
+      if (init.signal?.aborted === true) throw new ServerApiError("CONNECTION_CLOSED", "The request was cancelled.", false);
       if (error62 instanceof ServerApiError) throw error62;
       throw new ServerApiError("CONNECTION_FAILED", "Server request failed.", true, void 0, void 0, controller.signal.aborted ? "timeout" : "network_error");
     } finally {
@@ -99474,6 +99524,17 @@ var HostPluginRuntime = class {
     if (this.serverApi !== void 0) this.serverConnection = this.createServerConnection(this.identity);
     this.logger.info("Host authorization cleared");
     if (revokeFailure !== void 0) throw revokeFailure;
+  }
+  /** 使用受信任中继交换 IAM 会话；已有凭据和设备身份保持不变。 */
+  async authorizeHostWithIamToken(accessToken, signal) {
+    if (this.closed) throw new ServerApiError("CONNECTION_CLOSED", "Remote runtime is closed.", false);
+    if (this.serverApi === void 0) {
+      throw new ServerApiError("SERVER_NOT_CONFIGURED", "Configure serverUrl before enabling Host access.", false);
+    }
+    const result = await this.serverApi.authorizeWithIamToken(this.currentIdentity(), accessToken, signal);
+    if (!this.closed) this.serverConnection?.resume();
+    this.logger.info("Host authorized through IAM session exchange");
+    return result;
   }
   async authorizeHostAsOwned(accessToken, account) {
     if (this.serverApi === void 0) {

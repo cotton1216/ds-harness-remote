@@ -47,6 +47,11 @@ export class ServerCredentialStore {
     }
   }
 
+  /** 检查任意已有设备凭据，自动注册不得覆盖不同 Server 或身份的记录。 */
+  async hasCredentials(): Promise<boolean> {
+    return exists(this.path)
+  }
+
   async load(serverUrl: string, deviceId: string): Promise<ServerCredentials | undefined> {
     if (!(await exists(this.path))) return undefined
     await assertPrivateMode(this.path)

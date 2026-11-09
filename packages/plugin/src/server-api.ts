@@ -306,6 +306,52 @@ export class HostServerApi {
     return { method: 'host_registration_code' }
   }
 
+  /**
+   * 向调用方已信任的 Server 交换 IAM 账号会话，再注册 Host。
+   * IAM 与会话令牌只留在请求内存；不覆盖任何已有设备凭据、不轮换身份。
+   */
+  async authorizeWithIamToken(
+    identity: HostIdentity,
+    accessToken: string,
+    signal?: AbortSignal,
+  ): Promise<DeviceAuthorization> {
+    if (this.role !== 'host') {
+      throw new ServerApiError('METHOD_NOT_ALLOWED', 'IAM Host registration requires a Host device.', false)
+    }
+    this.bindIdentity(identity)
+    try {
+      return await this.withRefreshLock(async () => {
+        this.lifetime.signal.throwIfAborted()
+        signal?.throwIfAborted()
+        if (await this.store.hasCredentials()) {
+          throw new ServerApiError('AUTHORIZATION_EXISTS', 'Existing device credentials require explicit account migration.', false)
+        }
+        const login = validateWebLogin(await this.publicRequest<unknown>('/api/v1/auth/iam', {
+          method: 'POST',
+          body: JSON.stringify({ token: accessToken }),
+          signal,
+        }))
+        if (login.expiresAt <= Date.now()) {
+          throw new ServerApiError('INVALID_MESSAGE', 'The Server returned an expired account session.', false)
+        }
+        const tokens = validateTokens(await this.publicRequest<unknown>('/api/v1/devices/register', {
+          method: 'POST',
+          body: JSON.stringify({ v: 1, device: this.deviceDescriptor(identity) }),
+          signal,
+        }, login.token))
+        this.lifetime.signal.throwIfAborted()
+        signal?.throwIfAborted()
+        this.credentials = await this.saveTokens(identity, tokens, { authorizationMethod: 'account', account: login.account })
+        return { method: 'account', account: login.account, expiresAt: login.expiresAt, isAdmin: login.isAdmin }
+      })
+    } catch (error) {
+      if (error instanceof ServerCredentialsBusyError) {
+        throw new ServerApiError(error.code, error.message, false)
+      }
+      throw error
+    }
+  }
+
   async authorizeOwnedRole(
     identity: HostIdentity,
     authorizingAccessToken: string,
@@ -538,6 +584,7 @@ export class HostServerApi {
       signal.throwIfAborted()
       const response = await this.fetchImplementation(`${this.baseUrl}${path}`, {
         ...init,
+        redirect: 'manual',
         signal,
         headers: {
           Accept: 'application/json',
@@ -546,6 +593,9 @@ export class HostServerApi {
           ...init.headers,
         },
       })
+      if (response.status >= 300 && response.status < 400) {
+        throw new ServerApiError('CONNECTION_FAILED', 'Server redirects are not allowed.', false, response.status)
+      }
       const body = await parseBody(response)
       signal.throwIfAborted()
       if (!response.ok) {
@@ -568,6 +618,7 @@ export class HostServerApi {
       return body as TResult
     } catch (error) {
       if (this.lifetime.signal.aborted) throw this.lifetime.signal.reason
+      if (init.signal?.aborted === true) throw new ServerApiError('CONNECTION_CLOSED', 'The request was cancelled.', false)
       if (error instanceof ServerApiError) throw error
       throw new ServerApiError('CONNECTION_FAILED', 'Server request failed.', true, undefined, undefined, controller.signal.aborted ? 'timeout' : 'network_error')
     } finally {
