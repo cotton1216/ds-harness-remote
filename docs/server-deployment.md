@@ -82,7 +82,7 @@ docker run -d \
 
 ## 5. 环境变量
 
-共 14 项（不含 `PATH` / `NODE_ENV` / `NODE_VERSION` / `YARN_VERSION` 这类镜像自带项）。**值一律不进仓库**，线上存于 `/root/dsh-relay-multi/unified.env`（权限 `600`），由 `--env-file` 注入。
+共 13 项（不含 `PATH` / `NODE_VERSION` / `YARN_VERSION` 这三个镜像自带项）。**值一律不进仓库**，线上存于 `/root/dsh-relay-multi/unified.env`（权限 `600`），由 `--env-file` 注入。可直接复制 [`../deploy/unified.env.example`](../deploy/unified.env.example) 起步。
 
 | 变量 | 用途 |
 |---|---|
@@ -225,7 +225,8 @@ docker start dsh-relay-multi
 
 ## 12. 待补
 
-- [ ] 把 `/root/dsh-relay-multi/` 下的运维脚本收进仓库（`deploy/` 或 `scripts/server/`），脱敏后提交
-- [ ] nginx 配置纳入版本管理（含 `dsh-remote-ip.conf` 的 map 定义）
-- [ ] 443 上既有单账号实例的部署方式同样未落档
-- [ ] 证书续期的自动化与监控（当前依赖人工 reload）
+- [x] 把 `/root/dsh-relay-multi/` 下的运维脚本收进仓库 —— 已收进 [`../deploy/relay/`](../deploy/relay/)，密钥与账号全部替换为占位符
+- [x] nginx 配置纳入版本管理 —— 已收进 [`../deploy/nginx/`](../deploy/nginx/)，含 `dsh-remote-ip.conf` 的 map 定义；主机地址改为 `<RELAY_IP>` 占位符
+- [ ] 443 上既有单账号实例的部署方式仍未落档（`deploy/nginx/dsh-remote-ip.conf` 只覆盖了它的 nginx 层）
+- [ ] 证书续期的自动化与监控（当前依赖人工 `systemctl reload nginx`）
+- [ ] 镜像构建尚未脚本化：`docker build -t <tag>` 的 tag 语义靠人工约定，没有 CI 产出

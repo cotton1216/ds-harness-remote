@@ -1,0 +1,10 @@
+[
+  {
+    "account": "relay-admin",
+    "password": "<CHANGE_ME>"
+  },
+  {
+    "account": "acceptance-b",
+    "password": "<CHANGE_ME>"
+  }
+]
