@@ -5,6 +5,7 @@ import {
   parseHeartbeatInterval,
   parseHeartbeatDisconnect,
   parseForceTerminateGrace,
+  parseMaxFramesPerSec,
 } from './server.js'
 import { parseLogLevel } from './logger.js'
 import { parseIceConfig } from './ice.js'
@@ -19,6 +20,7 @@ const heartbeatIntervalMs = parseHeartbeatInterval(process.env.DSH_SERVER_HEARTB
 const heartbeatDisconnectMs = parseHeartbeatDisconnect(process.env.DSH_SERVER_HEARTBEAT_DISCONNECT_MS, heartbeatIntervalMs)
 const helloTimeoutMs = parseHelloTimeout(process.env.DSH_SERVER_HELLO_TIMEOUT_MS)
 const forceTerminateGraceMs = parseForceTerminateGrace(process.env.DSH_SERVER_FORCE_TERMINATE_GRACE_MS)
+const maxFramesPerSec = parseMaxFramesPerSec(process.env.DSH_SERVER_MAX_FRAMES_PER_SEC)
 const logLevel = parseLogLevel(process.env.DSH_SERVER_LOG_LEVEL)
 // AI-Server 的 profile 不声明可信 issuer：优先 DSH_IAM_ISSUER，否则沿用 OIDC 的 issuer。
 const oidcConfigured = oidcConfigFromEnv(process.env) !== undefined
@@ -43,6 +45,7 @@ const app = createRemoteServer({
   heartbeatIntervalMs,
   heartbeatDisconnectMs,
   forceTerminateGraceMs,
+  maxFramesPerSec,
   logLevel,
   ice: parseIceConfig(process.env),
 })

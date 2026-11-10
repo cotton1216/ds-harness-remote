@@ -44,6 +44,11 @@ import { uuidV7 } from './ids.js'
 import type { SafeLogger } from './logging.js'
 import { LoopbackPreview } from './loopback-preview.js'
 import { RemoteTypertGateway } from './remote-typert-gateway.js'
+import {
+  AcpSessionHistoryCache,
+  CodexSessionHistoryCache,
+  RemoteSessionHistoryCache,
+} from './session-history-cache.js'
 import { safeErrorCode } from './safe-error.js'
 import { RemoteSessionTools, type SessionToolOperation } from './remote-session-tools.js'
 import type { OAuthProvider } from './server-api.js'
@@ -92,7 +97,12 @@ export class ClientModeRuntime {
   private readonly codexOpenedSessions = new Map<string, string>()
   private codexOpenGeneration = 0
   private cursorVirtual?: AcpVirtualHarness
+  private cursorVirtualSelection?: { targetDeviceId: string; workspaceId: string; backend: string }
+  private readonly acpOpenedSessions = new Map<string, string>()
   private acpVirtualBackend: 'cursor' | 'antigravity' | 'pi' | 'opencode' | 'claude' | 'hermes' = 'cursor'
+  private readonly remoteHistoryCaches = new Map<string, RemoteSessionHistoryCache>()
+  private readonly codexHistoryCaches = new Map<string, CodexSessionHistoryCache>()
+  private readonly acpHistoryCaches = new Map<string, AcpSessionHistoryCache>()
   private readonly gatewaySwitch: TypertGatewaySwitch
   private readonly codexStreams = new Map<string, CodexLoopbackStream>()
   private connectionProgress?: ConnectionProgressState
@@ -186,6 +196,7 @@ export class ClientModeRuntime {
 
   async start(): Promise<void> {
     if (this.closed) throw new Error('client remote-mode runtime is closed')
+    if (this.host?.hostStatus().pairingHostOnly) { this.gatewaySwitch.install(); return }
     this.identity = await this.identities.loadOrCreate(this.config.deviceName)
     this.server.bindIdentity(this.identity)
     this.gatewaySwitch.install()
@@ -228,7 +239,14 @@ export class ClientModeRuntime {
         if (this.host.hasStoredAuthorization !== undefined && await this.host.hasStoredAuthorization()) return
       }
       const credentials = await this.server.authenticate(this.requireIdentity())
-      await this.host.authorizeHostAsOwned(credentials.accessToken, credentials.account)
+      try {
+        await this.host.authorizeHostAsOwned(credentials.accessToken, credentials.account)
+      } catch (error) {
+        if (!(error instanceof ServerApiError) || error.status !== 401
+          || (error.code !== 'AUTH_INVALID' && error.code !== 'TOKEN_EXPIRED')) throw error
+        const refreshed = await this.server.refreshCredentials(credentials.accessToken)
+        await this.host.authorizeHostAsOwned(refreshed.accessToken, refreshed.account)
+      }
     } catch (error) {
       this.logger.warn('automatic Host authorization failed', { code: safeErrorCode(error) })
     }
@@ -352,6 +370,7 @@ export class ClientModeRuntime {
    */
   private assertHostAuthorizationForDeviceDiscovery(): void {
     const status = this.host?.hostStatus()
+    if (status?.pairingHostOnly) throw new ClientModeError('DEVICE_SCOPE_REQUIRED', 'This Host only accepts incoming Remote connections.')
     if (status === undefined || status.error === undefined || !HOST_AUTHORIZATION_ERRORS.has(status.error)) return
     const message = status.error === 'DEVICE_REVOKED'
       ? 'The local Host was revoked on the Server. Sign out and authorize this Host again.'
@@ -397,10 +416,13 @@ export class ClientModeRuntime {
   async clearClientAuthorization(): Promise<void> {
     const cleanup = this.leaveRemote()
     this.codexOpenedSessions.clear()
+    this.acpOpenedSessions.clear()
+    this.clearHistoryCaches()
+    if (this.identity === undefined) { await Promise.all([cleanup, this.server.clearAuthorization()]); return }
     const results = await Promise.allSettled([cleanup, this.server.revokeCurrentDevice()])
-    // Local identity rotation also completes when Server revocation fails.
-    this.identity = await this.identities.reset(this.config.deviceName)
-    this.server.bindIdentity(this.identity)
+    // A Host-only installation never creates a Client identity on logout.
+    if (this.host?.hostStatus().pairingHostOnly) this.identity = undefined
+    else { this.identity = await this.identities.reset(this.config.deviceName); this.server.bindIdentity(this.identity) }
     const failure = results.find(result => result.status === 'rejected')
     if (failure?.status === 'rejected') throw failure.reason
   }
@@ -412,7 +434,14 @@ export class ClientModeRuntime {
       return this.status()
     }
     const credentials = await this.server.authenticate(this.requireIdentity())
-    await this.host.authorizeHostAsOwned(credentials.accessToken, credentials.account)
+    try {
+      await this.host.authorizeHostAsOwned(credentials.accessToken, credentials.account)
+    } catch (error) {
+      if (!(error instanceof ServerApiError) || error.status !== 401
+        || (error.code !== 'AUTH_INVALID' && error.code !== 'TOKEN_EXPIRED')) throw error
+      const refreshed = await this.server.refreshCredentials(credentials.accessToken)
+      await this.host.authorizeHostAsOwned(refreshed.accessToken, refreshed.account)
+    }
     return this.status()
   }
 
@@ -603,7 +632,7 @@ export class ClientModeRuntime {
     const virtual = CodexVirtualHarness.remote(remote.client, {
       deviceId: remote.target.deviceId,
       name: remote.target.name,
-    }, harnessSessionGeneration(this.host?.localHarnessVersion?.()), new RemoteTypertGateway(remote.client))
+    }, harnessSessionGeneration(this.host?.localHarnessVersion?.()), this.remoteTypertGateway(remote), this.codexHistoryCache(remote.target.deviceId))
     try {
       let workspace: CodexVirtualWorkspaceView
       try {
@@ -689,10 +718,17 @@ export class ClientModeRuntime {
       throw new ClientModeError('FEATURE_NOT_SUPPORTED', `The selected Host does not provide ${backend} workspaces.`)
     }
     this.assertLocalHarnessCarrierAvailable()
-    const virtual = AcpVirtualHarness.remote(remote.client, {
-      deviceId: remote.target.deviceId,
-      name: remote.target.name,
-    }, backend, remote.features.acpModelLoadsSession ? ['agent.acp.antigravity.model-load.v1'] : [], new RemoteTypertGateway(remote.client))
+    const virtual = AcpVirtualHarness.remote(
+      remote.client,
+      {
+        deviceId: remote.target.deviceId,
+        name: remote.target.name,
+      },
+      backend,
+      remote.features.acpModelLoadsSession ? ['agent.acp.antigravity.model-load.v1'] : [],
+      this.remoteTypertGateway(remote),
+      this.acpHistoryCache(remote.target.deviceId, backend),
+    )
     let workspace: AcpVirtualWorkspaceView
     try {
       try {
@@ -706,9 +742,14 @@ export class ClientModeRuntime {
       this.assertRemoteCurrent(remote, signal)
       await this.closeCursorVirtual()
       this.assertRemoteCurrent(remote, signal)
-      const preferredSessionId = await virtual.preferredSessionId()
+      const selectionKey = JSON.stringify([remote.target.deviceId, backend, workspace.workspaceId])
+      const rememberedSessionId = this.acpOpenedSessions.get(selectionKey)
+      const preferredSessionId = rememberedSessionId === undefined
+        ? await virtual.preferredSessionId()
+        : await virtual.preferredSessionId(rememberedSessionId)
       this.assertRemoteCurrent(remote, signal)
       this.cursorVirtual = virtual
+      this.cursorVirtualSelection = { targetDeviceId: remote.target.deviceId, workspaceId: workspace.workspaceId, backend }
       this.acpVirtualBackend = backend
       this.selectCursorTarget(virtual, remote)
       this.pendingWorkspaceSelection = {
@@ -739,10 +780,17 @@ export class ClientModeRuntime {
       throw new ClientModeError('FEATURE_NOT_SUPPORTED', `The selected Host does not provide ${backend} workspaces.`)
     }
     this.assertLocalHarnessCarrierAvailable()
-    const virtual = AcpVirtualHarness.remote(remote.client, {
-      deviceId: remote.target.deviceId,
-      name: remote.target.name,
-    }, backend, remote.features.acpModelLoadsSession ? ['agent.acp.antigravity.model-load.v1'] : [], new RemoteTypertGateway(remote.client))
+    const virtual = AcpVirtualHarness.remote(
+      remote.client,
+      {
+        deviceId: remote.target.deviceId,
+        name: remote.target.name,
+      },
+      backend,
+      remote.features.acpModelLoadsSession ? ['agent.acp.antigravity.model-load.v1'] : [],
+      this.remoteTypertGateway(remote),
+      this.acpHistoryCache(remote.target.deviceId, backend),
+    )
     try {
       const workspace = await virtual.selectOrCreateWorkspace(trimmedPath)
       this.assertRemoteCurrent(remote, signal)
@@ -751,6 +799,7 @@ export class ClientModeRuntime {
       await this.closeCursorVirtual()
       this.assertRemoteCurrent(remote, signal)
       this.cursorVirtual = virtual
+      this.cursorVirtualSelection = { targetDeviceId: remote.target.deviceId, workspaceId: workspace.workspaceId, backend }
       this.acpVirtualBackend = backend
       this.selectCursorTarget(virtual, remote)
       this.pendingWorkspaceSelection = {
@@ -783,6 +832,7 @@ export class ClientModeRuntime {
     try {
       await this.leaveRemote()
     } finally {
+      this.clearHistoryCaches()
       this.gatewaySwitch.restore()
     }
   }
@@ -856,7 +906,69 @@ export class ClientModeRuntime {
       localSessionGeneration === 'v3' && remote.features.sessionFormat !== 3 ? 'legacy-to-v3' : undefined,
       remote.harnessVersion,
       true,
+      this.remoteHistoryCache(remote.target.deviceId),
     )
+  }
+
+  private remoteHistoryCache(deviceId: string): RemoteSessionHistoryCache {
+    let cache = this.remoteHistoryCaches.get(deviceId)
+    if (cache === undefined) {
+      cache = new RemoteSessionHistoryCache()
+    } else {
+      this.remoteHistoryCaches.delete(deviceId)
+    }
+    this.remoteHistoryCaches.set(deviceId, cache)
+    while (this.remoteHistoryCaches.size > 16) {
+      const oldest = this.remoteHistoryCaches.keys().next().value
+      if (oldest === undefined) break
+      this.remoteHistoryCaches.get(oldest)?.clear()
+      this.remoteHistoryCaches.delete(oldest)
+    }
+    return cache
+  }
+
+  private codexHistoryCache(deviceId: string): CodexSessionHistoryCache {
+    let cache = this.codexHistoryCaches.get(deviceId)
+    if (cache === undefined) {
+      cache = new CodexSessionHistoryCache()
+    } else {
+      this.codexHistoryCaches.delete(deviceId)
+    }
+    this.codexHistoryCaches.set(deviceId, cache)
+    while (this.codexHistoryCaches.size > 16) {
+      const oldest = this.codexHistoryCaches.keys().next().value
+      if (oldest === undefined) break
+      this.codexHistoryCaches.get(oldest)?.clear()
+      this.codexHistoryCaches.delete(oldest)
+    }
+    return cache
+  }
+
+  private acpHistoryCache(deviceId: string, backend: string): AcpSessionHistoryCache {
+    const key = `${deviceId}:${backend}`
+    let cache = this.acpHistoryCaches.get(key)
+    if (cache === undefined) {
+      cache = new AcpSessionHistoryCache()
+    } else {
+      this.acpHistoryCaches.delete(key)
+    }
+    this.acpHistoryCaches.set(key, cache)
+    while (this.acpHistoryCaches.size > 32) {
+      const oldest = this.acpHistoryCaches.keys().next().value
+      if (oldest === undefined) break
+      this.acpHistoryCaches.get(oldest)?.clear()
+      this.acpHistoryCaches.delete(oldest)
+    }
+    return cache
+  }
+
+  private clearHistoryCaches(): void {
+    for (const cache of this.remoteHistoryCaches.values()) cache.clear()
+    for (const cache of this.codexHistoryCaches.values()) cache.clear()
+    for (const cache of this.acpHistoryCaches.values()) cache.clear()
+    this.remoteHistoryCaches.clear()
+    this.codexHistoryCaches.clear()
+    this.acpHistoryCaches.clear()
   }
 
   private selectCodexTarget(virtual: CodexVirtualHarness, remote: ConnectedRemote): void {
@@ -888,7 +1000,19 @@ export class ClientModeRuntime {
 
   private async closeCursorVirtual(): Promise<void> {
     const virtual = this.cursorVirtual
+    const selection = this.cursorVirtualSelection
     this.cursorVirtual = undefined
+    this.cursorVirtualSelection = undefined
+    if (selection !== undefined && virtual !== undefined && virtual.openedSessions !== undefined) {
+      for (const [workspaceId, sessionId] of virtual.openedSessions) {
+        const key = JSON.stringify([selection.targetDeviceId, selection.backend, workspaceId])
+        this.acpOpenedSessions.delete(key)
+        this.acpOpenedSessions.set(key, sessionId)
+        if (this.acpOpenedSessions.size > 64) {
+          this.acpOpenedSessions.delete(this.acpOpenedSessions.keys().next().value!)
+        }
+      }
+    }
     await virtual?.close()
   }
 
@@ -978,6 +1102,7 @@ export class ClientModeRuntime {
   }
 
   private requireIdentity(): HostIdentity {
+    if (this.host?.hostStatus().pairingHostOnly) throw new ClientModeError('DEVICE_SCOPE_REQUIRED', 'This Host only accepts incoming Remote connections.')
     if (this.identity === undefined) throw new ClientModeError('IDENTITY_INVALID', 'The client identity is not ready.')
     return this.identity
   }

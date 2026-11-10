@@ -2278,7 +2278,7 @@ var require_websocket = __commonJS({
     var http = __require("http");
     var net2 = __require("net");
     var tls3 = __require("tls");
-    var { randomBytes: randomBytes13, createHash: createHash7 } = __require("crypto");
+    var { randomBytes: randomBytes14, createHash: createHash8 } = __require("crypto");
     var { Duplex, Readable } = __require("stream");
     var { URL: URL2 } = __require("url");
     var PerMessageDeflate2 = require_permessage_deflate();
@@ -2816,7 +2816,7 @@ var require_websocket = __commonJS({
         }
       }
       const defaultPort2 = isSecure ? 443 : 80;
-      const key = randomBytes13(16).toString("base64");
+      const key = randomBytes14(16).toString("base64");
       const request = isSecure ? https.request : http.request;
       const protocolSet = /* @__PURE__ */ new Set();
       let perMessageDeflate;
@@ -2946,7 +2946,7 @@ var require_websocket = __commonJS({
           abortHandshake(websocket, socket, "Invalid Upgrade header");
           return;
         }
-        const digest = createHash7("sha1").update(key + GUID).digest("base64");
+        const digest = createHash8("sha1").update(key + GUID).digest("base64");
         if (res.headers["sec-websocket-accept"] !== digest) {
           abortHandshake(websocket, socket, "Invalid Sec-WebSocket-Accept header");
           return;
@@ -3315,7 +3315,7 @@ var require_websocket_server = __commonJS({
     var EventEmitter3 = __require("events");
     var http = __require("http");
     var { Duplex } = __require("stream");
-    var { createHash: createHash7 } = __require("crypto");
+    var { createHash: createHash8 } = __require("crypto");
     var extension2 = require_extension();
     var PerMessageDeflate2 = require_permessage_deflate();
     var subprotocol2 = require_subprotocol();
@@ -3622,7 +3622,7 @@ var require_websocket_server = __commonJS({
           );
         }
         if (this._state > RUNNING) return abortHandshake(socket, 503);
-        const digest = createHash7("sha1").update(key + GUID).digest("base64");
+        const digest = createHash8("sha1").update(key + GUID).digest("base64");
         const headers = [
           "HTTP/1.1 101 Switching Protocols",
           "Upgrade: websocket",
@@ -32187,16 +32187,16 @@ var init_lib = __esm({
        * or moving a URI to a new ID, stays allowed.
        */
       assertStableHeaderExtensionIds(next) {
-        const active = /* @__PURE__ */ new Map();
+        const active2 = /* @__PURE__ */ new Map();
         for (const index of this.currentRemoteDescription?.media.keys() ?? []) {
           for (const extension2 of this.negotiatedHeaderExtensions(index)) {
-            active.set(extension2.id, extension2.uri);
+            active2.set(extension2.id, extension2.uri);
           }
         }
         for (const media of next.media) {
           if (media.port === 0) continue;
           for (const extension2 of media.rtp.headerExtensions) {
-            const uri = active.get(extension2.id);
+            const uri = active2.get(extension2.id);
             if (uri !== void 0 && uri !== extension2.uri) {
               throw createWebRtcDomException(
                 "InvalidModificationError",
@@ -44698,7 +44698,7 @@ var require_lib = __commonJS({
   }
 });
 
-// src/index.ts
+// packages/plugin/src/index.ts
 import * as DshConnection from "@deepseek-ai/dsh-client-connection";
 
 // node_modules/zod/v4/classic/external.js
@@ -60417,8 +60417,8 @@ function encodeJSONPointerSegment(segment) {
   return segment.replace(/~/g, "~0").replace(/\//g, "~1");
 }
 function extractDefs(ctx, schema) {
-  const root = ctx.seen.get(schema);
-  if (!root)
+  const root2 = ctx.seen.get(schema);
+  if (!root2)
     throw new Error("Unprocessed schema. This is a bug in Zod.");
   if (ctx.external && ctx.sharedDefsExtractedFor === ctx.external)
     return;
@@ -60447,7 +60447,7 @@ function extractDefs(ctx, schema) {
     }
     const uriPrefix = `#`;
     const defUriPrefix = `${uriPrefix}/${defsSegment}/`;
-    if (entry[1] === root && !entry[1].schema.id) {
+    if (entry[1] === root2 && !entry[1].schema.id) {
       return { ref: uriPrefix };
     }
     const defId = entry[1].schema.id ?? `__schema${ctx.counter++}`;
@@ -60618,8 +60618,8 @@ function foldIntersection(json2) {
   assignProps(json2, folded);
 }
 function finalize(ctx, schema) {
-  const root = ctx.seen.get(schema);
-  if (!root)
+  const root2 = ctx.seen.get(schema);
+  if (!root2)
     throw new Error("Unprocessed schema. This is a bug in Zod.");
   const flattenRef = (zodSchema) => {
     const seen = ctx.seen.get(zodSchema);
@@ -60730,7 +60730,7 @@ function finalize(ctx, schema) {
       throw new Error("Schema is missing an `id` property");
     result.$id = ctx.external.uri(id6);
   }
-  assignProps(result, root.defId ? root.schema : root.def ?? root.schema);
+  assignProps(result, root2.defId ? root2.schema : root2.def ?? root2.schema);
   const rootMetaId = ctx.metadataRegistry.get(schema)?.id;
   if (rootMetaId !== void 0 && result.id === rootMetaId)
     delete result.id;
@@ -64418,7 +64418,7 @@ function date4(params) {
   return _coercedDate(ZodDate, params);
 }
 
-// ../protocol/dist/loopback.js
+// packages/protocol/dist/loopback.js
 var LOOPBACK_CHUNK_BYTES = 64 * 1024;
 var LOOPBACK_MAX_BODY_BYTES = 1024 * 1024;
 var LOOPBACK_MAX_WS_BYTES = 256 * 1024;
@@ -64440,7 +64440,7 @@ var loopbackRequestSchema = external_exports.discriminatedUnion("op", [
   external_exports.object({ op: external_exports.literal("ws.send"), id, data, binary: external_exports.boolean() }).strict()
 ]);
 
-// ../protocol/dist/wire-json.js
+// packages/protocol/dist/wire-json.js
 function parseWireJson(input4) {
   try {
     const text = typeof input4 === "string" ? input4 : new TextDecoder("utf-8", { fatal: true }).decode(input4);
@@ -64480,7 +64480,7 @@ function parseWireJson(input4) {
   }
 }
 
-// ../protocol/dist/close-semantics.js
+// packages/protocol/dist/close-semantics.js
 var SERVER_SHUTDOWN_REASON = "server shutdown";
 var SERVER_SHUTDOWN_CLOSE_CODES = [4009, 4001, 1013];
 var HEARTBEAT_TIMEOUT_CLOSE_CODE = 4009;
@@ -64508,7 +64508,7 @@ function classifyControlClose(code, reason) {
   };
 }
 
-// ../protocol/dist/index.js
+// packages/protocol/dist/index.js
 var WEBRTC_RESUME_CAPABILITY = "transport.webrtc.resume.v1";
 var RELAY_RESUME_CAPABILITY = "transport.relay.resume.v1";
 var WEBRTC_LEASE_MS = 3e5;
@@ -64530,6 +64530,7 @@ var MAX_AUTH_TOKEN_LENGTH = 8 * 1024;
 var MAX_REMOTE_CAPABILITY_ENTRIES = 128;
 var MAX_REMOTE_WORKSPACE_TYPE_ENTRIES = 32;
 var HOST_REGISTRATION_CODE_TTL_MS = 10 * 6e4;
+var DEFAULT_HEARTBEAT_INTERVAL_MS = 25e3;
 var MAX_ACTIVE_TRANSFERS_PER_DIRECTION = 2;
 var TRANSFER_IDLE_MS = 2 * 6e4;
 var MAX_RPC_TEXT_INPUT_BYTES = 64 * 1024;
@@ -65170,7 +65171,7 @@ function cryptoRandomId() {
   return `msg_${Date.now().toString(36)}_${Math.random().toString(36).slice(2)}`;
 }
 
-// ../client-core/dist/remote-gateway.js
+// packages/client-core/dist/remote-gateway.js
 var DIRECT_REMOTE_CALL_BYTES = 2 * 1024 * 1024;
 function remoteWorkspaceTypeAvailable(capabilities, workspaceTypes, id6, capability) {
   if (!capabilities.includes(capability))
@@ -65197,7 +65198,7 @@ function createRemoteId() {
   return `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 10)}`;
 }
 
-// ../client-core/dist/codex-client.js
+// packages/client-core/dist/codex-client.js
 var MAX_DISPLAY_ITEM_TEXT = 256 * 1024;
 var CODEX_IMAGE_MEDIA_TYPES = /* @__PURE__ */ new Set(["image/png", "image/jpeg", "image/webp", "image/gif"]);
 var DATA_IMAGE_URL = /^data:(image\/(?:png|jpeg|webp|gif));base64,([A-Za-z0-9+/]+={0,2})$/u;
@@ -65376,13 +65377,14 @@ function projectCodexThread(value) {
   const createdAt = normalizeTimestamp(value.createdAt);
   const updatedAt = normalizeTimestamp(value.updatedAt) || createdAt;
   const model = projectCodexModel(value);
+  const preview = typeof value.preview === "string" && value.preview.trim().length > 0 ? value.preview : firstUserPreview(projectCodexHistory(value));
   return {
     id: `codex:${value.id}`,
     backend: "codex",
     nativeId: value.id,
     ...typeof value.sessionId === "string" ? { sessionTreeId: value.sessionId } : {},
     ...typeof value.name === "string" && value.name.length > 0 ? { title: value.name } : {},
-    ...typeof value.preview === "string" && value.preview.length > 0 ? { preview: value.preview } : {},
+    ...preview === void 0 ? {} : { preview },
     ...typeof value.cwd === "string" ? { cwd: value.cwd } : {},
     ...model.model === void 0 ? {} : { model: model.model },
     ...model.reasoningEffort === void 0 ? {} : { reasoningEffort: model.reasoningEffort },
@@ -65460,6 +65462,16 @@ function projectCodexHistory(thread) {
     }
   }
   return output2;
+}
+function firstUserPreview(items) {
+  for (const item of items) {
+    if (item.kind !== "message" || item.role !== "user")
+      continue;
+    const preview = item.text?.replace(/\s+/g, " ").trim().slice(0, 160);
+    if (preview)
+      return preview;
+  }
+  return void 0;
 }
 function projectCodexItem(value, threadId, turnId, sessionId, index) {
   const item = isRecord(value) ? value : {};
@@ -65799,7 +65811,7 @@ function isRecord(value) {
   return typeof value === "object" && value !== null && !Array.isArray(value);
 }
 
-// ../client-core/dist/acp-client.js
+// packages/client-core/dist/acp-client.js
 var ACP_PROMPT_RPC_TIMEOUT_MS = 10 * 6e4;
 var AgentAcpClient = class {
   core;
@@ -66054,7 +66066,7 @@ function canonicalBase64ToBytes(value) {
   return bytes;
 }
 
-// ../client-core/dist/index.js
+// packages/client-core/dist/index.js
 var RemoteClientError = class extends Error {
   code;
   constructor(code, message, options) {
@@ -66229,7 +66241,515 @@ function transportSendError(error62) {
   return error62 instanceof Error ? error62 : new Error("remote transport send failed", { cause: error62 });
 }
 
-// src/acp/image-content.ts
+// packages/plugin/src/session-history-cache.ts
+var MAX_CACHED_SESSIONS = 32;
+var MAX_CACHED_RECORDS_PER_SESSION = 200;
+var MAX_ACP_CACHED_EVENTS_PER_SESSION = 1e4;
+var MAX_UNARY_PAGES_PER_SESSION = 8;
+var MAX_INVALIDATION_KEYS = 256;
+function isRecord3(value) {
+  return typeof value === "object" && value !== null && !Array.isArray(value);
+}
+function cloneStructured(value) {
+  if (value === void 0 || value === null || typeof value !== "object") return value;
+  try {
+    return structuredClone(value);
+  } catch {
+    return JSON.parse(JSON.stringify(value));
+  }
+}
+function touchLru(map2, key, value, maxEntries) {
+  map2.delete(key);
+  map2.set(key, value);
+  while (map2.size > maxEntries) {
+    const oldest = map2.keys().next().value;
+    if (oldest === void 0) break;
+    map2.delete(oldest);
+  }
+}
+function attachSharedInFlight(entry, signal) {
+  if (signal?.aborted) {
+    return Promise.reject(signal.reason ?? new DOMException("The operation was aborted.", "AbortError"));
+  }
+  entry.waiters += 1;
+  return new Promise((resolve9, reject) => {
+    let finished = false;
+    const onAbort = () => {
+      if (finished) return;
+      finished = true;
+      entry.waiters = Math.max(0, entry.waiters - 1);
+      if (entry.waiters === 0 && !entry.settled) {
+        entry.controller.abort(signal?.reason);
+      }
+      reject(signal?.reason ?? new DOMException("The operation was aborted.", "AbortError"));
+    };
+    signal?.addEventListener("abort", onAbort, { once: true });
+    entry.promise.then(
+      (value) => {
+        if (finished) return;
+        finished = true;
+        signal?.removeEventListener("abort", onAbort);
+        resolve9(cloneStructured(value));
+      },
+      (error62) => {
+        if (finished) return;
+        finished = true;
+        signal?.removeEventListener("abort", onAbort);
+        reject(error62);
+      }
+    );
+  });
+}
+function extractSessionIdFromGatewayPayload(payload) {
+  if (!isRecord3(payload)) return void 0;
+  const args = isRecord3(payload.args) ? payload.args : payload;
+  const request = isRecord3(args.request) ? args.request : isRecord3(args._request) ? args._request : args;
+  if (typeof request.sessionId === "string" && request.sessionId.length > 0) return request.sessionId;
+  if (typeof request.agentId === "string" && request.agentId.length > 0) return request.agentId;
+  if (isRecord3(request.address)) {
+    const address2 = request.address;
+    if (typeof address2.sessionId === "string" && address2.sessionId.length > 0) return address2.sessionId;
+    if (typeof address2.childSessionId === "string" && address2.childSessionId.length > 0) return address2.childSessionId;
+  }
+  return void 0;
+}
+function isSessionMutationEndpoint(endpoint) {
+  return endpoint === "session/prompt" || endpoint === "session/cancel" || endpoint === "session/rename" || endpoint === "session/selectModel" || endpoint === "session/selectPermission" || endpoint === "session/fork" || endpoint === "agentPresets/select" || endpoint === "commands/execute" || endpoint === "workspace/archiveSession";
+}
+function canonicalUnaryHistoryKey(endpoint, payload) {
+  if (!isRecord3(payload)) return endpoint;
+  const args = isRecord3(payload.args) ? payload.args : payload;
+  const request = isRecord3(args.request) ? args.request : isRecord3(args._request) ? args._request : args;
+  return JSON.stringify([
+    endpoint,
+    typeof request.beforeSeq === "number" ? request.beforeSeq : null,
+    typeof request.throughSeq === "number" ? request.throughSeq : null,
+    typeof request.maxMessages === "number" ? request.maxMessages : typeof request.limit === "number" ? request.limit : null,
+    request.turnWindow ?? null
+  ]);
+}
+var RemoteSessionHistoryCache = class {
+  sessions = /* @__PURE__ */ new Map();
+  pendingUnary = /* @__PURE__ */ new Map();
+  invalidatedAt = /* @__PURE__ */ new Map();
+  epoch = 0;
+  minValidEpoch = 0;
+  beginReadEpoch() {
+    return ++this.epoch;
+  }
+  isReadEpochValid(sessionId, readEpoch) {
+    return readEpoch > this.minValidEpoch && readEpoch > (this.invalidatedAt.get(sessionId) ?? 0);
+  }
+  getFollowSnapshot(client, sessionId) {
+    const entry = this.sessions.get(sessionId);
+    if (entry?.snapshot === void 0) return void 0;
+    touchLru(this.sessions, sessionId, entry, MAX_CACHED_SESSIONS);
+    const snapshot2 = cloneStructured(entry.snapshot);
+    const cursor3 = typeof snapshot2.cursor === "number" ? snapshot2.cursor : -1;
+    return {
+      snapshot: {
+        ...snapshot2,
+        ...isRecord3(snapshot2.assistantStream) ? { assistantStream: { ...snapshot2.assistantStream, revision: 0 } } : {}
+      },
+      sameClient: entry.client === client,
+      cursor: cursor3
+    };
+  }
+  recordFollowSnapshot(client, sessionId, frame) {
+    if (!isRecord3(frame) || frame.type !== "snapshot") return;
+    const id6 = sessionId.length > 0 ? sessionId : isRecord3(frame.header) && typeof frame.header.id === "string" ? frame.header.id : "";
+    if (id6.length === 0) return;
+    const existing = this.sessions.get(id6) ?? { unary: /* @__PURE__ */ new Map() };
+    const cloned = cloneStructured(frame);
+    if (Array.isArray(cloned.records) && cloned.records.length > MAX_CACHED_RECORDS_PER_SESSION) {
+      cloned.records = cloned.records.slice(cloned.records.length - MAX_CACHED_RECORDS_PER_SESSION);
+      cloned.hasMore = true;
+    }
+    this.invalidateUnary(id6, existing);
+    existing.client = client;
+    existing.snapshot = cloned;
+    touchLru(this.sessions, id6, existing, MAX_CACHED_SESSIONS);
+  }
+  prependBackfilledRecords(client, sessionId, backfilled) {
+    const entry = this.sessions.get(sessionId);
+    if (entry === void 0 || entry.client !== client || entry.snapshot === void 0 || !Array.isArray(entry.snapshot.records)) return;
+    const bySeq = /* @__PURE__ */ new Map();
+    for (const item of [...backfilled, ...entry.snapshot.records]) {
+      if (isRecord3(item) && isRecord3(item.event) && typeof item.event.seq === "number") {
+        bySeq.set(item.event.seq, cloneStructured(item));
+      }
+    }
+    const sortedEntries = [...bySeq.entries()].sort((a, b) => a[0] - b[0]);
+    const merged = sortedEntries.map(([, item]) => item);
+    if (merged.length > MAX_CACHED_RECORDS_PER_SESSION) {
+      entry.snapshot.records = merged.slice(merged.length - MAX_CACHED_RECORDS_PER_SESSION);
+      entry.snapshot.hasMore = true;
+    } else {
+      entry.snapshot.records = merged;
+    }
+    const highestSeq = sortedEntries.at(-1)?.[0];
+    const currentCursor = typeof entry.snapshot.cursor === "number" ? entry.snapshot.cursor : -1;
+    if (highestSeq !== void 0 && highestSeq > currentCursor) {
+      entry.snapshot.cursor = highestSeq;
+    }
+    this.invalidateUnary(sessionId, entry);
+  }
+  recordFollowFrame(client, sessionId, frame) {
+    if (sessionId.length === 0 || !isRecord3(frame)) return;
+    const entry = this.sessions.get(sessionId);
+    if (entry === void 0 || entry.client !== client || entry.snapshot === void 0) return;
+    if (frame.type === "event" && isRecord3(frame.event) && typeof frame.event.seq === "number") {
+      const seq = frame.event.seq;
+      const currentCursor = typeof entry.snapshot.cursor === "number" ? entry.snapshot.cursor : -1;
+      if (seq <= currentCursor) return;
+      if (seq === currentCursor + 1 && Array.isArray(entry.snapshot.records)) {
+        const records = [...entry.snapshot.records, cloneStructured(frame)];
+        if (records.length > MAX_CACHED_RECORDS_PER_SESSION) {
+          entry.snapshot.records = records.slice(records.length - MAX_CACHED_RECORDS_PER_SESSION);
+          entry.snapshot.hasMore = true;
+        } else {
+          entry.snapshot.records = records;
+        }
+        entry.snapshot.cursor = seq;
+        this.invalidateUnary(sessionId, entry);
+        touchLru(this.sessions, sessionId, entry, MAX_CACHED_SESSIONS);
+      }
+      return;
+    }
+    if (frame.type === "projection" && typeof frame.key === "string") {
+      const projections = isRecord3(entry.snapshot.projections) ? entry.snapshot.projections : void 0;
+      if (projections !== void 0 && isRecord3(projections.values)) {
+        projections.values[frame.key] = cloneStructured(frame.value);
+        if (typeof frame.seq === "number" && typeof projections.asOfSeq === "number" && frame.seq > projections.asOfSeq) {
+          projections.asOfSeq = frame.seq;
+        }
+      }
+      this.invalidateUnary(sessionId, entry);
+    }
+  }
+  invalidateUnary(sessionId, entry) {
+    const invalidationEpoch = ++this.epoch;
+    this.invalidatedAt.delete(sessionId);
+    this.invalidatedAt.set(sessionId, invalidationEpoch);
+    while (this.invalidatedAt.size > MAX_INVALIDATION_KEYS) {
+      const oldestKey = this.invalidatedAt.keys().next().value;
+      if (oldestKey === void 0) break;
+      const oldestEpoch = this.invalidatedAt.get(oldestKey) ?? 0;
+      this.minValidEpoch = Math.max(this.minValidEpoch, oldestEpoch);
+      this.invalidatedAt.delete(oldestKey);
+    }
+    entry?.unary.clear();
+    for (const [key, pending] of this.pendingUnary.entries()) {
+      if (key.startsWith(`${sessionId}:`)) {
+        pending.settled = true;
+        this.pendingUnary.delete(key);
+      }
+    }
+  }
+  getUnary(client, sessionId, key) {
+    const entry = this.sessions.get(sessionId);
+    if (entry === void 0 || entry.client !== client) return void 0;
+    const cached2 = entry.unary.get(key);
+    if (cached2 === void 0 || cached2.client !== client) return void 0;
+    touchLru(entry.unary, key, cached2, MAX_UNARY_PAGES_PER_SESSION);
+    touchLru(this.sessions, sessionId, entry, MAX_CACHED_SESSIONS);
+    return cloneStructured(cached2.value);
+  }
+  setUnary(client, sessionId, key, value, readEpoch) {
+    if (readEpoch !== void 0 && !this.isReadEpochValid(sessionId, readEpoch)) return;
+    const existing = this.sessions.get(sessionId);
+    const entry = existing ?? { unary: /* @__PURE__ */ new Map() };
+    if (entry.client !== void 0 && entry.client !== client) {
+      entry.unary.clear();
+    }
+    entry.client = client;
+    touchLru(entry.unary, key, { client, value: cloneStructured(value) }, MAX_UNARY_PAGES_PER_SESSION);
+    touchLru(this.sessions, sessionId, entry, MAX_CACHED_SESSIONS);
+  }
+  getFallbackUnary(sessionId, endpoint, key, payload) {
+    const entry = this.sessions.get(sessionId);
+    if (entry === void 0) return void 0;
+    const exact = entry.unary.get(key);
+    if (exact !== void 0) return cloneStructured(exact.value);
+    if (entry.snapshot === void 0) return void 0;
+    const snapshot2 = entry.snapshot;
+    if (endpoint === "session/projections") {
+      return snapshot2.projections !== void 0 ? cloneStructured(snapshot2.projections) : void 0;
+    }
+    if (endpoint === "session/history" && Array.isArray(snapshot2.records)) {
+      return {
+        records: cloneStructured(snapshot2.records),
+        hasMore: Boolean(snapshot2.hasMore),
+        ...typeof snapshot2.cursor === "number" ? { throughSeq: snapshot2.cursor, cursor: snapshot2.cursor } : {},
+        ...snapshot2.projections === void 0 ? {} : { projections: cloneStructured(snapshot2.projections) }
+      };
+    }
+    if (endpoint === "session/page") {
+      return this.sliceSnapshotRecords(snapshot2, payload);
+    }
+    return void 0;
+  }
+  slicePageFromSnapshot(client, sessionId, payload) {
+    const entry = this.sessions.get(sessionId);
+    if (entry === void 0 || entry.client !== client || entry.snapshot === void 0) return void 0;
+    if (entry.snapshot.hasMore === true) return void 0;
+    return this.sliceSnapshotRecords(entry.snapshot, payload);
+  }
+  sliceSnapshotRecords(snapshot2, payload) {
+    if (!Array.isArray(snapshot2.records)) return void 0;
+    const args = isRecord3(payload) && isRecord3(payload.args) ? payload.args : isRecord3(payload) ? payload : {};
+    const request = isRecord3(args.request) ? args.request : isRecord3(args._request) ? args._request : args;
+    if (request.turnWindow !== void 0) return void 0;
+    const snapshotCursor = typeof snapshot2.cursor === "number" ? snapshot2.cursor : -1;
+    const throughSeq = typeof request.throughSeq === "number" ? request.throughSeq : snapshotCursor;
+    if (throughSeq > snapshotCursor) return void 0;
+    const beforeSeq = typeof request.beforeSeq === "number" ? request.beforeSeq : void 0;
+    const endSeq = beforeSeq === void 0 ? throughSeq : Math.min(throughSeq, beforeSeq - 1);
+    const window2 = endSeq < 0 ? [] : snapshot2.records.filter((item) => isRecord3(item) && isRecord3(item.event) && typeof item.event.seq === "number" && item.event.seq <= endSeq);
+    if (throughSeq >= 0 && beforeSeq === void 0 && window2.length > 0) {
+      const tail = window2.at(-1);
+      if (!isRecord3(tail) || !isRecord3(tail.event) || tail.event.seq !== throughSeq) return void 0;
+    }
+    const maxMessages = typeof request.maxMessages === "number" && request.maxMessages > 0 ? request.maxMessages : typeof request.limit === "number" && request.limit > 0 ? request.limit : void 0;
+    const records = maxMessages === void 0 ? window2 : window2.slice(Math.max(0, window2.length - maxMessages));
+    const hasMore = Boolean(snapshot2.hasMore) || window2.length > records.length;
+    return cloneStructured({
+      records,
+      hasMore,
+      ...typeof snapshot2.cursor === "number" ? { cursor: snapshot2.cursor } : {}
+    });
+  }
+  runSingleFlightUnary(client, sessionId, key, signal, factory) {
+    if (signal.aborted) {
+      return Promise.reject(signal.reason ?? new DOMException("The operation was aborted.", "AbortError"));
+    }
+    const composite = `${sessionId}:${key}`;
+    const existing = this.pendingUnary.get(composite);
+    if (existing !== void 0 && existing.client === client && !existing.settled) {
+      return attachSharedInFlight(existing, signal);
+    }
+    const controller = new AbortController();
+    const entry = {
+      client,
+      controller,
+      waiters: 0,
+      settled: false,
+      promise: Promise.resolve()
+    };
+    entry.promise = factory(controller.signal).finally(() => {
+      entry.settled = true;
+      if (this.pendingUnary.get(composite) === entry) {
+        this.pendingUnary.delete(composite);
+      }
+    });
+    void entry.promise.catch(() => void 0);
+    this.pendingUnary.set(composite, entry);
+    return attachSharedInFlight(entry, signal);
+  }
+  invalidateSession(sessionId) {
+    const invalidationEpoch = ++this.epoch;
+    this.invalidatedAt.delete(sessionId);
+    this.invalidatedAt.set(sessionId, invalidationEpoch);
+    while (this.invalidatedAt.size > MAX_INVALIDATION_KEYS) {
+      const oldestKey = this.invalidatedAt.keys().next().value;
+      if (oldestKey === void 0) break;
+      const oldestEpoch = this.invalidatedAt.get(oldestKey) ?? 0;
+      this.minValidEpoch = Math.max(this.minValidEpoch, oldestEpoch);
+      this.invalidatedAt.delete(oldestKey);
+    }
+    const entry = this.sessions.get(sessionId);
+    if (entry !== void 0) {
+      entry.unary.clear();
+      entry.snapshot = void 0;
+      this.sessions.delete(sessionId);
+    }
+    for (const [key, pending] of this.pendingUnary.entries()) {
+      if (key.startsWith(`${sessionId}:`)) {
+        pending.settled = true;
+        this.pendingUnary.delete(key);
+      }
+    }
+  }
+  clear() {
+    this.minValidEpoch = ++this.epoch;
+    this.invalidatedAt.clear();
+    this.sessions.clear();
+    for (const pending of this.pendingUnary.values()) {
+      pending.settled = true;
+    }
+    this.pendingUnary.clear();
+  }
+};
+var CodexSessionHistoryCache = class _CodexSessionHistoryCache {
+  threads = /* @__PURE__ */ new Map();
+  pendingPages = /* @__PURE__ */ new Map();
+  invalidatedAt = /* @__PURE__ */ new Map();
+  epoch = 0;
+  minValidEpoch = 0;
+  static pageKey(generation, page) {
+    return JSON.stringify([
+      generation,
+      page.beforeSeq ?? null,
+      page.throughSeq ?? null,
+      page.maxMessages ?? null
+    ]);
+  }
+  beginReadEpoch() {
+    return ++this.epoch;
+  }
+  isReadEpochValid(threadId, readEpoch) {
+    return readEpoch > this.minValidEpoch && readEpoch > (this.invalidatedAt.get(threadId) ?? 0);
+  }
+  getFreshPage(threadId, generation, page, knownUpdatedAt) {
+    const entry = this.threads.get(threadId);
+    if (entry === void 0 || entry.stale) return void 0;
+    if (knownUpdatedAt !== void 0 && entry.updatedAt !== void 0 && knownUpdatedAt > entry.updatedAt) {
+      entry.stale = true;
+      return void 0;
+    }
+    const key = _CodexSessionHistoryCache.pageKey(generation, page);
+    const cached2 = entry.pages.get(key);
+    if (cached2 === void 0) return void 0;
+    touchLru(entry.pages, key, cached2, MAX_UNARY_PAGES_PER_SESSION);
+    touchLru(this.threads, threadId, entry, MAX_CACHED_SESSIONS);
+    return cloneStructured(cached2);
+  }
+  getFreshTailCursor(threadId, generation, knownUpdatedAt) {
+    const entry = this.threads.get(threadId);
+    if (entry === void 0 || entry.stale || entry.tailPage === void 0) return void 0;
+    if (knownUpdatedAt !== void 0 && entry.updatedAt !== void 0 && knownUpdatedAt > entry.updatedAt) {
+      entry.stale = true;
+      return void 0;
+    }
+    if ((entry.tailPage.header.version === 3 ? "v3" : "legacy") !== generation) return void 0;
+    touchLru(this.threads, threadId, entry, MAX_CACHED_SESSIONS);
+    return entry.tailPage.cursor;
+  }
+  getStalePage(threadId, generation, page) {
+    const entry = this.threads.get(threadId);
+    if (entry === void 0) return void 0;
+    const key = _CodexSessionHistoryCache.pageKey(generation, page);
+    const cached2 = entry.pages.get(key);
+    return cached2 === void 0 ? void 0 : cloneStructured(cached2);
+  }
+  setPage(threadId, generation, page, value, knownUpdatedAt, readEpoch) {
+    if (readEpoch !== void 0 && !this.isReadEpochValid(threadId, readEpoch)) return;
+    const existing = this.threads.get(threadId);
+    const entry = existing ?? { stale: false, pages: /* @__PURE__ */ new Map() };
+    if (entry.stale) {
+      entry.pages.clear();
+      entry.tailPage = void 0;
+      entry.stale = false;
+    }
+    if (knownUpdatedAt !== void 0) {
+      entry.updatedAt = knownUpdatedAt;
+    }
+    const cloned = cloneStructured(value);
+    const key = _CodexSessionHistoryCache.pageKey(generation, page);
+    touchLru(entry.pages, key, cloned, MAX_UNARY_PAGES_PER_SESSION);
+    if (page.beforeSeq === void 0 && page.throughSeq === void 0) {
+      entry.tailPage = cloned;
+    }
+    touchLru(this.threads, threadId, entry, MAX_CACHED_SESSIONS);
+  }
+  runSingleFlightPage(threadId, generation, page, signal, factory) {
+    if (signal?.aborted) {
+      return Promise.reject(signal.reason ?? new DOMException("The operation was aborted.", "AbortError"));
+    }
+    const composite = `${threadId}:${_CodexSessionHistoryCache.pageKey(generation, page)}`;
+    const existing = this.pendingPages.get(composite);
+    if (existing !== void 0 && !existing.settled) {
+      return attachSharedInFlight(existing, signal);
+    }
+    const controller = new AbortController();
+    const entry = {
+      controller,
+      waiters: 0,
+      settled: false,
+      promise: Promise.resolve()
+    };
+    entry.promise = factory(controller.signal).finally(() => {
+      entry.settled = true;
+      if (this.pendingPages.get(composite) === entry) {
+        this.pendingPages.delete(composite);
+      }
+    });
+    void entry.promise.catch(() => void 0);
+    this.pendingPages.set(composite, entry);
+    return attachSharedInFlight(entry, signal);
+  }
+  invalidateThread(threadId) {
+    const invalidationEpoch = ++this.epoch;
+    this.invalidatedAt.delete(threadId);
+    this.invalidatedAt.set(threadId, invalidationEpoch);
+    while (this.invalidatedAt.size > MAX_INVALIDATION_KEYS) {
+      const oldestKey = this.invalidatedAt.keys().next().value;
+      if (oldestKey === void 0) break;
+      const oldestEpoch = this.invalidatedAt.get(oldestKey) ?? 0;
+      this.minValidEpoch = Math.max(this.minValidEpoch, oldestEpoch);
+      this.invalidatedAt.delete(oldestKey);
+    }
+    const entry = this.threads.get(threadId);
+    if (entry !== void 0) {
+      entry.stale = true;
+    }
+    for (const [key, pending] of this.pendingPages.entries()) {
+      if (key.startsWith(`${threadId}:`)) {
+        pending.settled = true;
+        this.pendingPages.delete(key);
+      }
+    }
+  }
+  removeThread(threadId) {
+    this.invalidateThread(threadId);
+    this.threads.delete(threadId);
+  }
+  clear() {
+    this.minValidEpoch = ++this.epoch;
+    this.invalidatedAt.clear();
+    this.threads.clear();
+    for (const pending of this.pendingPages.values()) {
+      pending.settled = true;
+    }
+    this.pendingPages.clear();
+  }
+};
+var AcpSessionHistoryCache = class {
+  sessions = /* @__PURE__ */ new Map();
+  getFresh(sessionId) {
+    const entry = this.sessions.get(sessionId);
+    if (entry === void 0 || entry.stale || entry.truncated || !entry.hydrated || entry.events.length === 0) return void 0;
+    touchLru(this.sessions, sessionId, entry, MAX_CACHED_SESSIONS);
+    return cloneStructured(entry);
+  }
+  getStale(sessionId) {
+    const entry = this.sessions.get(sessionId);
+    if (entry === void 0) return void 0;
+    return cloneStructured(entry);
+  }
+  set(sessionId, value) {
+    const cloned = cloneStructured(value);
+    if (cloned.events.length > MAX_ACP_CACHED_EVENTS_PER_SESSION) {
+      cloned.events = cloned.events.slice(cloned.events.length - MAX_ACP_CACHED_EVENTS_PER_SESSION);
+      cloned.truncated = true;
+    }
+    touchLru(this.sessions, sessionId, cloned, MAX_CACHED_SESSIONS);
+  }
+  markStale(sessionId) {
+    const entry = this.sessions.get(sessionId);
+    if (entry !== void 0) {
+      entry.stale = true;
+    }
+  }
+  delete(sessionId) {
+    this.sessions.delete(sessionId);
+  }
+  clear() {
+    this.sessions.clear();
+  }
+};
+
+// packages/plugin/src/acp/image-content.ts
 var AGY_IMAGE_MEDIA_TYPES = ["image/png", "image/jpeg", "image/webp", "image/gif"];
 var AGY_MAX_IMAGE_BYTES = 8 * 1024 * 1024;
 var AGY_MAX_IMAGES = 4;
@@ -66289,7 +66809,7 @@ function acpImageLimits(backend) {
   return backend === "antigravity" || backend === "hermes" ? { maxImageBytes: AGY_MAX_IMAGE_BYTES, maxImagesPerMessage: AGY_MAX_IMAGES, maxMessageImageBytes: AGY_MAX_MESSAGE_IMAGE_BYTES, maxImagePixels: 4e7, maxImageDimension: 8192, mediaTypes: [...AGY_IMAGE_MEDIA_TYPES] } : { maxImageBytes: 0, maxImagesPerMessage: 0, mediaTypes: [] };
 }
 
-// src/acp/virtual-catalog.ts
+// packages/plugin/src/acp/virtual-catalog.ts
 var CURSOR_WORKSPACE_PREFIX = "cursor:cwd:";
 var AGY_WORKSPACE_PREFIX = "antigravity:cwd:";
 var OPENCODE_WORKSPACE_PREFIX = "opencode:cwd:";
@@ -66402,7 +66922,7 @@ function modelCatalog(backend = "cursor") {
   };
 }
 
-// src/acp/virtual-contract.ts
+// packages/plugin/src/acp/virtual-contract.ts
 var CURSOR_SESSION_PREFIX = "cursor:";
 var ACP_SESSION_PREFIX = "acp:";
 var OPENCODE_SESSION_PREFIX = "opencode:";
@@ -66440,16 +66960,16 @@ function extractPromptText(content) {
 function extractText(update) {
   const content = update.content;
   if (typeof content === "string") return content;
-  if (isRecord3(content) && typeof content.text === "string") return content.text;
+  if (isRecord4(content) && typeof content.text === "string") return content.text;
   if (Array.isArray(content)) {
-    const parts = content.map((part) => isRecord3(part) && typeof part.text === "string" ? part.text : void 0).filter((part) => part !== void 0);
+    const parts = content.map((part) => isRecord4(part) && typeof part.text === "string" ? part.text : void 0).filter((part) => part !== void 0);
     return parts.length === 0 ? void 0 : parts.join("");
   }
   return typeof update.text === "string" ? update.text : void 0;
 }
 function summarizeQuestions(params) {
   if (!Array.isArray(params.questions)) return void 0;
-  const lines = params.questions.map((question) => isRecord3(question) ? string4(question.prompt) : void 0).filter((line) => line !== void 0);
+  const lines = params.questions.map((question) => isRecord4(question) ? string4(question.prompt) : void 0).filter((line) => line !== void 0);
   return lines.length === 0 ? void 0 : lines.join("\n");
 }
 function sessionIdFromAddress(address2) {
@@ -66462,7 +66982,7 @@ function sessionIdFromAddress(address2) {
 }
 function extractSessionId(request) {
   if (typeof request.sessionId === "string" && request.sessionId.length > 0) return request.sessionId;
-  if (isRecord3(request.address)) return sessionIdFromAddress(request.address);
+  if (isRecord4(request.address)) return sessionIdFromAddress(request.address);
   throw new Error("The sessionId is required.");
 }
 function sessionPrefix(backend) {
@@ -66491,17 +67011,17 @@ function failure2(code, message, details2 = {}) {
   return { ok: false, error: { code, message, details: details2 } };
 }
 function business(value) {
-  if (isRecord3(value) && value.ok === false && isRecord3(value.error)) {
+  if (isRecord4(value) && value.ok === false && isRecord4(value.error)) {
     return {
       ok: false,
       error: {
         code: string4(value.error.code) ?? "internal",
         message: string4(value.error.message) ?? "The virtual Harness request failed.",
-        details: isRecord3(value.error.details) ? value.error.details : {}
+        details: isRecord4(value.error.details) ? value.error.details : {}
       }
     };
   }
-  if (isRecord3(value) && value.ok === true) return { ok: true, value: value.value };
+  if (isRecord4(value) && value.ok === true) return { ok: true, value: value.value };
   return { ok: true, value };
 }
 function fail(code, message, details2 = {}) {
@@ -66513,9 +67033,9 @@ function failFrom(error62) {
   return fail(code, source.message);
 }
 function record2(value) {
-  return isRecord3(value) ? value : {};
+  return isRecord4(value) ? value : {};
 }
-function isRecord3(value) {
+function isRecord4(value) {
   return typeof value === "object" && value !== null && !Array.isArray(value);
 }
 function array2(value) {
@@ -66612,7 +67132,7 @@ function acpPermissionsProjection(preset) {
   };
 }
 
-// src/acp/virtual-event-carrier.ts
+// packages/plugin/src/acp/virtual-event-carrier.ts
 var AcpEventCarrier = class {
   constructor(context) {
     this.context = context;
@@ -66697,7 +67217,7 @@ var AcpEventCarrier = class {
   }
 };
 
-// src/acp/pi-tool-result.ts
+// packages/plugin/src/acp/pi-tool-result.ts
 function piToolResult(update) {
   let content = Array.isArray(update.content) ? update.content.flatMap((item) => {
     if (item?.type === "content" && item.content?.type === "text" && typeof item.content.text === "string") return [{ type: "text", text: item.content.text }];
@@ -66716,7 +67236,7 @@ ${item.newText}` }];
   return { content, isError: update.status === "failed" || update.rawOutput?.isError === true };
 }
 
-// src/acp/virtual-live.ts
+// packages/plugin/src/acp/virtual-live.ts
 var AcpLiveProjection = class {
   constructor(context) {
     this.context = context;
@@ -66726,6 +67246,7 @@ var AcpLiveProjection = class {
     const session2 = this.context.ensureSessionRegistered(sessionId) ?? this.context.sessions.get(sessionId);
     if (session2 === void 0) throw new Error("The Session was not found.");
     await this.context.hydrateSession(session2);
+    this.context.rememberOpenedSession?.(session2.sessionId);
     const history = this.context.historyPage(session2, {
       limit: optionalPositiveInteger(request.maxMessages) ?? 50
     });
@@ -66735,7 +67256,7 @@ var AcpLiveProjection = class {
       acpSessionId: session2.acpSessionId,
       queue,
       nextSeq: session2.events.length,
-      turn: Math.max(0, ...session2.events.map((entry) => isRecord3(entry.event.data) && typeof entry.event.data.turn === "number" ? entry.event.data.turn : 0)),
+      turn: Math.max(0, ...session2.events.map((entry) => isRecord4(entry.event.data) && typeof entry.event.data.turn === "number" ? entry.event.data.turn : 0)),
       stepOpen: session2.running,
       streamActive: false,
       assistantStreamRevision: 0,
@@ -66794,7 +67315,7 @@ var AcpLiveProjection = class {
       acpSessionId: session2.acpSessionId,
       queue,
       nextSeq: session2.events.length === 0 ? 0 : Math.max(...session2.events.map((entry) => entry.event.seq)) + 1,
-      turn: Math.max(0, ...session2.events.map((entry) => isRecord3(entry.event.data) && typeof entry.event.data.turn === "number" ? entry.event.data.turn : 0)),
+      turn: Math.max(0, ...session2.events.map((entry) => isRecord4(entry.event.data) && typeof entry.event.data.turn === "number" ? entry.event.data.turn : 0)),
       stepOpen: false,
       streamActive: false,
       assistantStreamRevision: 0,
@@ -66832,7 +67353,7 @@ var AcpLiveProjection = class {
     }
   }
   acceptSessionUpdate(follow, params) {
-    const update = isRecord3(params.update) ? params.update : params;
+    const update = isRecord4(params.update) ? params.update : params;
     const kind = string4(update.sessionUpdate) ?? string4(update.type);
     const session2 = this.context.sessions.get(follow.sessionId);
     if (kind === "session_info_update") {
@@ -66841,7 +67362,7 @@ var AcpLiveProjection = class {
       }
       return;
     }
-    if (kind === "model_selection" && isRecord3(update.selected) && update.selected.provider === this.context.backend && typeof update.selected.model === "string") {
+    if (kind === "model_selection" && isRecord4(update.selected) && update.selected.provider === this.context.backend && typeof update.selected.model === "string") {
       this.context.selectedModels.set(follow.sessionId, update.selected);
       this.context.publishProjection(follow.sessionId, "modelSelection", this.context.modelSelectionProjection(follow.sessionId), this.context.nextProjectionSeq());
       return;
@@ -66946,8 +67467,8 @@ var AcpLiveProjection = class {
       const hasLiveContent = follow.stepOpen || follow.streamActive;
       if (!hasLiveContent && Array.isArray(update.catchUp)) {
         for (const item of update.catchUp) {
-          if (!isRecord3(item) || typeof item.method !== "string") continue;
-          const params2 = isRecord3(item.params) ? item.params : {};
+          if (!isRecord4(item) || typeof item.method !== "string") continue;
+          const params2 = isRecord4(item.params) ? item.params : {};
           if (item.method === "session/update") this.acceptSessionUpdate(follow, params2);
         }
       }
@@ -67114,6 +67635,8 @@ var AcpLiveProjection = class {
     follow.piReasoning = "";
   }
   closeFollowAfterRemoteStreamClosed(follow, outcome = { kind: "completed" }) {
+    const session2 = this.context.sessions.get(follow.sessionId);
+    if (session2 !== void 0) session2.running = false;
     if (this.context.backend === "pi") {
       this.finishPiAssistant(follow, outcome);
       if (follow.stepOpen) {
@@ -67126,6 +67649,7 @@ var AcpLiveProjection = class {
       follow.piToolOutputs.clear();
       follow.piToolCalls.clear();
       follow.activeToolCalls.clear();
+      if (session2 !== void 0) this.context.syncSessionCache?.(session2);
       return;
     }
     if (follow.streamActive) {
@@ -67181,6 +67705,7 @@ var AcpLiveProjection = class {
     follow.accumulatedText = "";
     follow.piToolOutputs.clear();
     follow.piToolCalls.clear();
+    if (session2 !== void 0) this.context.syncSessionCache?.(session2);
   }
   pushEvent(follow, type, data2) {
     const session2 = this.context.sessions.get(follow.sessionId);
@@ -67194,6 +67719,7 @@ var AcpLiveProjection = class {
     };
     if (session2 !== void 0) {
       session2.events.push({ type: "event", event });
+      this.context.syncSessionCache?.(session2);
     }
     for (const f of this.context.follows) {
       if (f.sessionId === follow.sessionId) {
@@ -67205,7 +67731,7 @@ var AcpLiveProjection = class {
   }
 };
 
-// src/acp/virtual-titles.ts
+// packages/plugin/src/acp/virtual-titles.ts
 var OPENCODE_DEFAULT_TITLE = /^(?:New|Child) session - \d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z$/;
 var AcpSessionTitles = class {
   constructor(backend, client, sessions, publish) {
@@ -67285,13 +67811,14 @@ function waitForTitle(delay, signal) {
   });
 }
 
-// src/acp/virtual-harness.ts
+// packages/plugin/src/acp/virtual-harness.ts
 var AcpVirtualHarness = class _AcpVirtualHarness {
-  constructor(client, host, backend = "cursor", hostCarrier) {
+  constructor(client, host, backend = "cursor", hostCarrier, historyCache = new AcpSessionHistoryCache()) {
     this.client = client;
     this.host = host;
     this.backend = backend;
     this.hostCarrier = hostCarrier;
+    this.historyCache = historyCache;
     const owner = this;
     this.live = new AcpLiveProjection({
       ensureSessionRegistered: (...args) => owner.ensureSessionRegistered(...args),
@@ -67325,7 +67852,9 @@ var AcpVirtualHarness = class _AcpVirtualHarness {
       emitApproval: (...args) => owner.events.emitApproval(...args),
       modelSelection: (...args) => owner.modelSelection(...args),
       permissionsProjection: (...args) => owner.permissionsProjection(...args),
-      permissionSelection: (...args) => owner.permissionSelection(...args)
+      permissionSelection: (...args) => owner.permissionSelection(...args),
+      rememberOpenedSession: (sessionId) => owner.rememberOpenedSession(sessionId),
+      syncSessionCache: (session2) => owner.syncSessionCache(session2)
     });
     this.events = new AcpEventCarrier({
       get archivedSessionIds() {
@@ -67382,6 +67911,8 @@ var AcpVirtualHarness = class _AcpVirtualHarness {
   pendingApprovals = /* @__PURE__ */ new Map();
   pendingHistory = /* @__PURE__ */ new Map();
   selectedWorkspaceId;
+  lastOpenedSessionId;
+  openedWorkspaceSessions = /* @__PURE__ */ new Map();
   selectedModels = /* @__PURE__ */ new Map();
   selectedPermissions = /* @__PURE__ */ new Map();
   commandSeq = 0;
@@ -67390,8 +67921,26 @@ var AcpVirtualHarness = class _AcpVirtualHarness {
   closed = false;
   archivedSessionIds = /* @__PURE__ */ new Set();
   unsubscribeArchived;
-  static remote(core, host, backend = "cursor", capabilities = [], hostCarrier) {
-    return new _AcpVirtualHarness(new AgentAcpClient(core, capabilities), host, backend, hostCarrier);
+  static remote(core, host, backend = "cursor", capabilities = [], hostCarrier, historyCache) {
+    return new _AcpVirtualHarness(new AgentAcpClient(core, capabilities), host, backend, hostCarrier, historyCache);
+  }
+  get openedSessionId() {
+    return this.lastOpenedSessionId;
+  }
+  get openedSessions() {
+    return new Map(this.openedWorkspaceSessions);
+  }
+  rememberOpenedSession(sessionId) {
+    if (this.closed) return;
+    this.lastOpenedSessionId = sessionId;
+    for (const workspace2 of this.workspaceById.values()) {
+      if (!workspace2.sessionIds.includes(sessionId)) continue;
+      this.openedWorkspaceSessions.delete(workspace2.workspaceId);
+      this.openedWorkspaceSessions.set(workspace2.workspaceId, sessionId);
+      if (this.openedWorkspaceSessions.size > 64) {
+        this.openedWorkspaceSessions.delete(this.openedWorkspaceSessions.keys().next().value);
+      }
+    }
   }
   async workspaces() {
     for (const workspace2 of this.workspaceById.values()) this.sortWorkspaceSessions(workspace2);
@@ -67426,9 +67975,12 @@ var AcpVirtualHarness = class _AcpVirtualHarness {
     this.publishWorkspaceBaseline();
     return this.workspaceById.get(workspace2.workspaceId) ?? workspace2;
   }
-  async preferredSessionId() {
+  async preferredSessionId(preferredSessionId = this.openedWorkspaceSessions.get(this.selectedWorkspaceId ?? "")) {
     const selected = this.selectedWorkspaceId === void 0 ? void 0 : this.workspaceById.get(this.selectedWorkspaceId);
     const sessionIds = selected?.sessionIds ?? [];
+    if (preferredSessionId !== void 0 && sessionIds.includes(preferredSessionId) && !this.archivedSessionIds.has(preferredSessionId)) {
+      return preferredSessionId;
+    }
     let bestSessionId;
     let bestUpdatedAt = -1;
     for (const sessionId of sessionIds) {
@@ -67592,6 +68144,11 @@ var AcpVirtualHarness = class _AcpVirtualHarness {
   async close() {
     if (this.closed) return;
     this.closed = true;
+    for (const session2 of this.sessions.values()) {
+      if (session2.hydrated || session2.events.length > 0) {
+        this.syncSessionCache(session2);
+      }
+    }
     this.titles.close();
     this.unsubscribeArchived?.();
     for (const stream of this.workspaceStreams) stream.close();
@@ -67654,6 +68211,7 @@ var AcpVirtualHarness = class _AcpVirtualHarness {
   }
   applyArchived(sessionId) {
     this.archivedSessionIds.add(sessionId);
+    this.historyCache.delete(sessionId);
     for (const [workspaceId, workspace2] of this.workspaceById) {
       if (!workspace2.sessionIds.includes(sessionId)) continue;
       const sessionIds = workspace2.sessionIds.filter((id6) => id6 !== sessionId);
@@ -67746,8 +68304,10 @@ var AcpVirtualHarness = class _AcpVirtualHarness {
     }
     this.titles.applyPrompt(session2, text);
     session2.blank = false;
+    session2.hydrated = true;
     session2.running = true;
     session2.updatedAt = Date.now();
+    this.syncSessionCache(session2);
     this.events.emitRemoteEvent("api-session/status", [sessionId, true]);
     this.publishWorkspaceBaseline();
     await this.client.prompt(session2.acpSessionId, text ?? "", signal, images, this.backend);
@@ -67764,6 +68324,7 @@ var AcpVirtualHarness = class _AcpVirtualHarness {
         this.live.closeFollowAfterRemoteStreamClosed(follow, { kind: "aborted", reason: { kind: "user" } });
       }
     }
+    this.syncSessionCache(session2);
     this.events.emitRemoteEvent("api-session/status", [sessionId, false]);
     return success2({ accepted: true });
   }
@@ -67776,6 +68337,7 @@ var AcpVirtualHarness = class _AcpVirtualHarness {
     session2.title = title;
     session2.titleOverridden = true;
     session2.updatedAt = Date.now();
+    this.syncSessionCache(session2);
     this.events.publishProjection(sessionId, "title", title);
     return success2({ sessionId });
   }
@@ -67798,8 +68360,12 @@ var AcpVirtualHarness = class _AcpVirtualHarness {
     return cached2?.sessionId === sessionId ? success2({ attachment: cached2.attachment, data: cached2.data }) : failure2("attachment-error", "The image attachment is unavailable or expired.");
   }
   async hydrateSession(session2) {
-    if (this.backend === "cursor" || session2.blank || session2.events.length > 0) return;
-    if (this.backend !== "pi") return this.hydrateSessionOnce(session2);
+    if (this.backend === "cursor" || session2.blank || session2.events.length > 0 && !session2.staleHistory) return;
+    const cached2 = this.historyCache.getFresh(session2.sessionId);
+    if (cached2 !== void 0 && (!Number.isFinite(session2.updatedAt) || session2.updatedAt === cached2.hostUpdatedAt)) {
+      this.restoreCachedSession(session2, cached2, false);
+      return;
+    }
     const pending = this.pendingHistory.get(session2.sessionId);
     if (pending) return pending;
     const read = this.hydrateSessionOnce(session2);
@@ -67816,24 +68382,76 @@ var AcpVirtualHarness = class _AcpVirtualHarness {
       try {
         events = await this.client.loadSessionHistory(session2.sessionId, this.backend);
       } catch (error62) {
+        const stale = this.historyCache.getStale(session2.sessionId);
+        if (stale !== void 0 && stale.events.length > 0) {
+          this.restoreCachedSession(session2, stale, true);
+          return;
+        }
         if (this.backend === "pi" || this.backend === "claude" || this.backend === "opencode" || this.backend === "hermes") throw error62;
       }
     }
     if (events.length > 0) {
+      session2.hydrated = true;
+      session2.staleHistory = false;
       session2.events = events;
       const firstUser = session2.events.find((entry) => entry.event.type === "user/message");
       this.titles.applyPrompt(session2, extractPromptText(array2(record2(firstUser?.event.data).content)));
       session2.blank = false;
       for (const event of session2.events) this.cacheImageAttachments(session2.sessionId, array2(record2(event.event.data).content ?? record2(record2(event.event.data).message).content));
+      this.syncSessionCache(session2);
     }
+  }
+  restoreCachedSession(session2, cached2, staleFallback) {
+    session2.events = cached2.events;
+    session2.hydrated = !staleFallback && !cached2.stale && !cached2.truncated;
+    session2.staleHistory = staleFallback || Boolean(cached2.stale) || Boolean(cached2.truncated);
+    session2.blank = cached2.blank;
+    if (cached2.title !== void 0 && (!session2.titleOverridden || cached2.titleOverridden)) {
+      session2.title = cached2.title;
+      session2.titleOverridden = cached2.titleOverridden;
+      session2.titleFromPrompt = cached2.titleFromPrompt;
+    }
+    if (cached2.selectedModel !== void 0 && !this.selectedModels.has(session2.sessionId)) {
+      this.selectedModels.set(session2.sessionId, cached2.selectedModel);
+    }
+    if (cached2.permissionPreset !== void 0 && !this.selectedPermissions.has(session2.sessionId)) {
+      this.selectedPermissions.set(session2.sessionId, cached2.permissionPreset);
+    }
+    for (const event of session2.events) {
+      this.cacheImageAttachments(session2.sessionId, array2(record2(event.event.data).content ?? record2(record2(event.event.data).message).content));
+    }
+  }
+  syncSessionCache(session2) {
+    if (this.backend === "cursor") return;
+    const existing = this.historyCache.getStale(session2.sessionId);
+    const isStale = Boolean(session2.running || session2.staleHistory);
+    const hostUpdatedAt = session2.staleHistory && existing !== void 0 ? existing.hostUpdatedAt : session2.updatedAt;
+    const selectedModel = this.selectedModels.get(session2.sessionId);
+    const permissionPreset2 = this.selectedPermissions.get(session2.sessionId);
+    this.historyCache.set(session2.sessionId, {
+      events: session2.events,
+      blank: session2.blank && session2.events.length === 0,
+      hydrated: Boolean((session2.hydrated || session2.events.length > 0) && !session2.staleHistory),
+      stale: isStale,
+      ...session2.title === void 0 ? {} : { title: session2.title },
+      ...session2.titleOverridden === void 0 ? {} : { titleOverridden: session2.titleOverridden },
+      ...session2.titleFromPrompt === void 0 ? {} : { titleFromPrompt: session2.titleFromPrompt },
+      hostUpdatedAt,
+      ...selectedModel === void 0 ? {} : { selectedModel },
+      ...permissionPreset2 === void 0 ? {} : { permissionPreset: permissionPreset2 }
+    });
   }
   async sessionHistory(request) {
     const sessionId = extractSessionId(request);
     const session2 = this.ensureSessionRegistered(sessionId) ?? this.sessions.get(sessionId);
     if (session2 === void 0) return failure2("session-not-found", "The Session was not found.");
     await this.hydrateSession(session2);
+    const beforeSeq = optionalInteger(request.beforeSeq);
+    if (beforeSeq === void 0) {
+      this.rememberOpenedSession(session2.sessionId);
+    }
     const page = this.historyPage(session2, {
-      beforeSeq: optionalInteger(request.beforeSeq),
+      beforeSeq,
       limit: optionalPositiveInteger(request.maxMessages) ?? 50
     });
     return success2({
@@ -67887,7 +68505,7 @@ var AcpVirtualHarness = class _AcpVirtualHarness {
         isSeeded: false
       },
       cursor: cursor3,
-      nextTurn: Math.max(0, ...session2.events.map((entry) => isRecord3(entry.event.data) && typeof entry.event.data.turn === "number" ? entry.event.data.turn : 0)) + 1,
+      nextTurn: Math.max(0, ...session2.events.map((entry) => isRecord4(entry.event.data) && typeof entry.event.data.turn === "number" ? entry.event.data.turn : 0)) + 1,
       records,
       hasMore: window2.length > records.length,
       ...session2.running ? { activeTurnId: "cursor-live" } : {},
@@ -68067,6 +68685,8 @@ var AcpVirtualHarness = class _AcpVirtualHarness {
     if (resolved !== sessionId) {
       this.events.publishProjection(sessionId, "permissions", this.permissionsProjection(resolved), seq);
     }
+    const session2 = this.sessions.get(resolved);
+    if (session2 !== void 0) this.syncSessionCache(session2);
     if (this.client.selectPermission) {
       void this.client.selectPermission(nativeAcpId(resolved, this.backend), this.backend, preset ?? "workspace-write").catch(() => void 0);
     }
@@ -68147,6 +68767,8 @@ var AcpVirtualHarness = class _AcpVirtualHarness {
     const confirmed = await this.client.selectModel(nativeAcpId(sessionId, this.backend), this.backend, selected);
     this.selectedModels.set(sessionId, confirmed);
     if (rawSessionId && rawSessionId !== sessionId) this.selectedModels.set(rawSessionId, confirmed);
+    const session2 = this.sessions.get(sessionId);
+    if (session2 !== void 0) this.syncSessionCache(session2);
     const seq = this.nextProjectionSeq();
     this.events.publishProjection(sessionId, "modelSelection", this.modelSelectionProjection(sessionId), seq);
     if (rawSessionId && rawSessionId !== sessionId) {
@@ -68168,7 +68790,7 @@ var AcpVirtualHarness = class _AcpVirtualHarness {
   }
 };
 
-// ../webrtc/dist/websocket-backpressure.js
+// packages/webrtc/dist/websocket-backpressure.js
 async function waitForRelayCapacity(socket) {
   const started = Date.now();
   while ((socket.bufferedAmount ?? 0) > 512 * 1024) {
@@ -68180,7 +68802,7 @@ async function waitForRelayCapacity(socket) {
     throw new Error("Relay transport closed");
 }
 
-// ../webrtc/dist/transport.js
+// packages/webrtc/dist/transport.js
 var BaseTransport = class {
   handlers = /* @__PURE__ */ new Set();
   closeHandlers = /* @__PURE__ */ new Set();
@@ -68202,7 +68824,7 @@ var BaseTransport = class {
   }
 };
 
-// ../webrtc/dist/util.js
+// packages/webrtc/dist/util.js
 function toBase64Url(bytes) {
   const binary = Array.from(bytes, (byte) => String.fromCharCode(byte)).join("");
   const base643 = typeof btoa === "function" ? btoa(binary) : Buffer.from(bytes).toString("base64");
@@ -68216,7 +68838,7 @@ function fromBase64Url(value) {
   return new Uint8Array(Buffer.from(padded, "base64"));
 }
 
-// ../webrtc/dist/rtc-adapter.js
+// packages/webrtc/dist/rtc-adapter.js
 var RTC_DATA_CHANNEL_LABEL = "dsh";
 var RTC_DATA_CHANNEL_OPTIONS = { ordered: true };
 function browserRtcFactory() {
@@ -68449,7 +69071,7 @@ function adaptDataChannel(raw) {
   };
 }
 
-// ../webrtc/dist/rtc-chunking.js
+// packages/webrtc/dist/rtc-chunking.js
 var RTC_CHUNK_MAGIC = new Uint8Array([82, 84, 67, 72]);
 var RTC_CHUNK_HEADER_BYTES = 12;
 var RTC_CHUNK_PAYLOAD_BYTES = 8 * 1024;
@@ -68558,7 +69180,7 @@ function isChunk(frame) {
   return true;
 }
 
-// ../webrtc/dist/rtc-data-channel.js
+// packages/webrtc/dist/rtc-data-channel.js
 var DEFAULT_NEGOTIATE_TIMEOUT_MS = 8e3;
 var SELECTED_PATH_RETRY_COUNT = 5;
 var SELECTED_PATH_RETRY_DELAY_MS = 50;
@@ -69277,7 +69899,7 @@ function sleep(ms) {
   return new Promise((resolve9) => setTimeout(resolve9, ms));
 }
 
-// ../webrtc/dist/control-lease.js
+// packages/webrtc/dist/control-lease.js
 var WEBRTC_LEASE_MS2 = 3e5;
 var ControlLease = class {
   connectionId;
@@ -69359,7 +69981,7 @@ var ControlLease = class {
   }
 };
 
-// ../webrtc/dist/adaptive-transport.js
+// packages/webrtc/dist/adaptive-transport.js
 var DEFAULT_CAPABILITIES = [WEBRTC_RESUME_CAPABILITY, RELAY_RESUME_CAPABILITY, "transport.lan", "transport.p2p", "transport.turn", "transport.relay", "transport.relay.attach", "harness.api.v1"];
 var DEFAULT_PREFERRED_TRANSPORTS = ["lan", "p2p", "turn", "relay"];
 var AdaptiveTransport = class extends BaseTransport {
@@ -69612,7 +70234,13 @@ var AdaptiveTransport = class extends BaseTransport {
       if (frame.type === "connect.rejected" || frame.type === "error") {
         const payload = frame.payload;
         const message = typeof payload.message === "string" ? payload.message : "Server rejected the connection";
-        throw Object.assign(new Error(message), { code: payload.code, retryable: payload.retryable });
+        const failure5 = Object.assign(new Error(message), { code: payload.code, retryable: payload.retryable });
+        const code = errorCodeSchema.safeParse(payload.code);
+        this.failConnection(failure5, {
+          reason: payload.retryable === true ? "control-error" : "invalid-control-frame",
+          ...code.success ? { errorCode: code.data } : {}
+        });
+        return;
       }
       if (frame.type === "relay") {
         if (this.dataSocket !== void 0)
@@ -70135,7 +70763,7 @@ function throwIfAborted(signal) {
     throw new Error("Adaptive connection was aborted");
 }
 
-// ../webrtc/dist/serial-send.js
+// packages/webrtc/dist/serial-send.js
 var SerialSend = class {
   tail = Promise.resolve();
   bytes = 0;
@@ -70156,7 +70784,7 @@ var SerialSend = class {
   }
 };
 
-// src/client-runtime-contract.ts
+// packages/plugin/src/client-runtime-contract.ts
 var DIRECT_WEBRTC_NEGOTIATE_TIMEOUT_MS = 12e3;
 var DIRECT_LAN_PROGRESS_DISPLAY_MS = 1400;
 var HOST_AUTHORIZATION_ERRORS = /* @__PURE__ */ new Set([
@@ -70204,7 +70832,7 @@ function record3(value) {
   }
   return value;
 }
-function isRecord4(value) {
+function isRecord5(value) {
   return typeof value === "object" && value !== null && !Array.isArray(value);
 }
 function ok(value) {
@@ -70272,7 +70900,7 @@ function iceServersForAttempt(attempt, iceServers) {
   return attempt === "direct" ? stunOnlyIceServers(iceServers) : iceServers;
 }
 
-// src/client-capabilities.ts
+// packages/plugin/src/client-capabilities.ts
 function remoteHostFeatures(clientVersion) {
   return {
     commandList: false,
@@ -70296,7 +70924,7 @@ async function probeRemoteHostFeatures(client, clientVersion) {
     }
     throw error62;
   }
-  if (!isRecord4(value) || !Array.isArray(value.capabilities) || value.capabilities.length > MAX_REMOTE_CAPABILITY_ENTRIES || value.capabilities.some((capability) => typeof capability !== "string")) {
+  if (!isRecord5(value) || !Array.isArray(value.capabilities) || value.capabilities.length > MAX_REMOTE_CAPABILITY_ENTRIES || value.capabilities.some((capability) => typeof capability !== "string")) {
     throw new ClientModeError("INVALID_MESSAGE", "The remote Host returned invalid transport capabilities.");
   }
   const capabilities = new Set(value.capabilities);
@@ -70339,7 +70967,7 @@ async function probeRemoteHostFeatures(client, clientVersion) {
   };
 }
 
-// src/client-codex-streams.ts
+// packages/plugin/src/client-codex-streams.ts
 var ClientCodexStreams = class {
   constructor(context) {
     this.context = context;
@@ -70386,10 +71014,10 @@ var ClientCodexStreams = class {
       }
     }
     stream.unsubscribe = remote.client.onEvent((event) => {
-      if (event.event === "codex.app.frame" && isRecord4(event.data) && event.data.streamId === value.streamId) {
+      if (event.event === "codex.app.frame" && isRecord5(event.data) && event.data.streamId === value.streamId) {
         this.appendCodexFrame(stream, event.data);
       }
-      if (event.event === "codex.app.stream.closed" && isRecord4(event.data) && event.data.streamId === value.streamId) {
+      if (event.event === "codex.app.stream.closed" && isRecord5(event.data) && event.data.streamId === value.streamId) {
         stream.closed = typeof event.data.reason === "string" ? event.data.reason : "closed";
         stream.wake();
       }
@@ -70416,7 +71044,7 @@ var ClientCodexStreams = class {
     stream.wake();
   };
   appendCodexFrame(stream, data2) {
-    if (!isRecord4(data2) || !isRecord4(data2.frame) || typeof data2.frame.method !== "string") return;
+    if (!isRecord5(data2) || !isRecord5(data2.frame) || typeof data2.frame.method !== "string") return;
     if (stream.frames.length >= 256) {
       stream.closed = "overflow";
     } else {
@@ -71134,15 +71762,15 @@ function invert(number4, modulo) {
     throw new Error("invert: does not exist");
   return mod(x, modulo);
 }
-function assertIsSquare(Fp2, root, n) {
-  if (!Fp2.eql(Fp2.sqr(root), n))
+function assertIsSquare(Fp2, root2, n) {
+  if (!Fp2.eql(Fp2.sqr(root2), n))
     throw new Error("Cannot find square root");
 }
 function sqrt3mod4(Fp2, n) {
   const p1div4 = (Fp2.ORDER + _1n2) / _4n;
-  const root = Fp2.pow(n, p1div4);
-  assertIsSquare(Fp2, root, n);
-  return root;
+  const root2 = Fp2.pow(n, p1div4);
+  assertIsSquare(Fp2, root2, n);
+  return root2;
 }
 function sqrt5mod8(Fp2, n) {
   const p5div8 = (Fp2.ORDER - _5n) / _8n;
@@ -71150,9 +71778,9 @@ function sqrt5mod8(Fp2, n) {
   const v = Fp2.pow(n2, p5div8);
   const nv = Fp2.mul(n, v);
   const i = Fp2.mul(Fp2.mul(nv, _2n), v);
-  const root = Fp2.mul(nv, Fp2.sub(i, Fp2.ONE));
-  assertIsSquare(Fp2, root, n);
-  return root;
+  const root2 = Fp2.mul(nv, Fp2.sub(i, Fp2.ONE));
+  assertIsSquare(Fp2, root2, n);
+  return root2;
 }
 function sqrt9mod16(P) {
   const Fp_ = Field(P);
@@ -71171,9 +71799,9 @@ function sqrt9mod16(P) {
     tv1 = Fp2.cmov(tv1, tv2, e1);
     tv2 = Fp2.cmov(tv4, tv3, e2);
     const e3 = Fp2.eql(Fp2.sqr(tv2), n);
-    const root = Fp2.cmov(tv1, tv2, e3);
-    assertIsSquare(Fp2, root, n);
-    return root;
+    const root2 = Fp2.cmov(tv1, tv2, e3);
+    assertIsSquare(Fp2, root2, n);
+    return root2;
   };
 }
 function tonelliShanks(P) {
@@ -72047,7 +72675,7 @@ function eddsa(Point, cHash, eddsaOpts = {}) {
   });
   const { prehash } = eddsaOpts;
   const { BASE, Fp: Fp2, Fn: Fn2 } = Point;
-  const randomBytes13 = eddsaOpts.randomBytes || randomBytes2;
+  const randomBytes14 = eddsaOpts.randomBytes || randomBytes2;
   const adjustScalarBytes3 = eddsaOpts.adjustScalarBytes || ((bytes) => bytes);
   const domain2 = eddsaOpts.domain || ((data2, ctx, phflag) => {
     _abool2(phflag, "phflag");
@@ -72129,7 +72757,7 @@ function eddsa(Point, cHash, eddsaOpts = {}) {
     signature: 2 * _size2,
     seed: _size2
   };
-  function randomSecretKey(seed = randomBytes13(lengths.seed)) {
+  function randomSecretKey(seed = randomBytes14(lengths.seed)) {
     return _abytes2(seed, lengths.seed, "seed");
   }
   function keygen(seed) {
@@ -74085,9 +74713,9 @@ function invert2(number4, modulo) {
     throw new Error("invert: does not exist");
   return mod2(x, modulo);
 }
-function assertIsSquare2(Fp2, root, n) {
+function assertIsSquare2(Fp2, root2, n) {
   const F = Fp2;
-  if (!F.eql(F.sqr(root), n))
+  if (!F.eql(F.sqr(root2), n))
     throw new Error("Cannot find square root");
 }
 function aoddModulus(order, fnName) {
@@ -74097,9 +74725,9 @@ function aoddModulus(order, fnName) {
 function sqrt3mod42(Fp2, n) {
   const F = Fp2;
   const p1div4 = (F.ORDER + _1n8) / _4n2;
-  const root = F.pow(n, p1div4);
-  assertIsSquare2(F, root, n);
-  return root;
+  const root2 = F.pow(n, p1div4);
+  assertIsSquare2(F, root2, n);
+  return root2;
 }
 function sqrt5mod82(Fp2, n) {
   const F = Fp2;
@@ -74108,9 +74736,9 @@ function sqrt5mod82(Fp2, n) {
   const v = F.pow(n2, p5div8);
   const nv = F.mul(n, v);
   const i = F.mul(F.mul(nv, _2n5), v);
-  const root = F.mul(nv, F.sub(i, F.ONE));
-  assertIsSquare2(F, root, n);
-  return root;
+  const root2 = F.mul(nv, F.sub(i, F.ONE));
+  assertIsSquare2(F, root2, n);
+  return root2;
 }
 function sqrt9mod162(P) {
   const Fp_ = Field2(P);
@@ -74130,9 +74758,9 @@ function sqrt9mod162(P) {
     tv1 = F.cmov(tv1, tv2, e1);
     tv2 = F.cmov(tv4, tv3, e2);
     const e3 = F.eql(F.sqr(tv2), n);
-    const root = F.cmov(tv1, tv2, e3);
-    assertIsSquare2(F, root, n);
-    return root;
+    const root2 = F.cmov(tv1, tv2, e3);
+    assertIsSquare2(F, root2, n);
+    return root2;
   });
 }
 function tonelliShanks2(P) {
@@ -74453,18 +75081,18 @@ function validateTableBytes(numPoints, fpBytes) {
   if (bytes > TABLE_BYTES_MAX)
     throw new Error("invalid window size: table would need ~" + Math.ceil(bytes / 2 ** 20) + " MiB, max " + TABLE_BYTES_MAX / 2 ** 20 + " MiB");
 }
-function probeRandomBytes(randomBytes13, length) {
-  if (randomBytes13 === void 0)
+function probeRandomBytes(randomBytes14, length) {
+  if (randomBytes14 === void 0)
     return void 0;
-  afunction(randomBytes13, "randomBytes");
+  afunction(randomBytes14, "randomBytes");
   try {
-    const probe = randomBytes13(length);
+    const probe = randomBytes14(length);
     if (!isBytes3(probe) || probe.length !== length)
       return void 0;
   } catch {
     return void 0;
   }
-  return randomBytes13;
+  return randomBytes14;
 }
 function validateMSMPoints2(points, c) {
   aarray(points, "points");
@@ -74557,9 +75185,9 @@ var ScalarMultiplier = class {
   baseCanBeBlinded;
   bits;
   // Parametrized with a given Point class (not individual point)
-  constructor(Point, randomBytes13) {
+  constructor(Point, randomBytes14) {
     validatePointCons(Point);
-    this.randomBytes = probeRandomBytes(randomBytes13, BLIND_BYTES);
+    this.randomBytes = probeRandomBytes(randomBytes14, BLIND_BYTES);
     this.Point = Point;
     this.BASE = Point.BASE;
     this.ZERO = Point.ZERO;
@@ -74830,7 +75458,7 @@ function edwards2(params, extraOpts = {}) {
   if (FpLegendre2(Fp2, CURVE.d) !== -1)
     throw new Error("edwards: CURVE.d must be a non-square in Fp for complete addition formulas");
   validateObject2(opts, {}, { uvRatio: "function", randomBytes: "function" });
-  const randomBytes13 = opts.randomBytes === void 0 ? randomBytes4 : opts.randomBytes;
+  const randomBytes14 = opts.randomBytes === void 0 ? randomBytes4 : opts.randomBytes;
   const MASK = _2n6 << BigInt(Fp2.BYTES * 8) - _1n10;
   function isOdd(n) {
     if (!Fp2.isOdd)
@@ -75091,7 +75719,7 @@ function edwards2(params, extraOpts = {}) {
     }
   }
   const normalize = (points) => normalizeZ2(Point, points);
-  const wnaf = new ScalarMultiplier(Point, randomBytes13);
+  const wnaf = new ScalarMultiplier(Point, randomBytes14);
   if (wnaf.bits >= 6)
     Point.BASE.precompute(6);
   Object.freeze(Point.prototype);
@@ -77322,7 +77950,7 @@ function noiseIk() {
   ]]);
 }
 
-// ../crypto/dist/noise.js
+// packages/crypto/dist/noise.js
 var NOISE_IK_PROTOCOL = "Noise_IK_25519_ChaChaPoly_SHA256";
 var NoiseIkSession = class {
   handshake;
@@ -77457,7 +78085,7 @@ function constantTimeEqual(left, right) {
   return different === 0;
 }
 
-// ../crypto/dist/index.js
+// packages/crypto/dist/index.js
 function generateKeyPair(privateKeyBytes) {
   const privateKey = privateKeyBytes ?? x25519.utils.randomPrivateKey();
   if (privateKey.byteLength !== 32)
@@ -77482,7 +78110,7 @@ function fromBase64Url2(value) {
   return new Uint8Array(Buffer.from(padded, "base64"));
 }
 
-// src/client-secure-transport.ts
+// packages/plugin/src/client-secure-transport.ts
 var ClientSecureTransport = class {
   constructor(inner, identity3, host) {
     this.inner = inner;
@@ -77631,7 +78259,7 @@ async function waitForResponder(inner, noise, signal) {
   });
 }
 
-// src/client-connection.ts
+// packages/plugin/src/client-connection.ts
 var ClientConnection = class {
   constructor(context) {
     this.context = context;
@@ -77827,7 +78455,7 @@ var ClientConnection = class {
   }
 };
 
-// src/client-reconnect.ts
+// packages/plugin/src/client-reconnect.ts
 var ClientReconnect = class {
   constructor(config2) {
     this.config = config2;
@@ -77887,7 +78515,7 @@ function canReconnect(error62) {
   return failure5.retryable !== false;
 }
 
-// src/loopback-preview.ts
+// packages/plugin/src/loopback-preview.ts
 import { randomBytes as randomBytes6, randomUUID } from "node:crypto";
 import { createServer } from "node:http";
 
@@ -77901,10 +78529,10 @@ var import_subprotocol = __toESM(require_subprotocol(), 1);
 var import_websocket = __toESM(require_websocket(), 1);
 var import_websocket_server = __toESM(require_websocket_server(), 1);
 
-// src/loopback-host.ts
+// packages/plugin/src/loopback-host.ts
 import { request as httpRequest } from "node:http";
 
-// src/safe-error.ts
+// packages/plugin/src/safe-error.ts
 var RpcError = class extends Error {
   constructor(code, message, details2, retryable = false) {
     super(message);
@@ -77918,8 +78546,56 @@ function safeErrorCode(error62) {
   if (error62 instanceof external_exports.ZodError) return "INVALID_MESSAGE";
   return "INTERNAL_ERROR";
 }
+var SAFE_STARTUP_CODES = /* @__PURE__ */ new Set([
+  "IDENTITY_INVALID",
+  "IDENTITY_LOCKED",
+  "STORAGE_CONFLICT",
+  "SERVER_CREDENTIALS_INVALID",
+  "SERVER_CREDENTIALS_BUSY"
+]);
+var SAFE_STATIC_STARTUP_MESSAGES = /* @__PURE__ */ new Set([
+  "device identity is incomplete; repair it explicitly before reconnecting",
+  "device public and private keys do not match",
+  "device identity is locked by another process; stop other DSH instances and retry",
+  "Remote storage fallback record is invalid; no credentials were changed.",
+  "Both Remote storage directories exist; stop all Harness instances and resolve them manually. No credentials were overwritten.",
+  "Legacy Remote storage changed after fallback; inspect it before reconnecting.",
+  "Pinned Remote storage is missing; no replacement identity was created.",
+  "Remote storage ownership could not be verified; nothing was moved. Inspect the legacy directory manually.",
+  "Remote storage must be a real directory; symbolic links are not migrated.",
+  "Remote storage contains a lock or symbolic link; stop all Harness instances and inspect it before migration."
+]);
+function safeStartupError(error62) {
+  const code = error62 instanceof Error && "code" in error62 && typeof error62.code === "string" && SAFE_STARTUP_CODES.has(error62.code) ? error62.code : safeErrorCode(error62);
+  if (code === "SERVER_CREDENTIALS_INVALID") {
+    return { code, message: "Local Remote server credentials are invalid." };
+  }
+  if (code === "SERVER_CREDENTIALS_BUSY") {
+    return {
+      code,
+      message: "Credential refresh is locked. Stop other instances; after a crash, stop all instances before removing server-credentials.json.refresh-lock and authorizing again."
+    };
+  }
+  if (code === "IDENTITY_INVALID" || code === "IDENTITY_LOCKED" || code === "STORAGE_CONFLICT") {
+    const rawMessage = error62 instanceof Error ? error62.message : "";
+    if (SAFE_STATIC_STARTUP_MESSAGES.has(rawMessage) || /^private key permissions must be 0600, got [0-7]{3,4}$/.test(rawMessage)) {
+      return { code, message: rawMessage };
+    }
+    if (rawMessage.startsWith("device identity is invalid")) {
+      return { code, message: "device identity is invalid" };
+    }
+    if (rawMessage.startsWith("trusted peer ")) {
+      return { code, message: "trusted peer record is invalid" };
+    }
+    return {
+      code,
+      message: code === "IDENTITY_LOCKED" ? "device identity is locked by another process; stop other DSH instances and retry" : code === "STORAGE_CONFLICT" ? "Remote storage ownership could not be verified; nothing was moved. Inspect the legacy directory manually." : "device identity is invalid"
+    };
+  }
+  return { code, message: "Remote plugin failed to start." };
+}
 
-// src/loopback-host.ts
+// packages/plugin/src/loopback-host.ts
 var HOP_HEADERS = /* @__PURE__ */ new Set([
   "connection",
   "keep-alive",
@@ -78173,7 +78849,7 @@ var LoopbackHost = class {
   }
 };
 
-// src/loopback-preview.ts
+// packages/plugin/src/loopback-preview.ts
 var LoopbackPreview = class {
   constructor(client) {
     this.client = client;
@@ -78409,26 +79085,53 @@ var LoopbackPreview = class {
   }
 };
 
-// src/plugin-route-bridge.ts
+// packages/plugin/src/plugin-route-bridge.ts
 var PLUGIN_ROUTE_ALLOWLIST = ["api/bot"];
 var BOT_REMOTE_OPERATIONS = [
   "state",
   "models",
   "efforts",
+  "providers",
+  "local-agents",
   "exchange",
+  "exchange-text",
+  "file-text",
   "earlier",
+  "chat",
+  "run-stats",
+  "thinking",
   "usage",
   "room-progress",
   "schedules",
+  "schedule-create",
+  "schedule-delete",
+  "memory-view",
+  "memory-history",
+  "memory-ask",
+  "memory-forget",
+  "memory-restore",
+  "folders",
+  "folder-list",
+  "team-workspace",
+  "set-prefs",
+  "browser-takeover",
+  "browser-give-back",
+  "browser-stop",
   "create-bot",
   "duplicate-bot",
   "update-bot",
   "delete-bot",
   "set-main",
   "set-flags",
+  "resume",
+  "bot-new-part",
+  "bot-open-part",
   "create-room",
   "update-room",
   "delete-room",
+  "stop-room-work",
+  "goal-draft",
+  "goal-control",
   "add-agent",
   "agent-session",
   "agent-adopt",
@@ -78438,9 +79141,15 @@ var BOT_REMOTE_OPERATIONS = [
   "send",
   "btw",
   "btw-cancel",
+  "btw-delete",
+  "side-new",
+  "side-ask",
+  "side-cancel",
+  "side-close",
   "room-continue",
   "answer-question",
   "dismiss-question",
+  "dismiss-view",
   "view-reply",
   "approval-answer",
   "stop-member-work"
@@ -78504,7 +79213,7 @@ function serializedBytes(value) {
   return new TextEncoder().encode(JSON.stringify(value)).byteLength;
 }
 
-// src/client-control.ts
+// packages/plugin/src/client-control.ts
 var ClientControl = class {
   constructor(context) {
     this.context = context;
@@ -78751,7 +79460,7 @@ var ClientControl = class {
         if (typeof value.route !== "string" || !isAllowedPluginRoute(value.route)) {
           throw new ClientModeError("INVALID_MESSAGE", "A valid plugin route is required.");
         }
-        if (!isRecord4(value.body)) throw new ClientModeError("INVALID_MESSAGE", "A plugin route body object is required.");
+        if (!isRecord5(value.body)) throw new ClientModeError("INVALID_MESSAGE", "A plugin route body object is required.");
         return ok(await this.context.pluginRoute(value.route, value.body, signal));
       }
       if (endpoint === "codex.stream.open") return ok(await this.context.openCodexStream(payload, signal));
@@ -78792,7 +79501,7 @@ var ClientControl = class {
   }
 };
 
-// src/client-workspace-queries.ts
+// packages/plugin/src/client-workspace-queries.ts
 async function readRemoteWorkspaceBaseline(gateway, signal) {
   const lifetime = new AbortController();
   const activeSignal = signal === void 0 ? lifetime.signal : AbortSignal.any([signal, lifetime.signal]);
@@ -78800,11 +79509,11 @@ async function readRemoteWorkspaceBaseline(gateway, signal) {
   const iterator = source[Symbol.asyncIterator]();
   try {
     const first2 = await iterator.next();
-    if (first2.done || !isRecord4(first2.value) || first2.value.type !== "baseline" || !isRecord4(first2.value.value) || !Array.isArray(first2.value.value.items)) {
+    if (first2.done || !isRecord5(first2.value) || first2.value.type !== "baseline" || !isRecord5(first2.value.value) || !Array.isArray(first2.value.value.items)) {
       throw new ClientModeError("INVALID_MESSAGE", "The remote Host returned an invalid Workspace baseline.");
     }
     return first2.value.value.items.map((item) => {
-      if (!isRecord4(item) || typeof item.workspaceId !== "string" || typeof item.path !== "string" || typeof item.title !== "string") {
+      if (!isRecord5(item) || typeof item.workspaceId !== "string" || typeof item.path !== "string" || typeof item.title !== "string") {
         throw new ClientModeError("INVALID_MESSAGE", "The remote Host returned an invalid Workspace row.");
       }
       return { workspaceId: item.workspaceId, path: item.path, title: item.title };
@@ -78825,10 +79534,10 @@ function remoteWorkspaceTitle(path) {
   return normalized.split(/[\\/]+/u).filter(Boolean).at(-1) ?? path;
 }
 
-// src/codex/permissions.ts
+// packages/plugin/src/codex/permissions.ts
 function codexPermissionPresetFromResponse(value) {
-  const root = record4(value);
-  for (const settings of [root, record4(root.threadSettings)]) {
+  const root2 = record4(value);
+  for (const settings of [root2, record4(root2.threadSettings)]) {
     const sandbox = settings.sandbox ?? settings.sandboxPolicy;
     const type = record4(sandbox).type;
     if (settings.approvalPolicy === "never" && (sandbox === "danger-full-access" || type === "dangerFullAccess")) {
@@ -78844,7 +79553,7 @@ function record4(value) {
   return value !== null && typeof value === "object" && !Array.isArray(value) ? value : {};
 }
 
-// src/codex/virtual-values.ts
+// packages/plugin/src/codex/virtual-values.ts
 var CODEX_SESSION_PREFIX = "codex:";
 var CODEX_HISTORY_PAGE_MAX_MESSAGES = 200;
 function nativeThreadId(sessionId) {
@@ -78854,9 +79563,9 @@ function nativeThreadId(sessionId) {
   return sessionId.slice(CODEX_SESSION_PREFIX.length);
 }
 function record5(value) {
-  return isRecord5(value) ? value : {};
+  return isRecord6(value) ? value : {};
 }
-function isRecord5(value) {
+function isRecord6(value) {
   return typeof value === "object" && value !== null && !Array.isArray(value);
 }
 function array3(value) {
@@ -78918,7 +79627,7 @@ function errorCode(error62) {
   return "code" in error62 && typeof error62.code === "string" ? error62.code : void 0;
 }
 
-// src/codex/virtual-catalog.ts
+// packages/plugin/src/codex/virtual-catalog.ts
 var CODEX_WORKSPACE_PREFIX = "codex-workspace:";
 var CODEX_PROVIDER = "codex";
 var CODEX_MODEL = "codex";
@@ -79085,11 +79794,11 @@ function nativeVisibleWorkspaces(catalog, selectedWorkspaceId) {
   return catalog.workspaces.filter((workspace2) => workspace2.sessionIds.length > 0 || workspace2.workspaceId === selectedWorkspaceId);
 }
 function projectWorkspace(project2) {
-  const root = project2.roots[0];
+  const root2 = project2.roots[0];
   return {
     workspaceId: codexProjectWorkspaceId(project2.id),
-    path: root.path,
-    title: project2.name.trim() || basename(root.path),
+    path: root2.path,
+    title: project2.name.trim() || basename(root2.path),
     sessionIds: [],
     sessionCount: 0,
     createdAt: isoTime(project2.createdAt),
@@ -79100,7 +79809,7 @@ function projectCodexProject(value, fallbackPosition) {
   const source = record5(value);
   const id6 = string5(source.id);
   if (id6 === void 0) return void 0;
-  const roots = array3(source.roots).map((root) => string5(record5(root).path)).filter((path) => path !== void 0 && path.length > 0).map((path) => ({ path }));
+  const roots = array3(source.roots).map((root2) => string5(record5(root2).path)).filter((path) => path !== void 0 && path.length > 0).map((path) => ({ path }));
   if (roots.length === 0) return void 0;
   return {
     id: id6,
@@ -79116,7 +79825,7 @@ function findProjectWorkspace(thread, session2, projects, workspaceByProjectId) 
   const explicitWorkspace = explicitProjectId === void 0 ? void 0 : workspaceByProjectId.get(explicitProjectId);
   if (explicitWorkspace !== void 0) return explicitWorkspace;
   if (session2.cwd === void 0) return void 0;
-  const match = projects.flatMap((project2) => project2.roots.map((root) => ({ project: project2, root }))).filter((value) => containsPath(value.root.path, session2.cwd)).sort((left, right) => {
+  const match = projects.flatMap((project2) => project2.roots.map((root2) => ({ project: project2, root: root2 }))).filter((value) => containsPath(value.root.path, session2.cwd)).sort((left, right) => {
     const length = right.root.path.length - left.root.path.length;
     if (length !== 0) return length;
     const position = left.project.position - right.project.position;
@@ -79135,8 +79844,8 @@ function addSessionToWorkspace(workspace2, session2) {
   if (createdAt < workspace2.createdAt) workspace2.createdAt = createdAt;
   if (updatedAt > workspace2.updatedAt) workspace2.updatedAt = updatedAt;
 }
-function containsPath(root, candidate) {
-  const normalizedRoot = normalizePathForCompare(root);
+function containsPath(root2, candidate) {
+  const normalizedRoot = normalizePathForCompare(root2);
   const normalizedCandidate = normalizePathForCompare(candidate);
   return normalizedCandidate === normalizedRoot || normalizedCandidate.startsWith(`${normalizedRoot}/`) || normalizedCandidate.startsWith(`${normalizedRoot}\\`);
 }
@@ -79194,7 +79903,7 @@ function isProjectListUnsupported(error62) {
   return code === "METHOD_NOT_ALLOWED" || code === "METHOD_NOT_FOUND" || code === "CODEX_UPSTREAM_ERROR" || error62.message.includes("The requested Codex method is not available over Remote.");
 }
 
-// src/codex/codex-image-codec.ts
+// packages/plugin/src/codex/codex-image-codec.ts
 var CODEX_IMAGE_MEDIA_TYPES2 = /* @__PURE__ */ new Set(["image/png", "image/jpeg", "image/webp", "image/gif"]);
 var CODEX_IMAGE_ATTACHMENT_PREFIX = "codex-image:";
 var MAX_CODEX_IMAGE_BASE64 = 288 * 1024 * 1024;
@@ -79202,11 +79911,11 @@ var DATA_IMAGE_URL2 = /^data:(image\/(?:png|jpeg|webp|gif));base64,([A-Za-z0-9+/
 function string6(value) {
   return typeof value === "string" ? value : void 0;
 }
-function isRecord6(value) {
+function isRecord7(value) {
   return typeof value === "object" && value !== null && !Array.isArray(value);
 }
 function record6(value) {
-  return isRecord6(value) ? value : {};
+  return isRecord7(value) ? value : {};
 }
 function toolOutputImageBlocks(item) {
   const candidates = [
@@ -79296,7 +80005,7 @@ function collectImageBlocks(value, output2 = []) {
     for (const item of value) collectImageBlocks(item, output2);
     return output2;
   }
-  if (!isRecord6(value)) return output2;
+  if (!isRecord7(value)) return output2;
   if (value.type === "image") output2.push(value);
   for (const [key, child] of Object.entries(value)) {
     if (key === "attachment") continue;
@@ -79420,7 +80129,7 @@ function hashString2(value) {
   return (hash3 >>> 0).toString(16).padStart(8, "0");
 }
 
-// src/codex/virtual-contract.ts
+// packages/plugin/src/codex/virtual-contract.ts
 var SESSION_SEARCH_RESULT_LIMIT = 20;
 var SESSION_SEARCH_SNIPPET_CODE_POINTS = 240;
 var CODEX_DEFAULT_PERMISSION = "workspace-write";
@@ -79456,7 +80165,7 @@ function codexPromptInput(content) {
   if (content.length === 0 || content.length > MAX_CODEX_PROMPT_PARTS) return void 0;
   const input4 = [];
   for (const value of content) {
-    if (!isRecord5(value)) return void 0;
+    if (!isRecord6(value)) return void 0;
     if (value.type === "text") {
       if (typeof value.text !== "string" || value.text.length === 0 || value.text.length > MAX_CODEX_PROMPT_TEXT) return void 0;
       input4.push({ type: "text", text: value.text });
@@ -79541,7 +80250,7 @@ function isLegacySessionHistoryUnsupported(error62) {
   return errorCode(error62) === "METHOD_NOT_ALLOWED" || errorCode(error62) === "METHOD_NOT_FOUND" || error62.message.includes("The requested Codex method is not available over Remote.");
 }
 function errorDetails(error62) {
-  return "details" in error62 && isRecord5(error62.details) ? error62.details : {};
+  return "details" in error62 && isRecord6(error62.details) ? error62.details : {};
 }
 function truncateCodePoints(value, maximum) {
   return [...value].slice(0, maximum).join("");
@@ -79596,7 +80305,7 @@ var AsyncValueQueue2 = class {
   }
 };
 
-// src/codex/virtual-event-carrier.ts
+// packages/plugin/src/codex/virtual-event-carrier.ts
 var CodexEventCarrier = class {
   constructor(context) {
     this.context = context;
@@ -79670,14 +80379,14 @@ var CodexEventCarrier = class {
   }
 };
 
-// src/codex/virtual-history.ts
+// packages/plugin/src/codex/virtual-history.ts
 var MAX_LIVE_TOOL_OUTPUT = 128 * 1024;
 var DEFAULT_HISTORY_MESSAGES = 50;
 function projectCodexNativeHistory(thread, sessionId, sessionGeneration = "legacy") {
   const entries = [];
   let seq = 0;
   let turnNumber = 0;
-  const active = activeTurnId(thread.turns);
+  const active2 = activeTurnId(thread.turns);
   const threadModel = projectCodexModel(thread);
   const fallbackSelection = threadModel.model === void 0 ? modelSelection() : {
     provider: "codex",
@@ -79762,7 +80471,7 @@ function projectCodexNativeHistory(thread, sessionId, sessionGeneration = "legac
     entries,
     lastSeq: seq - 1,
     nextTurn: turnNumber,
-    ...active === void 0 ? {} : { activeTurnId: active }
+    ...active2 === void 0 ? {} : { activeTurnId: active2 }
   };
 }
 function turnEndReason(turn) {
@@ -80168,7 +80877,7 @@ function isCodexNativeHistoryPage(value, sessionId) {
   return header.id === sessionId && integer3(page.cursor) !== void 0 && integer3(page.nextTurn) !== void 0 && Array.isArray(page.records) && typeof page.hasMore === "boolean" && (page.activeTurnId === void 0 || typeof page.activeTurnId === "string");
 }
 
-// src/codex/virtual-live.ts
+// packages/plugin/src/codex/virtual-live.ts
 var CodexLiveProjection = class {
   constructor(context) {
     this.context = context;
@@ -80262,6 +80971,7 @@ var CodexLiveProjection = class {
       this.context.setPermissionSelection(follow.sessionId, preset);
       return;
     }
+    this.context.invalidateThreadHistory?.(follow.threadId);
     if (frame.method === "turn/started") {
       const turn = record5(params.turn);
       const turnModel = projectCodexModel(turn);
@@ -80662,14 +81372,15 @@ function turnEndReason2(turn) {
   return { kind: "completed" };
 }
 
-// src/codex/virtual-harness.ts
+// packages/plugin/src/codex/virtual-harness.ts
 var CODEX_CATALOG_CACHE_MS = 2e3;
 var CodexVirtualHarness = class _CodexVirtualHarness {
-  constructor(client, host, sessionGeneration = "legacy", hostCarrier) {
+  constructor(client, host, sessionGeneration = "legacy", hostCarrier, historyCache = new CodexSessionHistoryCache()) {
     this.client = client;
     this.host = host;
     this.sessionGeneration = sessionGeneration;
     this.hostCarrier = hostCarrier;
+    this.historyCache = historyCache;
     const owner = this;
     this.live = new CodexLiveProjection({
       readHistoryPage: (...args) => owner.readHistoryPage(...args),
@@ -80708,7 +81419,8 @@ var CodexVirtualHarness = class _CodexVirtualHarness {
       emitApproval: (...args) => owner.events.emitApproval(...args),
       get imageAttachments() {
         return owner.imageAttachments;
-      }
+      },
+      invalidateThreadHistory: (threadId) => owner.historyCache.invalidateThread(threadId)
     });
     this.events = new CodexEventCarrier({
       get workspaceStreams() {
@@ -80760,8 +81472,8 @@ var CodexVirtualHarness = class _CodexVirtualHarness {
   lastOpenedSessionId;
   openedWorkspaceSessions = /* @__PURE__ */ new Map();
   closed = false;
-  static remote(core, host, sessionGeneration = "legacy", hostCarrier) {
-    return new _CodexVirtualHarness(new CodexRemoteClient(core), host, sessionGeneration, hostCarrier);
+  static remote(core, host, sessionGeneration = "legacy", hostCarrier, historyCache) {
+    return new _CodexVirtualHarness(new CodexRemoteClient(core), host, sessionGeneration, hostCarrier, historyCache);
   }
   async workspaces(signal) {
     return (await this.refreshCatalog(signal)).workspaces;
@@ -81218,7 +81930,9 @@ var CodexVirtualHarness = class _CodexVirtualHarness {
   }
   async archiveSession(request, signal) {
     const sessionId = requiredString2(request.sessionId, "sessionId");
-    await this.client.request("thread/archive", { threadId: nativeThreadId(sessionId) }, signal);
+    const threadId = nativeThreadId(sessionId);
+    await this.client.request("thread/archive", { threadId }, signal);
+    this.historyCache.removeThread(threadId);
     const catalog = await this.refreshCatalog(signal, true);
     this.publishWorkspaceBaseline(catalog);
     return success3({ archivedSessionIds: [sessionId] });
@@ -81303,9 +82017,9 @@ var CodexVirtualHarness = class _CodexVirtualHarness {
     this.pendingRequestIds.set(sessionId, string5(request.requestId) ?? "");
     const mode2 = request.mode === "steer" ? "turn/steer" : "turn/start";
     if (mode2 === "turn/steer") {
-      const active = this.activeTurnId(threadId);
-      if (active === void 0) return failure3("steer-unavailable", "The CodeX Thread has no active turn to steer.");
-      await this.client.request(mode2, { threadId, expectedTurnId: active, input: input4 }, signal);
+      const active2 = this.activeTurnId(threadId);
+      if (active2 === void 0) return failure3("steer-unavailable", "The CodeX Thread has no active turn to steer.");
+      await this.client.request(mode2, { threadId, expectedTurnId: active2, input: input4 }, signal);
     } else {
       await this.client.request(mode2, {
         threadId,
@@ -81314,6 +82028,7 @@ var CodexVirtualHarness = class _CodexVirtualHarness {
       }, signal);
     }
     this.blankThreads.delete(threadId);
+    this.historyCache.invalidateThread(threadId);
     return success3({ accepted: true });
   }
   async attachment(request, signal) {
@@ -81344,6 +82059,7 @@ var CodexVirtualHarness = class _CodexVirtualHarness {
     const threadId = nativeThreadId(sessionId);
     const turnId = this.activeTurnId(threadId);
     if (turnId !== void 0) await this.client.request("turn/interrupt", { threadId, turnId }, signal);
+    this.historyCache.invalidateThread(threadId);
     return success3({ accepted: true });
   }
   async renameSession(request, signal) {
@@ -81361,13 +82077,15 @@ var CodexVirtualHarness = class _CodexVirtualHarness {
     const catalog = await this.currentCatalog(signal);
     const session2 = catalog.sessions.find((item) => item.id === sessionId);
     if (session2 === void 0) return success3(null);
-    const history = await this.readHistoryPage(nativeThreadId(sessionId), { maxMessages: 1 }, signal);
+    const threadId = nativeThreadId(sessionId);
+    const cachedCursor = this.historyCache.getFreshTailCursor(threadId, this.sessionGeneration, session2.updatedAt);
+    const cursor3 = cachedCursor ?? (await this.readHistoryPage(threadId, { maxMessages: 1 }, signal)).cursor;
     const directory = await this.models(signal).catch(() => void 0);
     return success3(record5(this.sessionSummary(session2, {
-      blank: history.cursor < 0,
+      blank: cursor3 < 0,
       modelSelection: this.modelSelection(sessionId, directory),
       lastPromptAt: session2.updatedAt || null,
-      asOfSeq: history.cursor
+      asOfSeq: cursor3
     })).projections);
   }
   async sessionPage(request, signal) {
@@ -81388,39 +82106,76 @@ var CodexVirtualHarness = class _CodexVirtualHarness {
       ...page,
       maxMessages: boundedCodexHistoryPageSize(page.maxMessages)
     };
-    let value;
-    try {
-      value = record5(await this.client.request("dsh/sessionHistory", {
-        threadId,
-        ...boundedPage.beforeSeq === void 0 ? {} : { beforeSeq: boundedPage.beforeSeq },
-        ...boundedPage.throughSeq === void 0 ? {} : { throughSeq: boundedPage.throughSeq },
-        ...boundedPage.maxMessages === void 0 ? {} : { maxMessages: boundedPage.maxMessages }
-      }, signal));
-    } catch (error62) {
-      if (!isLegacySessionHistoryUnsupported(error62)) throw error62;
-      let thread;
-      try {
-        const result = record5(await this.client.request("thread/read", { threadId, includeTurns: true }, signal));
-        thread = record5(result.thread);
-      } catch (historyError) {
-        const code = historyError instanceof Error ? errorCode(historyError) : void 0;
-        if (!this.blankThreads.has(threadId) || code !== "CODEX_UPSTREAM_ERROR") throw historyError;
-        thread = { id: threadId, turns: [] };
+    const knownUpdatedAt = this.catalog?.sessions.find((item) => item.id === `codex:${threadId}`)?.updatedAt;
+    if (!this.blankThreads.has(threadId)) {
+      const cached2 = this.historyCache.getFreshPage(threadId, this.sessionGeneration, boundedPage, knownUpdatedAt);
+      if (cached2 !== void 0) {
+        this.applyHistoryMetadata(threadId, cached2);
+        return cached2;
       }
-      if (string5(thread.id) !== threadId) throw new Error("CodeX returned an invalid Thread history.");
-      value = paginateCodexNativeHistory(
-        projectCodexNativeHistory(thread, `codex:${threadId}`, this.sessionGeneration),
-        {
-          beforeSeq: page.beforeSeq,
-          throughSeq: page.throughSeq,
-          maxMessages: boundedPage.maxMessages
+    }
+    const resolved = await this.historyCache.runSingleFlightPage(
+      threadId,
+      this.sessionGeneration,
+      boundedPage,
+      signal,
+      async (sharedSignal) => {
+        const readEpoch = this.historyCache.beginReadEpoch();
+        let value;
+        try {
+          value = record5(await this.client.request("dsh/sessionHistory", {
+            threadId,
+            ...boundedPage.beforeSeq === void 0 ? {} : { beforeSeq: boundedPage.beforeSeq },
+            ...boundedPage.throughSeq === void 0 ? {} : { throughSeq: boundedPage.throughSeq },
+            ...boundedPage.maxMessages === void 0 ? {} : { maxMessages: boundedPage.maxMessages }
+          }, sharedSignal));
+        } catch (error62) {
+          if (!isLegacySessionHistoryUnsupported(error62)) {
+            if (!sharedSignal.aborted) {
+              const stale = this.historyCache.getStalePage(threadId, this.sessionGeneration, boundedPage);
+              if (stale !== void 0) return stale;
+            }
+            throw error62;
+          }
+          let thread;
+          try {
+            const result = record5(await this.client.request("thread/read", { threadId, includeTurns: true }, sharedSignal));
+            thread = record5(result.thread);
+          } catch (historyError) {
+            const code = historyError instanceof Error ? errorCode(historyError) : void 0;
+            if (!this.blankThreads.has(threadId) || code !== "CODEX_UPSTREAM_ERROR") {
+              if (!sharedSignal.aborted) {
+                const stale = this.historyCache.getStalePage(threadId, this.sessionGeneration, boundedPage);
+                if (stale !== void 0) return stale;
+              }
+              throw historyError;
+            }
+            thread = { id: threadId, turns: [] };
+          }
+          if (string5(thread.id) !== threadId) throw new Error("CodeX returned an invalid Thread history.");
+          value = paginateCodexNativeHistory(
+            projectCodexNativeHistory(thread, `codex:${threadId}`, this.sessionGeneration),
+            {
+              beforeSeq: page.beforeSeq,
+              throughSeq: page.throughSeq,
+              maxMessages: boundedPage.maxMessages
+            }
+          );
         }
-      );
-    }
-    value = adaptCodexHistoryPage(value, this.sessionGeneration);
-    if (!isCodexNativeHistoryPage(value, `codex:${threadId}`)) {
-      throw new Error("CodeX Remote returned an invalid paginated History.");
-    }
+        value = adaptCodexHistoryPage(value, this.sessionGeneration);
+        if (!isCodexNativeHistoryPage(value, `codex:${threadId}`)) {
+          throw new Error("CodeX Remote returned an invalid paginated History.");
+        }
+        if (!this.blankThreads.has(threadId)) {
+          this.historyCache.setPage(threadId, this.sessionGeneration, boundedPage, value, knownUpdatedAt, readEpoch);
+        }
+        return value;
+      }
+    );
+    this.applyHistoryMetadata(threadId, resolved);
+    return resolved;
+  }
+  applyHistoryMetadata(threadId, value) {
     const historyModel = string5(value.header.model);
     if (historyModel !== void 0) {
       this.selectedModels.set(`codex:${threadId}`, {
@@ -81434,7 +82189,6 @@ var CodexVirtualHarness = class _CodexVirtualHarness {
       this.setPermissionSelection(`codex:${threadId}`, preset === "workspace-write" || preset === "danger-full-access" ? preset : void 0);
     }
     this.cacheHistoryImages(value);
-    return value;
   }
   cacheHistoryImages(history) {
     const sessionId = history.header.id;
@@ -81506,7 +82260,7 @@ function awaitWithAbort(promise2, signal) {
   });
 }
 
-// src/control-route.ts
+// packages/plugin/src/control-route.ts
 var CONTROL_RPC_PREFIX = "/ds-harness-remote";
 var STATUS_STREAM_ENDPOINT = "status.events";
 var STATUS_STREAM_PATH = `${CONTROL_RPC_PREFIX}/${STATUS_STREAM_ENDPOINT}`;
@@ -81632,7 +82386,7 @@ function writeText(res, status2, body) {
   res.end(body);
 }
 
-// src/harness-version.ts
+// packages/plugin/src/harness-version.ts
 import { readFile, realpath as realpathEntrypoint } from "node:fs/promises";
 import { createRequire } from "node:module";
 import { dirname, isAbsolute, join } from "node:path";
@@ -81722,7 +82476,7 @@ async function readHarnessDistributionVersion(entrypoint = process.argv[1], cont
     addAncestors(dirname(execPath));
     addResolved(execPath);
   }
-  for (const root of globalRoots) addManifest(join(root, "node_modules", HARNESS_PACKAGE_NAME, "package.json"));
+  for (const root2 of globalRoots) addManifest(join(root2, "node_modules", HARNESS_PACKAGE_NAME, "package.json"));
   addManifest(join(cwd2, "node_modules", HARNESS_PACKAGE_NAME, "package.json"));
   addResolved(join(cwd2, "package.json"));
   addResolved(cwd2);
@@ -81733,7 +82487,7 @@ async function readHarnessDistributionVersion(entrypoint = process.argv[1], cont
   return void 0;
 }
 
-// src/ids.ts
+// packages/plugin/src/ids.ts
 import { randomBytes as randomBytes7 } from "node:crypto";
 function uuidV7(now = Date.now()) {
   if (!Number.isSafeInteger(now) || now < 0 || now > 281474976710655) {
@@ -81751,22 +82505,22 @@ function uuidV7(now = Date.now()) {
   return `${hex3.slice(0, 8)}-${hex3.slice(8, 12)}-${hex3.slice(12, 16)}-${hex3.slice(16, 20)}-${hex3.slice(20)}`;
 }
 
-// src/session-format-compat.ts
+// packages/plugin/src/session-format-compat.ts
 function normalizeLegacySessionGatewayValue(endpoint, value) {
   if (endpoint === "session/page") return normalizePage(value);
   if (endpoint === "session/follow") return normalizeFollowFrame(value);
   return value;
 }
 function normalizeAssistantMessageStreamValue(endpoint, value) {
-  if (endpoint === "session/page" && isRecord7(value)) return { ...value, records: normalizeRecords(value.records) };
-  if (endpoint === "session/follow" && isRecord7(value) && value.type === "snapshot") {
+  if (endpoint === "session/page" && isRecord8(value)) return { ...value, records: normalizeRecords(value.records) };
+  if (endpoint === "session/follow" && isRecord8(value) && value.type === "snapshot") {
     return { ...value, records: normalizeRecords(value.records) };
   }
   if (endpoint === "session/follow") return normalizeEntry(value);
   return value;
 }
 function normalizeFollowFrame(value) {
-  if (!isRecord7(value)) return value;
+  if (!isRecord8(value)) return value;
   if (value.type === "snapshot") {
     return {
       ...value,
@@ -81778,7 +82532,7 @@ function normalizeFollowFrame(value) {
   return normalizeEntry(value);
 }
 function normalizePage(value) {
-  if (!isRecord7(value)) return value;
+  if (!isRecord8(value)) return value;
   return { ...value, records: normalizeRecords(value.records) };
 }
 function normalizeRecords(value) {
@@ -81823,10 +82577,10 @@ function eventTime(value) {
   return typeof value.event.time === "number" && Number.isSafeInteger(value.event.time) ? value.event.time : 0;
 }
 function isEventEntry(value) {
-  return isRecord7(value) && value.type === "event" && isRecord7(value.event);
+  return isRecord8(value) && value.type === "event" && isRecord8(value.event);
 }
 function normalizeHeader(value) {
-  if (!isRecord7(value)) return value;
+  if (!isRecord8(value)) return value;
   const next = {
     ...value,
     version: 3,
@@ -81835,7 +82589,7 @@ function normalizeHeader(value) {
   return next.agentPreset === "code" ? { ...next, agentPreset: "ptc" } : next;
 }
 function normalizeEvent(value) {
-  if (!isRecord7(value)) return value;
+  if (!isRecord8(value)) return value;
   let next = value;
   const type = normalizeEventType(value.type);
   if (type !== value.type) next = { ...next, type };
@@ -81855,7 +82609,7 @@ function normalizeEventType(value) {
   return value;
 }
 function normalizeEventData(type, value) {
-  if (!isRecord7(value)) return value;
+  if (!isRecord8(value)) return value;
   if (type === "assistant/message" && Object.hasOwn(value, "stream") && !Array.isArray(value.stream)) {
     const { stream: _stream, ...rest } = value;
     return rest;
@@ -81872,7 +82626,7 @@ function normalizeEventData(type, value) {
   return value;
 }
 function normalizeRequestHeaderData(value) {
-  if (!isRecord7(value.header)) return value;
+  if (!isRecord8(value.header)) return value;
   const header = normalizeRequestHeader(value.header);
   return header === value.header ? value : { ...value, header };
 }
@@ -81888,7 +82642,7 @@ function normalizeRequestHeader(value) {
       changed = true;
       continue;
     }
-    if (key === "adapterDefaults" && isRecord7(field) && Object.keys(field).length === 0) {
+    if (key === "adapterDefaults" && isRecord8(field) && Object.keys(field).length === 0) {
       changed = true;
       continue;
     }
@@ -81897,12 +82651,12 @@ function normalizeRequestHeader(value) {
   return changed ? next : value;
 }
 function normalizeMessage(value) {
-  if (!isRecord7(value) || !isRecord7(value.source)) return value;
+  if (!isRecord8(value) || !isRecord8(value.source)) return value;
   if (value.source.kind !== "plugin" || value.source.plugin !== "tools-code-mode") return value;
   return { ...value, source: { ...value.source, plugin: "tools-ptc" } };
 }
 function normalizeSurfaceOp(value) {
-  if (!isRecord7(value) || value.op !== "replace") return value;
+  if (!isRecord8(value) || value.op !== "replace") return value;
   const { start, end, ...rest } = value;
   if (start === void 0 && end === void 0) return value;
   return {
@@ -81912,24 +82666,25 @@ function normalizeSurfaceOp(value) {
     ...end === void 0 ? {} : { endSeq: end }
   };
 }
-function isRecord7(value) {
+function isRecord8(value) {
   return typeof value === "object" && value !== null && !Array.isArray(value);
 }
 function isEventSeq(value) {
   return typeof value === "number" && Number.isSafeInteger(value) && value >= 0 && !Object.is(value, -0);
 }
 
-// src/remote-typert-gateway.ts
+// packages/plugin/src/remote-typert-gateway.ts
 var DIRECT_REMOTE_CALL_BYTES2 = 2 * 1024 * 1024;
 var WELCOME_NOTICE_NAMESPACE = "ui-settings-general";
 var WELCOME_NOTICE_FIELD = "welcomeNoticeVersion";
 var WELCOME_NOTICE_VERSION = "2026-08-13.1";
 var RemoteTypertGateway2 = class {
-  constructor(client, compatibility, harnessVersion, deferStreamDisconnect = false) {
+  constructor(client, compatibility, harnessVersion, deferStreamDisconnect = false, historyCache = new RemoteSessionHistoryCache()) {
     this.client = client;
     this.compatibility = compatibility;
     this.harnessVersion = harnessVersion;
     this.deferStreamDisconnect = deferStreamDisconnect;
+    this.historyCache = historyCache;
   }
   frameTransfers;
   async invoke(request) {
@@ -81942,6 +82697,50 @@ var RemoteTypertGateway2 = class {
     throw remoteFailure(result.error);
   }
   async dispatch(endpoint, payload, signal) {
+    if (endpoint === "workspace/delete") {
+      this.historyCache.clear();
+    } else if (isSessionMutationEndpoint(endpoint)) {
+      const mutatedSessionId = extractSessionIdFromGatewayPayload(payload);
+      if (mutatedSessionId !== void 0) this.historyCache.invalidateSession(mutatedSessionId);
+    }
+    if (endpoint === "session/page" || endpoint === "session/history" || endpoint === "session/projections") {
+      const sessionId = extractSessionIdFromGatewayPayload(payload);
+      if (sessionId !== void 0) {
+        const key = canonicalUnaryHistoryKey(endpoint, payload);
+        const cached2 = this.historyCache.getUnary(this.client, sessionId, key) ?? (endpoint === "session/page" ? this.historyCache.slicePageFromSnapshot(this.client, sessionId, payload) : void 0);
+        if (cached2 !== void 0) return { ok: true, value: cached2 };
+        return await this.historyCache.runSingleFlightUnary(
+          this.client,
+          sessionId,
+          key,
+          signal,
+          async (sharedSignal) => {
+            const readEpoch = this.historyCache.beginReadEpoch();
+            try {
+              const result2 = await this.dispatchRemote(endpoint, payload, sharedSignal);
+              if (result2.ok) {
+                this.historyCache.setUnary(this.client, sessionId, key, result2.value, readEpoch);
+              }
+              return result2;
+            } catch (error62) {
+              if (!sharedSignal.aborted && !(isRecord9(error62) && error62.isDSHRemoteError === true)) {
+                const fallback = this.historyCache.getFallbackUnary(sessionId, endpoint, key, payload);
+                if (fallback !== void 0) return { ok: true, value: fallback };
+              }
+              throw error62;
+            }
+          }
+        );
+      }
+    }
+    const result = await this.dispatchRemote(endpoint, payload, signal);
+    if (isSessionMutationEndpoint(endpoint)) {
+      const mutatedSessionId = extractSessionIdFromGatewayPayload(payload);
+      if (mutatedSessionId !== void 0) this.historyCache.invalidateSession(mutatedSessionId);
+    }
+    return result;
+  }
+  async dispatchRemote(endpoint, payload, signal) {
     const request = { endpoint, payload };
     const encoded = new TextEncoder().encode(JSON.stringify(request));
     let response;
@@ -81969,11 +82768,11 @@ var RemoteTypertGateway2 = class {
   /** DSH <=0.1.6 cannot persist the 0.1.7 welcome acknowledgement remotely. */
   normalizeLegacyWelcomeSettings(endpoint, payload, result) {
     if (!isLegacyRemoteHost(this.harnessVersion)) return void 0;
-    if (endpoint === "settings/describe" && result.ok && isRecord8(result.value)) {
+    if (endpoint === "settings/describe" && result.ok && isRecord9(result.value)) {
       this.settingsDescribeValue = result.value;
       return this.legacyWelcomeAcknowledged ? { ...result, value: patchWelcomeDescribe(result.value) } : void 0;
     }
-    if (endpoint !== "settings/mutate" || !isRecord8(payload) || !isRecord8(payload.args)) return void 0;
+    if (endpoint !== "settings/mutate" || !isRecord9(payload) || !isRecord9(payload.args)) return void 0;
     const args = payload.args;
     if (args.ns !== WELCOME_NOTICE_NAMESPACE || !isWelcomeNoticeOperation(args.ops)) return void 0;
     const value = patchWelcomeDescribe(this.settingsDescribeValue ?? { namespaces: [] });
@@ -81981,6 +82780,25 @@ var RemoteTypertGateway2 = class {
     return { ok: true, value };
   }
   async open(endpoint, payload, signal) {
+    signal.throwIfAborted();
+    if (endpoint === "session/follow") {
+      const sessionId = extractSessionIdFromGatewayPayload(payload);
+      const cached2 = sessionId === void 0 ? void 0 : this.historyCache.getFollowSnapshot(this.client, sessionId);
+      if (cached2 !== void 0 && cached2.sameClient && sessionId !== void 0) {
+        return this.iterateWithCachedSnapshot(sessionId, cached2.snapshot, cached2.cursor, endpoint, payload, signal);
+      }
+      try {
+        return await this.openRaw(endpoint, payload, signal, sessionId, cached2?.snapshot);
+      } catch (error62) {
+        if (cached2 !== void 0 && !signal.aborted && !(isRecord9(error62) && error62.isDSHRemoteError === true)) {
+          return this.iterateFallbackSnapshot(cached2.snapshot, signal);
+        }
+        throw error62;
+      }
+    }
+    return this.openRaw(endpoint, payload, signal);
+  }
+  async openRaw(endpoint, payload, signal, sessionId, fallbackSnapshot) {
     signal.throwIfAborted();
     const streamId = uuidV7();
     const queue = new AsyncValueQueue4();
@@ -82004,7 +82822,7 @@ var RemoteTypertGateway2 = class {
     try {
       if (this.frameTransfers === void 0) {
         const description = await this.client.rpc("harness.transport.describe", {}, signal);
-        this.frameTransfers = isRecord8(description) && Array.isArray(description.capabilities) && description.capabilities.includes("harness.remote.stream.transfer.v1");
+        this.frameTransfers = isRecord9(description) && Array.isArray(description.capabilities) && description.capabilities.includes("harness.remote.stream.transfer.v1");
       }
       signal.throwIfAborted();
       await this.client.rpc("harness.remote.stream.open", {
@@ -82022,9 +82840,191 @@ var RemoteTypertGateway2 = class {
       await this.deferDisconnect(error62, disconnected, signal);
       throw error62;
     }
-    return this.iterate(streamId, endpoint, queue, unsubscribe, unsubscribeClose, signal, onAbort, lifetime, transferSignal, () => disconnected);
+    return this.iterate(
+      streamId,
+      endpoint,
+      queue,
+      unsubscribe,
+      unsubscribeClose,
+      signal,
+      onAbort,
+      lifetime,
+      transferSignal,
+      () => disconnected,
+      sessionId,
+      fallbackSnapshot
+    );
   }
-  async *iterate(streamId, endpoint, queue, unsubscribe, unsubscribeClose, signal, onAbort, lifetime, transferSignal, disconnected) {
+  async *iterateWithCachedSnapshot(sessionId, cachedSnapshot, initialCursor, endpoint, payload, signal) {
+    const upstreamController = new AbortController();
+    const onAbort = () => upstreamController.abort();
+    signal.addEventListener("abort", onAbort, { once: true });
+    const upstreamPromise = this.openRaw(endpoint, payload, upstreamController.signal, sessionId);
+    void upstreamPromise.catch(() => void 0);
+    let upstreamIterator;
+    let lastCursor = initialCursor;
+    let assistantRevision = 0;
+    let resyncRequired = false;
+    const backfillRange = async (fromExclusive, toInclusive) => {
+      const missingCount = toInclusive - fromExclusive;
+      if (missingCount <= 0) return [];
+      if (missingCount > 200) return void 0;
+      const backfilled = await this.dispatchRemote(
+        "session/page",
+        {
+          args: {
+            request: {
+              address: { kind: "session", sessionId },
+              throughSeq: toInclusive,
+              maxMessages: missingCount
+            }
+          }
+        },
+        upstreamController.signal
+      ).catch(() => void 0);
+      if (!backfilled?.ok || !isRecord9(backfilled.value) || !Array.isArray(backfilled.value.records)) {
+        return void 0;
+      }
+      const records = backfilled.value.records.filter(
+        (record11) => isRecord9(record11) && isRecord9(record11.event) && typeof record11.event.seq === "number" && record11.event.seq > fromExclusive && record11.event.seq <= toInclusive
+      );
+      if (records.length !== missingCount) return void 0;
+      for (let index = 0; index < records.length; index += 1) {
+        if (records[index].event.seq !== fromExclusive + index + 1) return void 0;
+      }
+      return records;
+    };
+    try {
+      signal.throwIfAborted();
+      yield cachedSnapshot;
+      const upstream = await upstreamPromise;
+      upstreamIterator = upstream[Symbol.asyncIterator]();
+      while (true) {
+        const next = await upstreamIterator.next();
+        if (next.done) break;
+        const item = next.value;
+        if (isRecord9(item) && item.type === "snapshot") {
+          const upstreamCursor = typeof item.cursor === "number" ? item.cursor : lastCursor;
+          if (upstreamCursor < lastCursor) {
+            this.historyCache.recordFollowSnapshot(this.client, sessionId, item);
+            resyncRequired = true;
+            throw new RemoteClientError("TRANSPORT_CLOSED", "Remote session history cursor was reset; reopen to resync.");
+          }
+          if (Array.isArray(item.records)) {
+            const newerRecords = item.records.filter(
+              (record11) => isRecord9(record11) && isRecord9(record11.event) && typeof record11.event.seq === "number" && record11.event.seq > lastCursor
+            );
+            for (const record11 of newerRecords) {
+              if (record11.event.seq <= lastCursor) continue;
+              if (record11.event.seq > lastCursor + 1) {
+                const recovered = await backfillRange(lastCursor, record11.event.seq - 1);
+                if (recovered === void 0) {
+                  this.historyCache.recordFollowSnapshot(this.client, sessionId, item);
+                  resyncRequired = true;
+                  throw new RemoteClientError("TRANSPORT_CLOSED", "Remote session history gap requires resync.");
+                }
+                this.historyCache.prependBackfilledRecords(this.client, sessionId, recovered);
+                for (const missing of recovered) {
+                  lastCursor = missing.event.seq;
+                  yield missing;
+                }
+              }
+              lastCursor = record11.event.seq;
+              yield record11;
+            }
+          }
+          if (upstreamCursor > lastCursor) {
+            const recovered = await backfillRange(lastCursor, upstreamCursor);
+            if (recovered === void 0) {
+              this.historyCache.recordFollowSnapshot(this.client, sessionId, item);
+              resyncRequired = true;
+              throw new RemoteClientError("TRANSPORT_CLOSED", "Remote session history cursor gap requires resync.");
+            }
+            this.historyCache.prependBackfilledRecords(this.client, sessionId, recovered);
+            for (const missing of recovered) {
+              lastCursor = missing.event.seq;
+              yield missing;
+            }
+          }
+          if (isRecord9(item.projections) && isRecord9(item.projections.values)) {
+            const cachedProjections = isRecord9(cachedSnapshot.projections) && isRecord9(cachedSnapshot.projections.values) ? cachedSnapshot.projections.values : void 0;
+            const asOfSeq = typeof item.projections.asOfSeq === "number" ? item.projections.asOfSeq : lastCursor;
+            for (const [key, value] of Object.entries(item.projections.values)) {
+              if (cachedProjections === void 0 || JSON.stringify(cachedProjections[key]) !== JSON.stringify(value)) {
+                yield { type: "projection", key, seq: asOfSeq, value };
+              }
+            }
+          }
+          if (isRecord9(item.assistantStream)) {
+            const cachedAssistant = isRecord9(cachedSnapshot.assistantStream) ? cachedSnapshot.assistantStream : void 0;
+            const hasActiveStream = item.assistantStream.active === true || item.assistantStream.message != null || Array.isArray(item.assistantStream.entries) && item.assistantStream.entries.length > 0;
+            const cachedHadActiveStream = cachedAssistant !== void 0 && (cachedAssistant.active === true || cachedAssistant.message != null || Array.isArray(cachedAssistant.entries) && cachedAssistant.entries.length > 0);
+            if (hasActiveStream || cachedHadActiveStream) {
+              yield {
+                type: "assistant-stream",
+                frame: {
+                  ...item.assistantStream,
+                  revision: ++assistantRevision
+                }
+              };
+            }
+          }
+          continue;
+        }
+        if (isRecord9(item) && item.type === "event" && isRecord9(item.event) && typeof item.event.seq === "number") {
+          if (item.event.seq <= lastCursor) continue;
+          if (item.event.seq > lastCursor + 1) {
+            const recovered = await backfillRange(lastCursor, item.event.seq - 1);
+            if (recovered === void 0) {
+              this.historyCache.invalidateSession(sessionId);
+              resyncRequired = true;
+              throw new RemoteClientError("TRANSPORT_CLOSED", "Remote session live event gap requires resync.");
+            }
+            this.historyCache.prependBackfilledRecords(this.client, sessionId, [...recovered, item]);
+            for (const missing of recovered) {
+              lastCursor = missing.event.seq;
+              yield missing;
+            }
+          }
+          lastCursor = item.event.seq;
+          yield item;
+          continue;
+        }
+        if (isRecord9(item) && item.type === "assistant-stream" && isRecord9(item.frame)) {
+          yield {
+            ...item,
+            frame: {
+              ...item.frame,
+              revision: ++assistantRevision
+            }
+          };
+          continue;
+        }
+        yield item;
+      }
+    } catch (error62) {
+      if (signal.aborted) return;
+      if (resyncRequired || isRecord9(error62) && error62.isDSHRemoteError === true) throw error62;
+      if (this.deferStreamDisconnect) {
+        await new Promise((resolve9) => signal.addEventListener("abort", () => resolve9(), { once: true }));
+        return;
+      }
+      throw error62;
+    } finally {
+      signal.removeEventListener("abort", onAbort);
+      upstreamController.abort();
+      await upstreamIterator?.return?.().catch(() => void 0);
+    }
+  }
+  async *iterateFallbackSnapshot(snapshot2, signal) {
+    signal.throwIfAborted();
+    yield snapshot2;
+    if (this.deferStreamDisconnect && !signal.aborted) {
+      await new Promise((resolve9) => signal.addEventListener("abort", () => resolve9(), { once: true }));
+    }
+  }
+  async *iterate(streamId, endpoint, queue, unsubscribe, unsubscribeClose, signal, onAbort, lifetime, transferSignal, disconnected, sessionId, fallbackSnapshot) {
+    let resolvedSessionId = sessionId ?? "";
     try {
       for await (const item of queue) {
         let frame = item;
@@ -82033,7 +83033,7 @@ var RemoteTypertGateway2 = class {
           const descriptor = frame.transfer;
           try {
             const decoded = await this.readTransferred(descriptor, transferSignal);
-            if (!isRecord8(decoded) || decoded.streamId !== streamId || decoded.hasValue !== true || Object.hasOwn(decoded, "transfer")) {
+            if (!isRecord9(decoded) || decoded.streamId !== streamId || decoded.hasValue !== true || Object.hasOwn(decoded, "transfer")) {
               throw new Error("Invalid Harness Remote transferred stream frame");
             }
             frame = decoded;
@@ -82045,9 +83045,21 @@ var RemoteTypertGateway2 = class {
         }
         transferSignal.throwIfAborted();
         const value = frame.value;
-        yield this.compatibility === "legacy-to-v3" ? normalizeLegacySessionGatewayValue(endpoint, value) : normalizeAssistantMessageStreamValue(endpoint, value);
+        const normalized = this.compatibility === "legacy-to-v3" ? normalizeLegacySessionGatewayValue(endpoint, value) : normalizeAssistantMessageStreamValue(endpoint, value);
+        if (endpoint === "session/follow" && isRecord9(normalized)) {
+          if (normalized.type === "snapshot") {
+            if (resolvedSessionId.length === 0 && isRecord9(normalized.header) && typeof normalized.header.id === "string") {
+              resolvedSessionId = normalized.header.id;
+            }
+            this.historyCache.recordFollowSnapshot(this.client, resolvedSessionId, normalized);
+          } else {
+            this.historyCache.recordFollowFrame(this.client, resolvedSessionId, normalized);
+          }
+        }
+        yield normalized;
       }
     } catch (error62) {
+      void fallbackSnapshot;
       await this.deferDisconnect(error62, disconnected(), signal);
       throw error62;
     } finally {
@@ -82061,7 +83073,7 @@ var RemoteTypertGateway2 = class {
   }
   async deferDisconnect(error62, disconnected, signal) {
     if (!this.deferStreamDisconnect || !disconnected || signal.aborted) return;
-    if (isRecord8(error62) && error62.isDSHRemoteError === true) return;
+    if (isRecord9(error62) && error62.isDSHRemoteError === true) return;
     await new Promise((resolve9) => signal.addEventListener("abort", () => resolve9(), { once: true }));
   }
   async callTransferred(encoded, signal) {
@@ -82197,16 +83209,16 @@ function routeStreamEvent(event, streamId, queue) {
     queue.fail(remoteFailure({
       code: typeof failure5?.code === "string" ? failure5.code : "internal",
       message: typeof failure5?.message === "string" ? failure5.message : "The remote Harness stream failed.",
-      details: isRecord8(failure5?.details) ? failure5.details : {}
+      details: isRecord9(failure5?.details) ? failure5.details : {}
     }));
   } else {
     queue.close();
   }
 }
 function parseRpcResult(value) {
-  if (!isRecord8(value)) throw new Error("The remote Host returned an invalid Gateway result.");
+  if (!isRecord9(value)) throw new Error("The remote Host returned an invalid Gateway result.");
   if (value.ok === true) return Object.hasOwn(value, "value") ? { ok: true, value: value.value } : { ok: true };
-  if (value.ok !== false || !isRecord8(value.error) || typeof value.error.code !== "string" || typeof value.error.message !== "string" || !isRecord8(value.error.details)) {
+  if (value.ok !== false || !isRecord9(value.error) || typeof value.error.code !== "string" || typeof value.error.message !== "string" || !isRecord9(value.error.details)) {
     throw new Error("The remote Host returned an invalid Gateway failure.");
   }
   return {
@@ -82242,10 +83254,10 @@ function base64ToBytes2(value) {
 }
 function normalizeWorkspaceBinaryResult(endpoint, value) {
   if (endpoint !== "workspaceFiles/readBytes" && endpoint !== "officeToPdf/render") return value;
-  if (!isRecord8(value) || typeof value.data !== "string") return value;
+  if (!isRecord9(value) || typeof value.data !== "string") return value;
   return { ...value, data: base64ToBytes2(value.data) };
 }
-function isRecord8(value) {
+function isRecord9(value) {
   return typeof value === "object" && value !== null && !Array.isArray(value);
 }
 function hasErrorCode(error62, code) {
@@ -82258,23 +83270,23 @@ function isLegacyRemoteHost(version2) {
   return Number(match[1]) === 0 && Number(match[2]) === 1 && Number(match[3]) < 7;
 }
 function isWelcomeNoticeOperation(value) {
-  return Array.isArray(value) && value.some((operation) => isRecord8(operation) && operation.op === "set" && Array.isArray(operation.path) && operation.path.length === 1 && operation.path[0] === WELCOME_NOTICE_FIELD && operation.value === WELCOME_NOTICE_VERSION);
+  return Array.isArray(value) && value.some((operation) => isRecord9(operation) && operation.op === "set" && Array.isArray(operation.path) && operation.path.length === 1 && operation.path[0] === WELCOME_NOTICE_FIELD && operation.value === WELCOME_NOTICE_VERSION);
 }
 function patchWelcomeDescribe(value) {
   if (!Array.isArray(value.namespaces)) return value;
   const namespaces = value.namespaces.map((namespace) => {
-    if (!isRecord8(namespace) || namespace.ns !== WELCOME_NOTICE_NAMESPACE) return namespace;
-    const current = isRecord8(namespace.value) ? namespace.value : {};
+    if (!isRecord9(namespace) || namespace.ns !== WELCOME_NOTICE_NAMESPACE) return namespace;
+    const current = isRecord9(namespace.value) ? namespace.value : {};
     return { ...namespace, value: { ...current, [WELCOME_NOTICE_FIELD]: WELCOME_NOTICE_VERSION } };
   });
   return { ...value, namespaces };
 }
 function normalizeProjectionResult(endpoint, value) {
-  if (endpoint !== "session/projections" || !isRecord8(value) || value.kind !== void 0) return value;
-  return Number.isSafeInteger(value.asOfSeq) && isRecord8(value.values) ? { ...value, kind: "sequenced" } : value;
+  if (endpoint !== "session/projections" || !isRecord9(value) || value.kind !== void 0) return value;
+  return Number.isSafeInteger(value.asOfSeq) && isRecord9(value.values) ? { ...value, kind: "sequenced" } : value;
 }
 function normalizeThemeSettingsResult(endpoint, result) {
-  if (!result.ok || !isRecord8(result.value)) return result;
+  if (!result.ok || !isRecord9(result.value)) return result;
   const value = result.value;
   if (endpoint === "settings/describe" && Array.isArray(value.namespaces)) {
     const original = value.namespaces;
@@ -82288,7 +83300,7 @@ function normalizeThemeSettingsResult(endpoint, result) {
   return result;
 }
 function normalizeThemeNamespace(namespace) {
-  if (!isRecord8(namespace) || namespace.ns !== "ui-theme" || !isRecord8(namespace.value)) return namespace;
+  if (!isRecord9(namespace) || namespace.ns !== "ui-theme" || !isRecord9(namespace.value)) return namespace;
   const section = namespace.value;
   const defaults = {
     codeFontSize: 11,
@@ -82304,12 +83316,12 @@ function normalizeThemeNamespace(namespace) {
   };
 }
 
-// src/workspace-transfer-limits.ts
+// packages/plugin/src/workspace-transfer-limits.ts
 function workspaceUploadMaxBytes(mode2) {
   return mode2 === "LAN" || mode2 === "P2P" ? 1024 * 1024 * 1024 : 20 * 1024 * 1024;
 }
 
-// src/remote-file-upload.ts
+// packages/plugin/src/remote-file-upload.ts
 import { constants } from "node:fs";
 import { open as open2 } from "node:fs/promises";
 import { randomUUID as randomUUID2 } from "node:crypto";
@@ -82366,10 +83378,10 @@ async function uploadRemoteFile(client, sessionId, localPath, name2, signal, ass
   }
 }
 
-// src/remote-session-tools.ts
+// packages/plugin/src/remote-session-tools.ts
 import { basename as basename2, isAbsolute as isAbsolute2 } from "node:path";
 
-// src/remote-file-download.ts
+// packages/plugin/src/remote-file-download.ts
 import { mkdir, mkdtemp, open as open3, rm } from "node:fs/promises";
 import { homedir } from "node:os";
 import { join as join2 } from "node:path";
@@ -82427,7 +83439,7 @@ async function downloadRemoteFile(gateway, sessionId, path, signal, assertCurren
   }
 }
 
-// src/remote-session-tools.ts
+// packages/plugin/src/remote-session-tools.ts
 import { createHash } from "node:crypto";
 var id2 = external_exports.string().min(1).max(256);
 var MAX_REMOTE_WORKSPACES = 512;
@@ -82503,14 +83515,14 @@ var RemoteSessionTools = class {
         const generation = this.generation;
         const receipt = { ...target2(args), sessionId: args.sessionId, operationId: args.operationId, status: "pending" };
         let uploaderEntered = false;
-        const pending = Promise.resolve().then(() => this.connect(args.hostId, signal, async (remote, active) => {
+        const pending = Promise.resolve().then(() => this.connect(args.hostId, signal, async (remote, active2) => {
           const gateway = new RemoteTypertGateway2(remote.client);
           if (!remote.features.remoteGateway) fail4("HARNESS_SESSIONS_UNAVAILABLE");
-          await this.requireSession(gateway, args, active);
+          await this.requireSession(gateway, args, active2);
           const name2 = args.name ?? basename2(args.localPath);
           sessionToolInputs.remote_upload_file.parse({ ...args, name: name2 });
           uploaderEntered = true;
-          return uploadRemoteFile(remote.client, args.sessionId, args.localPath, name2, active, () => {
+          return uploadRemoteFile(remote.client, args.sessionId, args.localPath, name2, active2, () => {
             if (generation !== this.generation) fail4("REMOTE_AUTHORITY_CHANGED");
           });
         })).then((result) => Object.assign(receipt, result), () => {
@@ -82523,9 +83535,9 @@ var RemoteSessionTools = class {
       case "remote_download_file": {
         const args = sessionToolInputs[operation].parse(input4);
         const generation = this.generation;
-        return this.onHost(args, signal, async (gateway, active) => {
-          await this.requireSession(gateway, args, active);
-          return downloadRemoteFile(gateway, args.sessionId, args.path, active, () => {
+        return this.onHost(args, signal, async (gateway, active2) => {
+          await this.requireSession(gateway, args, active2);
+          return downloadRemoteFile(gateway, args.sessionId, args.path, active2, () => {
             if (generation !== this.generation) fail4("REMOTE_AUTHORITY_CHANGED");
           });
         });
@@ -82540,8 +83552,8 @@ var RemoteSessionTools = class {
       }
       case "remote_list_sessions": {
         const args = sessionToolInputs[operation].parse(input4);
-        return this.onHost(args, signal, async (gateway, active) => {
-          const rows = await this.catalog(gateway, args, active);
+        return this.onHost(args, signal, async (gateway, active2) => {
+          const rows = await this.catalog(gateway, args, active2);
           const sorted = rows.sort((a, b) => b.updatedAt - a.updatedAt || a.sessionId.localeCompare(b.sessionId));
           const items = sorted.slice(args.offset, args.offset + args.limit).map(summary);
           return {
@@ -82553,13 +83565,13 @@ var RemoteSessionTools = class {
       }
       case "remote_read_session": {
         const args = sessionToolInputs[operation].parse(input4);
-        return this.onHost(args, signal, async (gateway, active) => {
-          const row = await this.requireSession(gateway, args, active);
-          const page = args.cursor === void 0 ? await first(gateway, "session/follow", { request: { address: address(args.sessionId), maxMessages: args.maxMessages } }, active) : record7(await gateway.invoke({ namespace: "session", method: "page", args: { request: {
+        return this.onHost(args, signal, async (gateway, active2) => {
+          const row = await this.requireSession(gateway, args, active2);
+          const page = args.cursor === void 0 ? await first(gateway, "session/follow", { request: { address: address(args.sessionId), maxMessages: args.maxMessages } }, active2) : record7(await gateway.invoke({ namespace: "session", method: "page", args: { request: {
             address: address(args.sessionId),
             ...args.cursor,
             maxMessages: args.maxMessages
-          } }, signal: active }));
+          } }, signal: active2 }));
           const throughSeq = args.cursor?.throughSeq ?? page.cursor;
           if (args.cursor === void 0 && page.type !== "snapshot") fail4("INVALID_SESSION_SNAPSHOT");
           const records = historyRecords(page);
@@ -82585,9 +83597,9 @@ var RemoteSessionTools = class {
     }
   }
   onHost(args, signal, query) {
-    return this.connect(args.hostId, signal, (remote, active) => {
+    return this.connect(args.hostId, signal, (remote, active2) => {
       if (!remote.features.remoteGateway) fail4("HARNESS_SESSIONS_UNAVAILABLE");
-      return query(new RemoteTypertGateway2(remote.client), active);
+      return query(new RemoteTypertGateway2(remote.client), active2);
     });
   }
   async requireWorkspace(gateway, args, signal) {
@@ -82601,9 +83613,10 @@ var RemoteSessionTools = class {
   async catalog(gateway, args, signal) {
     const found = await this.requireWorkspace(gateway, args, signal);
     const response = record7(await gateway.invoke({ namespace: "session", method: "list", args: { _request: {} }, signal }));
-    const rows = external_exports.array(rowSchema).max(MAX_REMOTE_SESSIONS).parse(response.items);
+    const rows = external_exports.array(rowSchema).parse(response.items);
     const allowed = new Set(found.sessionIds);
-    return rows.filter((row) => allowed.has(row.sessionId) && row.parentSessionId === void 0 && row.origin !== "subagent");
+    const owned = rows.filter((row) => allowed.has(row.sessionId) && row.parentSessionId === void 0 && row.origin !== "subagent");
+    return owned.length > MAX_REMOTE_SESSIONS ? owned.slice(0, MAX_REMOTE_SESSIONS) : owned;
   }
   async requireSession(gateway, args, signal) {
     const row = (await this.catalog(gateway, args, signal)).find((row2) => row2.sessionId === args.sessionId);
@@ -82636,10 +83649,10 @@ var RemoteSessionTools = class {
     const entry = { fingerprint: fingerprint3, receipt, pending: void 0 };
     entry.pending = Promise.resolve().then(async () => {
       try {
-        await this.onHost(args, signal, async (gateway, active) => {
-          if (operation === "remote_create_session") await this.requireWorkspace(gateway, args, active);
-          else await this.requireSession(gateway, args, active);
-          active.throwIfAborted();
+        await this.onHost(args, signal, async (gateway, active2) => {
+          if (operation === "remote_create_session") await this.requireWorkspace(gateway, args, active2);
+          else await this.requireSession(gateway, args, active2);
+          active2.throwIfAborted();
           const endpoint = operation === "remote_create_session" ? "session/create" : operation === "remote_send_message" ? "session/prompt" : "session/cancel";
           const request = operation === "remote_create_session" ? { workspaceId: args.workspaceId } : operation === "remote_send_message" ? {
             sessionId: args.sessionId,
@@ -82648,7 +83661,7 @@ var RemoteSessionTools = class {
             content: [{ type: "text", text: args.message }]
           } : { sessionId: args.sessionId };
           dispatched = true;
-          const result = await gateway.dispatch(endpoint, { args: { request } }, active);
+          const result = await gateway.dispatch(endpoint, { args: { request } }, active2);
           if (!result.ok) {
             entry.receipt = { ...receipt, status: "rejected" };
             return;
@@ -82677,7 +83690,7 @@ var RemoteSessionTools = class {
     const keys = args.targets.map((item) => JSON.stringify(item));
     if (new Set(keys).size !== keys.length) fail4("DUPLICATE_WAIT_TARGET");
     const stop = new AbortController();
-    const active = AbortSignal.any([signal, stop.signal]);
+    const active2 = AbortSignal.any([signal, stop.signal]);
     const states = args.targets.map((item) => ({ ...item, status: "unknown" }));
     let timedOut = false;
     let timer2;
@@ -82687,7 +83700,7 @@ var RemoteSessionTools = class {
     }, args.timeoutMs);
     const workers = args.targets.map(async (item, index) => {
       try {
-        await this.onHost(item, active, async (gateway, current) => {
+        await this.onHost(item, active2, async (gateway, current) => {
           const row = await this.requireSession(gateway, item, current);
           const source = await gateway.open("session/follow", { args: { request: { address: address(item.sessionId), maxMessages: 20 } } }, current);
           const iterator = source[Symbol.asyncIterator]();
@@ -82714,7 +83727,7 @@ var RemoteSessionTools = class {
           }
         });
       } catch {
-        if (!active.aborted) states[index].status = "unavailable";
+        if (!active2.aborted) states[index].status = "unavailable";
       }
     });
     try {
@@ -82838,17 +83851,20 @@ var ObservedState = class {
   }
 };
 
-// src/server-api.ts
+// packages/plugin/src/server-api.ts
 import { platform } from "node:os";
 
-// src/server-credentials.ts
+// packages/plugin/src/server-credentials.ts
 import { chmod, mkdir as mkdir2, readFile as readFile2, rename, rm as rm2, stat, writeFile } from "node:fs/promises";
 import { dirname as dirname2, join as join3 } from "node:path";
 var credentialSchema = external_exports.object({
   schemaVersion: external_exports.literal(1),
   serverUrl: external_exports.string().url(),
   deviceId: external_exports.string().min(1),
-  authorizationMethod: external_exports.enum(["account", "host_registration_code", "owned_device"]),
+  authorizationMethod: external_exports.enum(["account", "host_registration_code", "owned_device", "device_pairing"]),
+  accountKind: external_exports.enum(["standard", "device_only"]).optional(),
+  pairingRestricted: external_exports.boolean().optional(),
+  inboundOnly: external_exports.boolean().optional(),
   account: external_exports.string().min(1).max(254).optional(),
   accessToken: external_exports.string().min(16),
   accessTokenExpiresAt: external_exports.number().int().positive(),
@@ -82888,6 +83904,15 @@ var ServerCredentialStore = class {
   async hasCredentials() {
     return exists(this.path);
   }
+  async pairingHostOnly() {
+    const policy = await readPrivateJson(join3(dirname2(this.path), "pairing-host-only.json"));
+    if (policy === void 0) return false;
+    external_exports.object({ hostOnly: external_exports.literal(true) }).strict().parse(policy);
+    return true;
+  }
+  async restrictPairingHostOnly() {
+    await atomicWritePrivate(join3(dirname2(this.path), "pairing-host-only.json"), '{"hostOnly":true}');
+  }
   async load(serverUrl, deviceId) {
     if (!await exists(this.path)) return void 0;
     await assertPrivateMode(this.path);
@@ -82901,7 +83926,7 @@ var ServerCredentialStore = class {
   }
   async save(credentials) {
     const record11 = credentialSchema.parse({ schemaVersion: 1, ...credentials });
-    await atomicWrite(this.path, `${JSON.stringify(record11, null, 2)}
+    await atomicWritePrivate(this.path, `${JSON.stringify(record11, null, 2)}
 `);
     return record11;
   }
@@ -82918,7 +83943,7 @@ var ServerCredentialsBusyError = class extends Error {
     super("Credential refresh is locked. Stop other instances; after a crash, stop all instances before removing server-credentials.json.refresh-lock and authorizing again.");
   }
 };
-async function atomicWrite(path, contents) {
+async function atomicWritePrivate(path, contents) {
   await mkdir2(dirname2(path), { recursive: true, mode: 448 });
   const temporary = `${path}.${process.pid}.${uuidV7()}.tmp`;
   await writeFile(temporary, contents, { encoding: "utf8", mode: 384, flag: "wx" });
@@ -82943,8 +83968,13 @@ async function exists(path) {
 function safeMessage(error62) {
   return error62 instanceof Error ? error62.message : "invalid credential data";
 }
+async function readPrivateJson(path) {
+  if (!await exists(path)) return void 0;
+  await assertPrivateMode(path);
+  return JSON.parse(await readFile2(path, "utf8"));
+}
 
-// src/config.ts
+// packages/plugin/src/config.ts
 import { hostname as hostname3 } from "node:os";
 
 // node_modules/@deepseek-ai/cosmokit/lib/index.js
@@ -83813,7 +84843,7 @@ defineMethod("transform", [
   "preserve"
 ], ({ inner }, isInner) => inner.toString(isInner));
 
-// src/config.ts
+// packages/plugin/src/config.ts
 var DEFAULT_REMOTE_SERVER_URL = process.env.DSH_REMOTE_DEFAULT_SERVER?.trim() || "https://dsh.r2049.cn";
 var entryConfigSchema = Schema.object({
   enabled: Schema.boolean(),
@@ -83946,8 +84976,15 @@ function resolveConfig(input4 = {}, env = process.env) {
   };
 }
 var LOCAL_HOSTS = /* @__PURE__ */ new Set(["localhost", "127.0.0.1", "::1", "[::1]"]);
+function isPrivateIpv6(hostname6) {
+  const host = (hostname6.startsWith("[") && hostname6.endsWith("]") ? hostname6.slice(1, -1) : hostname6).toLowerCase();
+  if (!host.includes(":") || !/^[0-9a-f:]+$/.test(host)) return false;
+  if (host === "::1") return true;
+  return /^f[cd][0-9a-f]{2}:/.test(host) || /^fe[89ab][0-9a-f]:/.test(host);
+}
 function isPrivateNetworkHostname(hostname6) {
   if (LOCAL_HOSTS.has(hostname6)) return true;
+  if (isPrivateIpv6(hostname6)) return true;
   const match = /^(\d{1,3})\.(\d{1,3})\.(\d{1,3})\.(\d{1,3})$/.exec(hostname6);
   if (match === null) return false;
   const octets = match.slice(1).map(Number);
@@ -83973,10 +85010,10 @@ function normalizeServerUrl(value) {
   return url2.origin;
 }
 
-// src/version.ts
-var PLUGIN_VERSION = "0.6.3";
+// packages/plugin/src/version.ts
+var PLUGIN_VERSION = "0.6.4";
 
-// src/server-api.ts
+// packages/plugin/src/server-api.ts
 var TERMINAL_CONTROL_CHARACTERS = /[\u0000-\u001f\u007f-\u009f]/u;
 var HostServerApi = class {
   constructor(serverUrl, store, fetchImplementation = fetch, role2 = "host") {
@@ -83986,6 +85023,7 @@ var HostServerApi = class {
     this.baseUrl = normalizeServerUrl(serverUrl);
   }
   baseUrl;
+  hostOnly = false;
   identity;
   credentials;
   credentialsPromise;
@@ -84000,6 +85038,38 @@ var HostServerApi = class {
   /** End this runtime's HTTP requests, including authentication and response bodies. */
   close() {
     this.lifetime.abort(new ServerApiError("CONNECTION_CLOSED", "The Server API has been closed.", false));
+  }
+  pairingHostOnly() {
+    return this.hostOnly;
+  }
+  async loadStoredPolicy() {
+    this.hostOnly = this.role === "host" && (await this.store.pairingHostOnly() || (await this.store.load(this.baseUrl, this.requireIdentity().deviceId))?.pairingRestricted === true);
+  }
+  async adoptPairing(result) {
+    const identity3 = this.requireIdentity();
+    if (this.role !== "host" || result.device.role !== "host" || result.device.deviceId !== identity3.deviceId || result.device.identityKey !== identity3.publicKey)
+      throw new ServerApiError("PAIRING_IDENTITY_INVALID", "Pairing identity mismatch.", false);
+    if (result.pairingRestricted) {
+      if (!result.inboundOnly) throw new ServerApiError("DEVICE_SCOPE_REQUIRED", "Paired Host must remain inbound only.", false);
+      this.hostOnly = true;
+      await this.store.restrictPairingHostOnly();
+    }
+    this.credentials = await this.withRefreshLock(async () => {
+      const existing = await this.store.load(this.baseUrl, identity3.deviceId);
+      if (existing?.account !== void 0 && existing.account !== result.account)
+        throw new ServerApiError("PAIRING_ACCOUNT_CONFLICT", "Pairing cannot replace the current account.", false);
+      if (existing !== void 0 && existing.refreshTokenExpiresAt > Date.now() + 3e4) return existing;
+      return this.store.save({
+        serverUrl: this.baseUrl,
+        deviceId: identity3.deviceId,
+        authorizationMethod: "device_pairing",
+        account: result.account,
+        accountKind: result.accountKind,
+        pairingRestricted: result.pairingRestricted,
+        inboundOnly: result.inboundOnly,
+        ...validateTokens(result.tokens)
+      });
+    });
   }
   currentAuthorization() {
     if (this.credentials === void 0) return void 0;
@@ -84104,7 +85174,7 @@ var HostServerApi = class {
     const value = requireRecord(body, "OAuth providers");
     if (!Array.isArray(value.items)) throw invalidOAuthProviders();
     const ids = /* @__PURE__ */ new Set();
-    return value.items.map((item) => {
+    const providers = value.items.map((item) => {
       const provider = requireRecord(item, "OAuth provider");
       if (typeof provider.id !== "string" || !/^[a-zA-Z0-9][a-zA-Z0-9_-]{0,127}$/.test(provider.id) || ids.has(provider.id) || typeof provider.displayName !== "string" || !provider.displayName.trim() || provider.displayName.length > 128 || TERMINAL_CONTROL_CHARACTERS.test(provider.displayName) || !isOAuthEntryPath(provider.startUrl) || provider.qrStartUrl != null && !isOAuthEntryPath(provider.qrStartUrl)) throw invalidOAuthProviders();
       ids.add(provider.id);
@@ -84115,6 +85185,11 @@ var HostServerApi = class {
         ...typeof provider.qrStartUrl === "string" ? { qrStartUrl: provider.qrStartUrl } : {}
       };
     });
+    const capabilities = value.capabilities;
+    if (typeof capabilities === "object" && capabilities !== null && capabilities.devicePairing === "dsh-pairing-v1") {
+      providers.push({ id: "dsh-go-pairing-v1", displayName: "DSH-Go", startUrl: "/api/v1/device-pairing", devicePairing: true });
+    }
+    return providers;
   }
   async startOAuthQrLogin(provider = "zhihu") {
     const entry = (await this.oauthProviders()).find((item) => item.id === provider);
@@ -84277,7 +85352,7 @@ var HostServerApi = class {
       throw error62;
     }
   }
-  async rotateCredentials(identity3, stored) {
+  async rotateCredentials(identity3, stored, allowRecoveredRotation = true) {
     let tokens;
     try {
       tokens = await this.publicRequest("/api/v1/auth/refresh", {
@@ -84286,23 +85361,34 @@ var HostServerApi = class {
       });
     } catch (error62) {
       if (error62 instanceof ServerApiError) {
-        if (error62.code === "AUTH_INVALID") {
+        if (error62.code === "AUTH_INVALID" || error62.code === "TOKEN_EXPIRED") {
           const latest = await this.store.load(this.baseUrl, identity3.deviceId);
-          if (latest !== void 0 && latest.refreshToken !== stored.refreshToken && latest.refreshTokenExpiresAt > Date.now() && latest.accessTokenExpiresAt > Date.now() + 3e4) {
-            return latest;
+          if (latest !== void 0 && latest.refreshToken !== stored.refreshToken && latest.refreshTokenExpiresAt > Date.now()) {
+            if (latest.accessTokenExpiresAt > Date.now() + 3e4) return latest;
+            if (allowRecoveredRotation) return this.rotateCredentials(identity3, latest, false);
           }
         }
         throw new ServerApiError(error62.code, error62.message, error62.retryable, error62.status, "credential_refresh", error62.reason);
       }
       throw error62;
     }
-    return this.store.save({
-      serverUrl: this.baseUrl,
-      deviceId: identity3.deviceId,
-      authorizationMethod: stored.authorizationMethod,
-      ...stored.account === void 0 ? {} : { account: stored.account },
+    const saved = await this.store.save({
+      ...stored,
       ...validateTokens(tokens)
     });
+    if (allowRecoveredRotation && saved.accessTokenExpiresAt <= Date.now() + 3e4 && saved.refreshToken !== stored.refreshToken && saved.refreshTokenExpiresAt > Date.now()) {
+      return this.rotateCredentials(identity3, saved, false);
+    }
+    if (saved.accessTokenExpiresAt <= Date.now()) {
+      throw new ServerApiError(
+        "CONNECTION_FAILED",
+        "The Server returned an already-expired access token.",
+        true,
+        200,
+        "credential_refresh"
+      );
+    }
+    return saved;
   }
   async listDevices(signal) {
     const devices = [];
@@ -84400,7 +85486,7 @@ var HostServerApi = class {
     try {
       return await this.publicRequest(path, init, credentials.accessToken);
     } catch (error62) {
-      if (this.role !== "client" || this.identity?.deviceId !== credentials.deviceId || (init.method ?? "GET") !== "GET" || !(error62 instanceof ServerApiError) || error62.status !== 401 || error62.code !== "AUTH_INVALID" && error62.code !== "TOKEN_EXPIRED") throw error62;
+      if (this.identity?.deviceId !== credentials.deviceId || (init.method ?? "GET") !== "GET" || !(error62 instanceof ServerApiError) || error62.status !== 401 || error62.code !== "AUTH_INVALID" && error62.code !== "TOKEN_EXPIRED") throw error62;
       init.signal?.throwIfAborted();
       const next = await this.refreshCredentials(credentials.accessToken);
       if (next.account !== credentials.account || this.identity?.deviceId !== credentials.deviceId) throw error62;
@@ -84619,7 +85705,7 @@ function requireRecord(value, name2) {
   return value;
 }
 
-// src/terminal-carrier-compat.ts
+// packages/plugin/src/terminal-carrier-compat.ts
 var identity2 = external_exports.string().regex(/^[A-Za-z0-9_:-]{1,256}$/);
 var attachmentArgs = external_exports.object({ agentId: identity2, id: identity2, attachmentId: identity2 }).strict();
 var dimensions = { cols: external_exports.number().int().min(1).max(1e3), rows: external_exports.number().int().min(1).max(1e3) };
@@ -84711,13 +85797,13 @@ var TerminalCarrierCompat = class {
       try {
         for await (const value of source) {
           if (lifetime.aborted) break;
-          if (isRecord9(value) && value.type === "ack") {
+          if (isRecord10(value) && value.type === "ack") {
             const pending = entry.pending.get(Number(value.sequence));
             if (!pending) throw new RpcError("INVALID_MESSAGE", "Unexpected terminal input acknowledgement.");
             entry.pending.delete(Number(value.sequence));
             if (value.refusal) pending.reject(new RpcError("PERMISSION_DENIED", "Terminal input was refused."));
             else pending.resolve();
-          } else if (isRecord9(value) && (value.type === "snapshot" || value.type === "state") && isRecord9(value.info)) {
+          } else if (isRecord10(value) && (value.type === "snapshot" || value.type === "state") && isRecord10(value.info)) {
             entry.writable = value.writable === true;
             yield { ...value, info: { ...value.info, ...entry.writable ? { controllerId: args.attachmentId } : {} } };
           } else yield value;
@@ -84791,7 +85877,7 @@ async function openRemoteTerminal(target3, payload, signal, uplink) {
     try {
       for await (const value of source) {
         if (lifetime.aborted) break;
-        if (isRecord9(value) && (value.type === "snapshot" || value.type === "state") && isRecord9(value.info)) {
+        if (isRecord10(value) && (value.type === "snapshot" || value.type === "state") && isRecord10(value.info)) {
           writable = value.info.controllerId === attachmentId;
           output2.push({ ...value, writable });
           if (value.type === "snapshot") startInput();
@@ -84839,11 +85925,11 @@ async function openRemoteTerminal(target3, payload, signal, uplink) {
     }
   })();
 }
-function isRecord9(value) {
+function isRecord10(value) {
   return typeof value === "object" && value !== null && !Array.isArray(value);
 }
 
-// src/typert-gateway-switch.ts
+// packages/plugin/src/typert-gateway-switch.ts
 var REMOTE_COMMAND_METHODS = ["execute", "list"];
 var LOCAL_ONLY_NAMESPACES = /* @__PURE__ */ new Set(["dynamicCordisRunner"]);
 var ALL_REMOTE_COMMANDS = { execute: true, list: true };
@@ -85002,14 +86088,14 @@ var TypertGatewaySwitch = class {
     if (normalized !== void 0) return normalized;
     const source = error62 instanceof Error ? error62 : new Error("The Harness Gateway rejected the request.");
     const code = "code" in source && typeof source.code === "string" ? source.code : "internal";
-    const details2 = "details" in source && isRecord10(source.details) ? source.details : {};
+    const details2 = "details" in source && isRecord11(source.details) ? source.details : {};
     return { code, message: source.message, details: details2 };
   }
 };
 function workspaceConnectionResult(endpoint, result) {
   if (endpoint === "terminal/environment" && result.ok) return { ...result, value: normalizeTerminalEnvironment(endpoint, result.value) };
   if (endpoint !== "workspaceFiles/readBytes" && endpoint !== "officeToPdf/render") return result;
-  if (!result.ok || !isRecord10(result.value) || !(result.value.data instanceof Uint8Array)) return result;
+  if (!result.ok || !isRecord11(result.value) || !(result.value.data instanceof Uint8Array)) return result;
   return {
     ...result,
     value: { ...result.value, data: null },
@@ -85058,7 +86144,7 @@ function requestFromCarrier(endpoint, payload, signal) {
   if (segments.length !== 2 || segments.some((segment) => segment.length === 0)) {
     throw new Error("The Harness Gateway endpoint is invalid.");
   }
-  if (!isRecord10(payload) || !isRecord10(payload.args)) {
+  if (!isRecord11(payload) || !isRecord11(payload.args)) {
     throw new Error("The Harness Gateway payload is invalid.");
   }
   return { namespace: segments[0], method: segments[1], args: payload.args, signal };
@@ -85073,19 +86159,19 @@ function isLocalOnlyEndpoint(endpoint) {
 function isRemoteCommandMethod(method) {
   return REMOTE_COMMAND_METHODS.includes(method);
 }
-function isRecord10(value) {
+function isRecord11(value) {
   return typeof value === "object" && value !== null && !Array.isArray(value);
 }
 function normalizeTerminalEnvironment(endpoint, value) {
-  if (endpoint !== "terminal/environment" || !isRecord10(value) || value.maxBufferedBytes !== void 0) return value;
+  if (endpoint !== "terminal/environment" || !isRecord11(value) || value.maxBufferedBytes !== void 0) return value;
   return { ...value, maxBufferedBytes: 256 * 1024 };
 }
 
-// src/werift-rtc.ts
+// packages/plugin/src/werift-rtc.ts
 import { createSocket as createSocket4 } from "node:dgram";
 import { networkInterfaces as networkInterfaces2 } from "node:os";
 
-// src/native-rtc-helper.ts
+// packages/plugin/src/native-rtc-helper.ts
 import { spawn, spawnSync } from "node:child_process";
 import { existsSync, readdirSync, realpathSync, statSync } from "node:fs";
 import { delimiter, dirname as dirname3, join as join4 } from "node:path";
@@ -85160,10 +86246,10 @@ function addCandidate(candidates, value) {
   candidates.push(value);
 }
 function nvmNodeCandidates() {
-  const root = join4(process.env.HOME ?? "", ".nvm", "versions", "node");
-  if (root === "" || !existsSync(root)) return [];
+  const root2 = join4(process.env.HOME ?? "", ".nvm", "versions", "node");
+  if (root2 === "" || !existsSync(root2)) return [];
   try {
-    return readdirSync(root).map((version2) => join4(root, version2, "bin", process.platform === "win32" ? "node.exe" : "node")).sort((left, right) => right.localeCompare(left, "en", { numeric: true }));
+    return readdirSync(root2).map((version2) => join4(root2, version2, "bin", process.platform === "win32" ? "node.exe" : "node")).sort((left, right) => right.localeCompare(left, "en", { numeric: true }));
   } catch {
     return [];
   }
@@ -85611,7 +86697,7 @@ process.stdin.on('end', () => {
 })
 `;
 
-// src/werift-rtc.ts
+// packages/plugin/src/werift-rtc.ts
 var cachedFactory;
 var cachedWerift;
 var cachedNativeFactory;
@@ -86154,7 +87240,7 @@ function isPrivate(ip) {
   return parts[0] === 172 && parts[1] >= 16 && parts[1] <= 31;
 }
 
-// src/client-runtime.ts
+// packages/plugin/src/client-runtime.ts
 var ClientModeRuntime = class {
   constructor(config2, identities, server, typertGateway, logger2, host, rtcFactoryProvider = loadNodeRtcFactory) {
     this.config = config2;
@@ -86282,7 +87368,12 @@ var ClientModeRuntime = class {
   codexOpenedSessions = /* @__PURE__ */ new Map();
   codexOpenGeneration = 0;
   cursorVirtual;
+  cursorVirtualSelection;
+  acpOpenedSessions = /* @__PURE__ */ new Map();
   acpVirtualBackend = "cursor";
+  remoteHistoryCaches = /* @__PURE__ */ new Map();
+  codexHistoryCaches = /* @__PURE__ */ new Map();
+  acpHistoryCaches = /* @__PURE__ */ new Map();
   gatewaySwitch;
   codexStreams = /* @__PURE__ */ new Map();
   connectionProgress;
@@ -86308,6 +87399,10 @@ var ClientModeRuntime = class {
   }
   async start() {
     if (this.closed) throw new Error("client remote-mode runtime is closed");
+    if (this.host?.hostStatus().pairingHostOnly) {
+      this.gatewaySwitch.install();
+      return;
+    }
     this.identity = await this.identities.loadOrCreate(this.config.deviceName);
     this.server.bindIdentity(this.identity);
     this.gatewaySwitch.install();
@@ -86335,7 +87430,13 @@ var ClientModeRuntime = class {
         if (this.host.hasStoredAuthorization !== void 0 && await this.host.hasStoredAuthorization()) return;
       }
       const credentials = await this.server.authenticate(this.requireIdentity());
-      await this.host.authorizeHostAsOwned(credentials.accessToken, credentials.account);
+      try {
+        await this.host.authorizeHostAsOwned(credentials.accessToken, credentials.account);
+      } catch (error62) {
+        if (!(error62 instanceof ServerApiError) || error62.status !== 401 || error62.code !== "AUTH_INVALID" && error62.code !== "TOKEN_EXPIRED") throw error62;
+        const refreshed = await this.server.refreshCredentials(credentials.accessToken);
+        await this.host.authorizeHostAsOwned(refreshed.accessToken, refreshed.account);
+      }
     } catch (error62) {
       this.logger.warn("automatic Host authorization failed", { code: safeErrorCode(error62) });
     }
@@ -86449,6 +87550,7 @@ var ClientModeRuntime = class {
    */
   assertHostAuthorizationForDeviceDiscovery() {
     const status2 = this.host?.hostStatus();
+    if (status2?.pairingHostOnly) throw new ClientModeError("DEVICE_SCOPE_REQUIRED", "This Host only accepts incoming Remote connections.");
     if (status2 === void 0 || status2.error === void 0 || !HOST_AUTHORIZATION_ERRORS.has(status2.error)) return;
     const message = status2.error === "DEVICE_REVOKED" ? "The local Host was revoked on the Server. Sign out and authorize this Host again." : "The local Host authorization is no longer valid. Sign out and authorize this Host again.";
     throw new ClientModeError(status2.error, message);
@@ -86488,9 +87590,18 @@ var ClientModeRuntime = class {
   async clearClientAuthorization() {
     const cleanup = this.leaveRemote();
     this.codexOpenedSessions.clear();
+    this.acpOpenedSessions.clear();
+    this.clearHistoryCaches();
+    if (this.identity === void 0) {
+      await Promise.all([cleanup, this.server.clearAuthorization()]);
+      return;
+    }
     const results = await Promise.allSettled([cleanup, this.server.revokeCurrentDevice()]);
-    this.identity = await this.identities.reset(this.config.deviceName);
-    this.server.bindIdentity(this.identity);
+    if (this.host?.hostStatus().pairingHostOnly) this.identity = void 0;
+    else {
+      this.identity = await this.identities.reset(this.config.deviceName);
+      this.server.bindIdentity(this.identity);
+    }
     const failure5 = results.find((result) => result.status === "rejected");
     if (failure5?.status === "rejected") throw failure5.reason;
   }
@@ -86501,7 +87612,13 @@ var ClientModeRuntime = class {
       return this.status();
     }
     const credentials = await this.server.authenticate(this.requireIdentity());
-    await this.host.authorizeHostAsOwned(credentials.accessToken, credentials.account);
+    try {
+      await this.host.authorizeHostAsOwned(credentials.accessToken, credentials.account);
+    } catch (error62) {
+      if (!(error62 instanceof ServerApiError) || error62.status !== 401 || error62.code !== "AUTH_INVALID" && error62.code !== "TOKEN_EXPIRED") throw error62;
+      const refreshed = await this.server.refreshCredentials(credentials.accessToken);
+      await this.host.authorizeHostAsOwned(refreshed.accessToken, refreshed.account);
+    }
     return this.status();
   }
   async setMode(mode2, targetDeviceId, signal) {
@@ -86672,7 +87789,7 @@ var ClientModeRuntime = class {
     const virtual = CodexVirtualHarness.remote(remote.client, {
       deviceId: remote.target.deviceId,
       name: remote.target.name
-    }, harnessSessionGeneration(this.host?.localHarnessVersion?.()), new RemoteTypertGateway2(remote.client));
+    }, harnessSessionGeneration(this.host?.localHarnessVersion?.()), this.remoteTypertGateway(remote), this.codexHistoryCache(remote.target.deviceId));
     try {
       let workspace2;
       try {
@@ -86746,10 +87863,17 @@ var ClientModeRuntime = class {
       throw new ClientModeError("FEATURE_NOT_SUPPORTED", `The selected Host does not provide ${backend} workspaces.`);
     }
     this.assertLocalHarnessCarrierAvailable();
-    const virtual = AcpVirtualHarness.remote(remote.client, {
-      deviceId: remote.target.deviceId,
-      name: remote.target.name
-    }, backend, remote.features.acpModelLoadsSession ? ["agent.acp.antigravity.model-load.v1"] : [], new RemoteTypertGateway2(remote.client));
+    const virtual = AcpVirtualHarness.remote(
+      remote.client,
+      {
+        deviceId: remote.target.deviceId,
+        name: remote.target.name
+      },
+      backend,
+      remote.features.acpModelLoadsSession ? ["agent.acp.antigravity.model-load.v1"] : [],
+      this.remoteTypertGateway(remote),
+      this.acpHistoryCache(remote.target.deviceId, backend)
+    );
     let workspace2;
     try {
       try {
@@ -86763,9 +87887,12 @@ var ClientModeRuntime = class {
       this.assertRemoteCurrent(remote, signal);
       await this.closeCursorVirtual();
       this.assertRemoteCurrent(remote, signal);
-      const preferredSessionId = await virtual.preferredSessionId();
+      const selectionKey = JSON.stringify([remote.target.deviceId, backend, workspace2.workspaceId]);
+      const rememberedSessionId = this.acpOpenedSessions.get(selectionKey);
+      const preferredSessionId = rememberedSessionId === void 0 ? await virtual.preferredSessionId() : await virtual.preferredSessionId(rememberedSessionId);
       this.assertRemoteCurrent(remote, signal);
       this.cursorVirtual = virtual;
+      this.cursorVirtualSelection = { targetDeviceId: remote.target.deviceId, workspaceId: workspace2.workspaceId, backend };
       this.acpVirtualBackend = backend;
       this.selectCursorTarget(virtual, remote);
       this.pendingWorkspaceSelection = {
@@ -86790,10 +87917,17 @@ var ClientModeRuntime = class {
       throw new ClientModeError("FEATURE_NOT_SUPPORTED", `The selected Host does not provide ${backend} workspaces.`);
     }
     this.assertLocalHarnessCarrierAvailable();
-    const virtual = AcpVirtualHarness.remote(remote.client, {
-      deviceId: remote.target.deviceId,
-      name: remote.target.name
-    }, backend, remote.features.acpModelLoadsSession ? ["agent.acp.antigravity.model-load.v1"] : [], new RemoteTypertGateway2(remote.client));
+    const virtual = AcpVirtualHarness.remote(
+      remote.client,
+      {
+        deviceId: remote.target.deviceId,
+        name: remote.target.name
+      },
+      backend,
+      remote.features.acpModelLoadsSession ? ["agent.acp.antigravity.model-load.v1"] : [],
+      this.remoteTypertGateway(remote),
+      this.acpHistoryCache(remote.target.deviceId, backend)
+    );
     try {
       const workspace2 = await virtual.selectOrCreateWorkspace(trimmedPath);
       this.assertRemoteCurrent(remote, signal);
@@ -86802,6 +87936,7 @@ var ClientModeRuntime = class {
       await this.closeCursorVirtual();
       this.assertRemoteCurrent(remote, signal);
       this.cursorVirtual = virtual;
+      this.cursorVirtualSelection = { targetDeviceId: remote.target.deviceId, workspaceId: workspace2.workspaceId, backend };
       this.acpVirtualBackend = backend;
       this.selectCursorTarget(virtual, remote);
       this.pendingWorkspaceSelection = {
@@ -86830,6 +87965,7 @@ var ClientModeRuntime = class {
     try {
       await this.leaveRemote();
     } finally {
+      this.clearHistoryCaches();
       this.gatewaySwitch.restore();
     }
   }
@@ -86890,8 +88026,66 @@ var ClientModeRuntime = class {
       remote.client,
       localSessionGeneration === "v3" && remote.features.sessionFormat !== 3 ? "legacy-to-v3" : void 0,
       remote.harnessVersion,
-      true
+      true,
+      this.remoteHistoryCache(remote.target.deviceId)
     );
+  }
+  remoteHistoryCache(deviceId) {
+    let cache = this.remoteHistoryCaches.get(deviceId);
+    if (cache === void 0) {
+      cache = new RemoteSessionHistoryCache();
+    } else {
+      this.remoteHistoryCaches.delete(deviceId);
+    }
+    this.remoteHistoryCaches.set(deviceId, cache);
+    while (this.remoteHistoryCaches.size > 16) {
+      const oldest = this.remoteHistoryCaches.keys().next().value;
+      if (oldest === void 0) break;
+      this.remoteHistoryCaches.get(oldest)?.clear();
+      this.remoteHistoryCaches.delete(oldest);
+    }
+    return cache;
+  }
+  codexHistoryCache(deviceId) {
+    let cache = this.codexHistoryCaches.get(deviceId);
+    if (cache === void 0) {
+      cache = new CodexSessionHistoryCache();
+    } else {
+      this.codexHistoryCaches.delete(deviceId);
+    }
+    this.codexHistoryCaches.set(deviceId, cache);
+    while (this.codexHistoryCaches.size > 16) {
+      const oldest = this.codexHistoryCaches.keys().next().value;
+      if (oldest === void 0) break;
+      this.codexHistoryCaches.get(oldest)?.clear();
+      this.codexHistoryCaches.delete(oldest);
+    }
+    return cache;
+  }
+  acpHistoryCache(deviceId, backend) {
+    const key = `${deviceId}:${backend}`;
+    let cache = this.acpHistoryCaches.get(key);
+    if (cache === void 0) {
+      cache = new AcpSessionHistoryCache();
+    } else {
+      this.acpHistoryCaches.delete(key);
+    }
+    this.acpHistoryCaches.set(key, cache);
+    while (this.acpHistoryCaches.size > 32) {
+      const oldest = this.acpHistoryCaches.keys().next().value;
+      if (oldest === void 0) break;
+      this.acpHistoryCaches.get(oldest)?.clear();
+      this.acpHistoryCaches.delete(oldest);
+    }
+    return cache;
+  }
+  clearHistoryCaches() {
+    for (const cache of this.remoteHistoryCaches.values()) cache.clear();
+    for (const cache of this.codexHistoryCaches.values()) cache.clear();
+    for (const cache of this.acpHistoryCaches.values()) cache.clear();
+    this.remoteHistoryCaches.clear();
+    this.codexHistoryCaches.clear();
+    this.acpHistoryCaches.clear();
   }
   selectCodexTarget(virtual, remote) {
     this.recoverable = void 0;
@@ -86918,7 +88112,19 @@ var ClientModeRuntime = class {
   }
   async closeCursorVirtual() {
     const virtual = this.cursorVirtual;
+    const selection = this.cursorVirtualSelection;
     this.cursorVirtual = void 0;
+    this.cursorVirtualSelection = void 0;
+    if (selection !== void 0 && virtual !== void 0 && virtual.openedSessions !== void 0) {
+      for (const [workspaceId, sessionId] of virtual.openedSessions) {
+        const key = JSON.stringify([selection.targetDeviceId, selection.backend, workspaceId]);
+        this.acpOpenedSessions.delete(key);
+        this.acpOpenedSessions.set(key, sessionId);
+        if (this.acpOpenedSessions.size > 64) {
+          this.acpOpenedSessions.delete(this.acpOpenedSessions.keys().next().value);
+        }
+      }
+    }
     await virtual?.close();
   }
   selectCursorTarget(virtual, remote) {
@@ -86995,6 +88201,7 @@ var ClientModeRuntime = class {
     }
   }
   requireIdentity() {
+    if (this.host?.hostStatus().pairingHostOnly) throw new ClientModeError("DEVICE_SCOPE_REQUIRED", "This Host only accepts incoming Remote connections.");
     if (this.identity === void 0) throw new ClientModeError("IDENTITY_INVALID", "The client identity is not ready.");
     return this.identity;
   }
@@ -87041,15 +88248,65 @@ var ClientModeRuntime = class {
   }
 };
 
-// src/control-runtime.ts
+// packages/plugin/src/control-runtime.ts
 import { hostname as hostname4 } from "node:os";
 import { execFileSync as execFileSync2 } from "node:child_process";
 
-// src/identity-store.ts
+// packages/plugin/src/pairing-contract.ts
+var pairingDeviceSchema = external_exports.object({
+  deviceId: external_exports.string().min(1).max(128),
+  name: external_exports.string().max(128),
+  role: external_exports.enum(["host", "client"]),
+  platform: external_exports.string().max(32),
+  identityKey: external_exports.string().regex(/^[A-Za-z0-9_-]{43}$/),
+  clientVersion: external_exports.string().nullable().optional(),
+  harnessVersion: external_exports.string().nullable().optional()
+}).strict();
+var pairingCreatedSchema = external_exports.object({
+  v: external_exports.literal(1),
+  sessionId: external_exports.string().uuid(),
+  expiresAt: external_exports.number().int().positive(),
+  serverPublicKey: external_exports.string().regex(/^[A-Za-z0-9_-]{43}$/),
+  scanSecret: external_exports.string().regex(/^[A-Za-z0-9_-]{43}$/),
+  host: pairingDeviceSchema
+}).strict();
+var pairingCredentialsSchema = external_exports.object({
+  account: external_exports.string().min(1).max(254),
+  accountKind: external_exports.enum(["standard", "device_only"]),
+  device: pairingDeviceSchema,
+  inboundOnly: external_exports.boolean(),
+  pairingRestricted: external_exports.boolean(),
+  tokens: deviceTokenPairSchema
+}).strict();
+var pairingStatusSchema = external_exports.object({
+  v: external_exports.literal(1),
+  sessionId: external_exports.string().uuid(),
+  state: external_exports.enum(["created", "claimed", "approved", "completed", "failed", "cancelled", "expired"]),
+  expiresAt: external_exports.number().int().positive(),
+  recoverUntil: external_exports.number().int().positive(),
+  failureReason: external_exports.string().nullable(),
+  attemptConsumed: external_exports.boolean(),
+  submissionId: external_exports.string().nullable(),
+  host: pairingDeviceSchema,
+  mobile: pairingDeviceSchema.nullable(),
+  credentials: pairingCredentialsSchema.nullable()
+}).strict();
+var savedPairingSchema = external_exports.object({
+  serverUrl: external_exports.string().url(),
+  deviceId: external_exports.string(),
+  session: pairingCreatedSchema,
+  qrFormat: external_exports.literal("fragment-ticket-v1").optional(),
+  state: pairingStatusSchema.shape.state,
+  mobile: pairingDeviceSchema.optional(),
+  submission: external_exports.string().optional(),
+  localSaved: external_exports.boolean()
+}).strict();
+
+// packages/plugin/src/identity-store.ts
 import { createHash as createHash5 } from "node:crypto";
 import { chmod as chmod2, lstat, mkdir as mkdir3, readFile as readFile3, readdir, rename as rename2, rm as rm3, stat as stat2, unlink, writeFile as writeFile2 } from "node:fs/promises";
 import { homedir as homedir2 } from "node:os";
-import { dirname as dirname4, join as join5 } from "node:path";
+import { basename as basename3, dirname as dirname4, join as join5 } from "node:path";
 var identitySchema = external_exports.object({
   schemaVersion: external_exports.literal(1),
   deviceId: external_exports.string().uuid(),
@@ -87071,7 +88328,10 @@ var trustedPeersSchema = external_exports.object({
   peers: external_exports.array(trustedPeerSchema)
 }).strict();
 var IdentityInvalidError = class extends Error {
-  code = "IDENTITY_INVALID";
+  constructor(message, code = "IDENTITY_INVALID") {
+    super(message);
+    this.code = code;
+  }
 };
 var IdentityStore = class {
   storageDirectory;
@@ -87080,32 +88340,85 @@ var IdentityStore = class {
   }
   identity;
   peers = /* @__PURE__ */ new Map();
+  peerSaveChain = Promise.resolve();
   defaultOptions;
+  role;
   constructor(options = {}) {
     const env = options.env ?? process.env;
     const dshHome = env.DSH_HOME || join5(options.homeDirectory ?? homedir2(), ".dsh");
     this.storageDirectory = options.directory ?? join5(dshHome, "ds-harness-remote");
     this.defaultOptions = options.directory === void 0 ? options : void 0;
+    this.role = options.role;
   }
   async loadOrCreate(deviceName) {
     if (this.defaultOptions !== void 0) this.storageDirectory = await prepareDefaultIdentityDirectory(this.defaultOptions);
     await ensureDirectory(this.directory);
     return withIdentityLock(this.directory, () => this.loadOrCreateLocked(deviceName));
   }
+  /**
+   * Read and verify an existing identity without creating files, mutating
+   * device metadata, or triggering client self-heal. Returns `undefined` when
+   * neither identity file exists yet.
+   */
+  async loadExisting() {
+    if (this.defaultOptions !== void 0) this.storageDirectory = await prepareDefaultIdentityDirectory(this.defaultOptions);
+    const devicePath = join5(this.directory, "device.json");
+    const keyPath = join5(this.directory, "device.key");
+    const [hasDevice, hasKey] = await Promise.all([exists2(devicePath), exists2(keyPath)]);
+    if (!hasDevice && !hasKey) return void 0;
+    if (hasDevice !== hasKey) {
+      throw new IdentityInvalidError("device identity is incomplete; repair it explicitly before reconnecting");
+    }
+    await assertPrivateMode2(keyPath);
+    try {
+      const record11 = identitySchema.parse(JSON.parse(await readFile3(devicePath, "utf8")));
+      const privateKey = (await readFile3(keyPath, "utf8")).trim();
+      const regenerated = generateKeyPair(fromBase64Url2(privateKey));
+      if (regenerated.publicKey !== record11.publicKey) {
+        throw new IdentityInvalidError("device public and private keys do not match");
+      }
+      return { ...record11, privateKey, fingerprint: fingerprint2(record11.publicKey) };
+    } catch (error62) {
+      if (error62 instanceof IdentityInvalidError) throw error62;
+      throw new IdentityInvalidError(`device identity is invalid: ${safeErrorMessage(error62)}`);
+    }
+  }
   async loadOrCreateLocked(deviceName) {
     const devicePath = join5(this.directory, "device.json");
     const keyPath = join5(this.directory, "device.key");
     const [hasDevice, hasKey] = await Promise.all([exists2(devicePath), exists2(keyPath)]);
+    const isScopedOrExplicitClient = this.role === "client" || this.role === void 0 && isScopedClientDirectory(this.directory);
+    const isFlatRootWithScopedIdentity = !isScopedOrExplicitClient && this.role === void 0 && await hasVerifiedScopedIdentity(this.directory);
+    const isClientRole = isScopedOrExplicitClient || isFlatRootWithScopedIdentity;
     if (hasDevice !== hasKey) {
+      if (isClientRole && await canAutoHealClientIdentity(this.directory, isFlatRootWithScopedIdentity)) {
+        await removeIdentityRecords(this.directory);
+        return this.createAndReadIdentityLocked(devicePath, keyPath, deviceName);
+      }
       throw new IdentityInvalidError("device identity is incomplete; repair it explicitly before reconnecting");
     }
     if (!hasDevice) {
-      const keys = generateKeyPair();
-      const record11 = { schemaVersion: 1, deviceId: uuidV7(), name: deviceName, publicKey: keys.publicKey };
-      await atomicTextWrite(keyPath, `${keys.privateKey}
-`, 384);
-      await atomicJsonWrite(devicePath, record11, 384);
+      return this.createAndReadIdentityLocked(devicePath, keyPath, deviceName);
     }
+    let identity3;
+    try {
+      identity3 = await this.readIdentity(devicePath, keyPath, deviceName);
+    } catch (error62) {
+      if (error62 instanceof IdentityInvalidError && isClientRole && await canAutoHealClientIdentity(this.directory, isFlatRootWithScopedIdentity)) {
+        await removeIdentityRecords(this.directory);
+        return this.createAndReadIdentityLocked(devicePath, keyPath, deviceName);
+      }
+      throw error62;
+    }
+    await removeStaleTemporaries(this.directory);
+    return identity3;
+  }
+  async createAndReadIdentityLocked(devicePath, keyPath, deviceName) {
+    const keys = generateKeyPair();
+    const record11 = { schemaVersion: 1, deviceId: uuidV7(), name: deviceName, publicKey: keys.publicKey };
+    await atomicTextWrite(keyPath, `${keys.privateKey}
+`, 384);
+    await atomicJsonWrite(devicePath, record11, 384);
     const identity3 = await this.readIdentity(devicePath, keyPath, deviceName);
     await removeStaleTemporaries(this.directory);
     return identity3;
@@ -87145,6 +88458,7 @@ var IdentityStore = class {
     if (this.defaultOptions !== void 0) this.storageDirectory = await prepareDefaultIdentityDirectory(this.defaultOptions);
     await ensureDirectory(this.directory);
     return withIdentityLock(this.directory, async () => {
+      await this.peerSaveChain.catch(() => void 0);
       this.identity = void 0;
       this.peers.clear();
       await removeIdentityRecords(this.directory);
@@ -87193,18 +88507,29 @@ var IdentityStore = class {
     }
     this.peers = peers;
   }
-  async savePeers() {
-    await atomicJsonWrite(join5(this.directory, "trusted-peers.json"), {
-      schemaVersion: 1,
-      peers: [...this.peers.values()]
-    }, 384);
+  savePeers() {
+    const next = this.peerSaveChain.catch(() => void 0).then(
+      () => atomicJsonWrite(join5(this.directory, "trusted-peers.json"), {
+        schemaVersion: 1,
+        peers: [...this.peers.values()]
+      }, 384)
+    );
+    this.peerSaveChain = next;
+    return next;
   }
 };
+var statIdSchema = external_exports.union([
+  external_exports.number().int().nonnegative().transform((value) => BigInt(value)),
+  external_exports.string().regex(/^(?:0|[1-9]\d{0,19})$/).transform((value) => BigInt(value))
+]);
 var legacyRootPinSchema = external_exports.object({
   schemaVersion: external_exports.literal(1),
-  dev: external_exports.number().int().nonnegative(),
-  ino: external_exports.number().int().nonnegative()
+  dev: statIdSchema,
+  ino: statIdSchema
 }).strict();
+function serializeStatId(value) {
+  return value <= BigInt(Number.MAX_SAFE_INTEGER) ? Number(value) : value.toString();
+}
 async function prepareDefaultIdentityDirectory(options = {}) {
   if (options.directory !== void 0) return options.directory;
   const env = options.env ?? process.env;
@@ -87226,19 +88551,25 @@ async function prepareDefaultIdentityDirectory(options = {}) {
     let pin;
     if (pinMetadata !== void 0) {
       if (!pinMetadata.isFile() || pinMetadata.isSymbolicLink() || pinMetadata.nlink !== 1 || pinMetadata.size > 4096) {
-        throw new IdentityInvalidError("Remote storage fallback record is invalid; no credentials were changed.");
+        throw new IdentityInvalidError("Remote storage fallback record is invalid; no credentials were changed.", "STORAGE_CONFLICT");
       }
       await assertPrivateMode2(pinPath);
-      pin = legacyRootPinSchema.parse(JSON.parse(await readFile3(pinPath, "utf8")));
+      try {
+        pin = legacyRootPinSchema.parse(JSON.parse(await readFile3(pinPath, "utf8")));
+      } catch {
+        throw new IdentityInvalidError("Remote storage fallback record is invalid; no credentials were changed.", "STORAGE_CONFLICT");
+      }
     }
     if (old !== void 0) {
       if (current !== void 0) {
-        throw new IdentityInvalidError("Both Remote storage directories exist; stop all Harness instances and resolve them manually. No credentials were overwritten.");
+        throw new IdentityInvalidError("Both Remote storage directories exist; stop all Harness instances and resolve them manually. No credentials were overwritten.", "STORAGE_CONFLICT");
       }
       await assertOwnedRemoteStorage(source);
       await assertStorageIdle(source);
       if (pin !== void 0) {
-        if (pin.dev !== old.dev || pin.ino !== old.ino) throw new IdentityInvalidError("Legacy Remote storage changed after fallback; inspect it before reconnecting.");
+        if (pin.dev !== old.dev || pin.ino !== old.ino) {
+          throw new IdentityInvalidError("Legacy Remote storage changed after fallback; inspect it before reconnecting.", "STORAGE_CONFLICT");
+        }
         return source;
       }
       try {
@@ -87249,80 +88580,228 @@ async function prepareDefaultIdentityDirectory(options = {}) {
         if (remaining === void 0 || remaining.dev !== old.dev || remaining.ino !== old.ino || await storageDirectoryStat(target3) !== void 0) throw error62;
         await assertOwnedRemoteStorage(source);
         await assertStorageIdle(source);
-        await atomicJsonWrite(pinPath, { schemaVersion: 1, dev: old.dev, ino: old.ino }, 384);
+        await atomicJsonWrite(pinPath, {
+          schemaVersion: 1,
+          dev: serializeStatId(old.dev),
+          ino: serializeStatId(old.ino)
+        }, 384);
         return source;
       }
     } else if (pin !== void 0) {
-      if (current === void 0) throw new IdentityInvalidError("Pinned Remote storage is missing; no replacement identity was created.");
+      if (current === void 0) throw new IdentityInvalidError("Pinned Remote storage is missing; no replacement identity was created.", "STORAGE_CONFLICT");
       await assertOwnedRemoteStorage(target3);
     }
     return target3;
   });
 }
-async function assertOwnedRemoteStorage(root) {
-  const rejected = () => new IdentityInvalidError("Remote storage ownership could not be verified; nothing was moved. Inspect the legacy directory manually.");
-  const identityFiles = /* @__PURE__ */ new Set(["device.json", "device.key", "trusted-peers.json", "server-credentials.json"]);
-  let identities = 0;
-  const checkIdentity = async (directory, scope2) => {
-    const entries = (await readdir(directory, { withFileTypes: true })).filter((entry) => !(directory === root && entry.name === "servers" && entry.isDirectory()));
-    for (const entry of entries) {
-      if (!entry.isFile() || !identityFiles.has(entry.name)) throw rejected();
-      const metadata = await lstat(join5(directory, entry.name));
-      if (!metadata.isFile() || metadata.isSymbolicLink() || metadata.nlink !== 1 || metadata.size > 16 * 1024 * 1024) throw rejected();
+async function resetDefaultIdentityRoles(roles, serverUrl, deviceName, options = {}) {
+  const createStore = options.createIdentityStore ?? ((storeOptions) => new IdentityStore(storeOptions));
+  const resetRolesInRoot = async (root2) => {
+    if (serverUrl === void 0) {
+      if (!roles.includes("host")) return;
+      const identities = createStore({ directory: root2, env: options.env, homeDirectory: options.homeDirectory, role: "host" });
+      await identities.reset(deviceName);
+      await new ServerCredentialStore(root2).clear();
+      return;
     }
-    const names = new Set(entries.map((entry) => entry.name));
-    if (!names.has("device.json") || !names.has("device.key")) throw rejected();
+    for (const role2 of roles) {
+      const directory = serverStorageDirectory(root2, serverUrl, role2);
+      const identities = createStore({ directory, env: options.env, homeDirectory: options.homeDirectory, role: role2 });
+      await identities.reset(deviceName);
+      await new ServerCredentialStore(directory).clear();
+    }
+  };
+  if (options.directory !== void 0) {
+    await resetRolesInRoot(options.directory);
+    return options.directory;
+  }
+  try {
+    const root2 = await prepareDefaultIdentityDirectory(options);
+    await resetRolesInRoot(root2);
+    return root2;
+  } catch (error62) {
+    if (!(error62 instanceof IdentityInvalidError) || error62.code !== "IDENTITY_INVALID") {
+      throw error62;
+    }
+    const env = options.env ?? process.env;
+    const home = env.DSH_HOME || join5(options.homeDirectory ?? homedir2(), ".dsh");
+    const source = join5(home, "remote");
+    const target3 = join5(home, "ds-harness-remote");
+    const [old, current] = await Promise.all([storageDirectoryStat(source), storageDirectoryStat(target3)]);
+    if (old === void 0 || current !== void 0) throw error62;
+    await assertStorageIdle(source);
+    await resetRolesInRoot(source);
+    return prepareDefaultIdentityDirectory(options);
+  }
+}
+async function assertOwnedRemoteStorage(root2) {
+  let failureCode = "STORAGE_CONFLICT";
+  const rejected = (code = failureCode) => new IdentityInvalidError(
+    "Remote storage ownership could not be verified; nothing was moved. Inspect the legacy directory manually.",
+    code
+  );
+  const identityFiles = /* @__PURE__ */ new Set([
+    "device.json",
+    "device.key",
+    "trusted-peers.json",
+    "server-credentials.json",
+    "host-pairing.json",
+    "pairing-host-only.json"
+  ]);
+  let identities = 0;
+  let verifiedScopedIdentities = 0;
+  const checkIdentity = async (directory, scope2, role2) => {
+    const canAutoHeal = role2 === "client" || directory === root2 && verifiedScopedIdentities > 0;
+    const entries = (await readdir(directory, { withFileTypes: true })).filter((entry) => !(directory === root2 && entry.name === "servers" && entry.isDirectory()));
+    for (const entry of entries) {
+      if (entry.name.includes(".refresh-lock")) {
+        if (entry.isSymbolicLink()) throw rejected("STORAGE_CONFLICT");
+        throw new IdentityInvalidError(
+          "Remote storage contains a lock or symbolic link; stop all Harness instances and inspect it before migration.",
+          "IDENTITY_LOCKED"
+        );
+      }
+      if (isLockArtifact(entry.name)) {
+        const lockPath = join5(directory, entry.name);
+        const metadata2 = await lstat(lockPath);
+        if (!entry.isFile() || !metadata2.isFile() || metadata2.isSymbolicLink() || metadata2.nlink !== 1 || metadata2.size > 16 * 1024 * 1024) {
+          throw rejected("STORAGE_CONFLICT");
+        }
+        if (!await isExitedLockArtifact(lockPath)) {
+          throw new IdentityInvalidError(
+            "Remote storage contains a lock or symbolic link; stop all Harness instances and inspect it before migration.",
+            "IDENTITY_LOCKED"
+          );
+        }
+        continue;
+      }
+      const allowedFile = identityFiles.has(entry.name) || isOwnedTempArtifact(entry.name) || canAutoHeal && isIdentityTempArtifact(entry.name);
+      if (!entry.isFile() || !allowedFile) throw rejected("STORAGE_CONFLICT");
+      const metadata = await lstat(join5(directory, entry.name));
+      if (!metadata.isFile() || metadata.isSymbolicLink() || metadata.nlink !== 1 || metadata.size > 16 * 1024 * 1024) {
+        throw rejected("STORAGE_CONFLICT");
+      }
+    }
+    const names = new Set(entries.map((entry) => entry.name).filter((name2) => !isLockArtifact(name2)));
+    if (!names.has("device.json") && !names.has("device.key")) {
+      if (canAutoHeal && await isRepairableLegacyClientDirectory(directory, names)) {
+        if (names.size > 0) identities++;
+        return;
+      }
+      throw rejected("STORAGE_CONFLICT");
+    }
+    failureCode = "IDENTITY_INVALID";
+    if (!names.has("device.json") || !names.has("device.key")) {
+      if (canAutoHeal && await isRepairableLegacyClientDirectory(directory, names)) {
+        identities++;
+        return;
+      }
+      throw rejected("IDENTITY_INVALID");
+    }
     await assertPrivateMode2(join5(directory, "device.key"));
-    const record11 = identitySchema.parse(JSON.parse(await readFile3(join5(directory, "device.json"), "utf8")));
-    const key = (await readFile3(join5(directory, "device.key"), "utf8")).trim();
-    if (generateKeyPair(fromBase64Url2(key)).publicKey !== record11.publicKey) throw rejected();
+    let record11;
+    try {
+      record11 = identitySchema.parse(JSON.parse(await readFile3(join5(directory, "device.json"), "utf8")));
+      const key = (await readFile3(join5(directory, "device.key"), "utf8")).trim();
+      if (generateKeyPair(fromBase64Url2(key)).publicKey !== record11.publicKey) {
+        throw new IdentityInvalidError("device public and private keys do not match");
+      }
+    } catch {
+      if (canAutoHeal && await isRepairableLegacyClientDirectory(directory, names)) {
+        identities++;
+        return;
+      }
+      throw rejected("IDENTITY_INVALID");
+    }
     if (names.has("trusted-peers.json")) {
       const peers = trustedPeersSchema.parse(JSON.parse(await readFile3(join5(directory, "trusted-peers.json"), "utf8"))).peers;
       const ids = /* @__PURE__ */ new Set();
       for (const peer of peers) {
-        if (peer.fingerprint !== fingerprint2(peer.publicKey) || ids.has(peer.deviceId)) throw rejected();
+        if (peer.fingerprint !== fingerprint2(peer.publicKey) || ids.has(peer.deviceId)) throw rejected("IDENTITY_INVALID");
         ids.add(peer.deviceId);
       }
     }
     if (names.has("server-credentials.json")) {
       const raw = JSON.parse(await readFile3(join5(directory, "server-credentials.json"), "utf8"));
-      if (typeof raw.serverUrl !== "string") throw rejected();
-      const credentials = await new ServerCredentialStore(directory).load(raw.serverUrl, record11.deviceId);
-      if (credentials === void 0) throw rejected();
+      if (typeof raw.serverUrl !== "string") throw rejected("IDENTITY_INVALID");
+      const expectedDeviceId = role2 === "client" && typeof raw.deviceId === "string" && external_exports.string().uuid().safeParse(raw.deviceId).success ? raw.deviceId : record11.deviceId;
+      const credentials = await new ServerCredentialStore(directory).load(raw.serverUrl, expectedDeviceId);
+      if (credentials === void 0) throw rejected("IDENTITY_INVALID");
       const origin = new URL(credentials.serverUrl);
-      if (!["http:", "https:"].includes(origin.protocol)) throw rejected();
-      if (scope2 !== void 0 && createHash5("sha256").update(origin.origin).digest("hex").slice(0, 24) !== scope2) throw rejected();
+      if (!["http:", "https:"].includes(origin.protocol)) throw rejected("IDENTITY_INVALID");
+      if (scope2 !== void 0 && createHash5("sha256").update(origin.origin).digest("hex").slice(0, 24) !== scope2) {
+        throw rejected("STORAGE_CONFLICT");
+      }
+    }
+    if (names.has("pairing-host-only.json")) {
+      await assertPrivateMode2(join5(directory, "pairing-host-only.json"));
+      external_exports.object({ hostOnly: external_exports.literal(true) }).strict().parse(JSON.parse(await readFile3(join5(directory, "pairing-host-only.json"), "utf8")));
+    }
+    if (names.has("host-pairing.json")) {
+      await assertPrivateMode2(join5(directory, "host-pairing.json"));
+      const pairing = savedPairingSchema.parse(JSON.parse(await readFile3(join5(directory, "host-pairing.json"), "utf8")));
+      if (pairing.deviceId !== record11.deviceId || pairing.session.host.deviceId !== record11.deviceId || pairing.session.host.identityKey !== record11.publicKey || pairing.session.host.role !== "host") throw rejected("IDENTITY_INVALID");
+      const origin = new URL(pairing.serverUrl);
+      if (!["http:", "https:"].includes(origin.protocol) || origin.origin !== pairing.serverUrl) throw rejected("IDENTITY_INVALID");
+      if (scope2 !== void 0 && createHash5("sha256").update(origin.origin).digest("hex").slice(0, 24) !== scope2) {
+        throw rejected("STORAGE_CONFLICT");
+      }
     }
     identities++;
+    if (scope2 !== void 0) verifiedScopedIdentities++;
   };
   try {
-    const entries = await readdir(root, { withFileTypes: true });
-    const flat = entries.filter((entry) => entry.name !== "servers");
-    if (flat.length > 0) {
-      if (flat.some((entry) => !entry.isFile() || !identityFiles.has(entry.name))) throw rejected();
-      await checkIdentity(root);
-    }
+    const entries = await readdir(root2, { withFileTypes: true });
     const servers = entries.find((entry) => entry.name === "servers");
     if (servers !== void 0) {
-      if (!servers.isDirectory()) throw rejected();
-      for (const scope2 of await readdir(join5(root, "servers"), { withFileTypes: true })) {
-        if (!scope2.isDirectory() || !/^[a-f0-9]{24}$/.test(scope2.name)) throw rejected();
-        for (const role2 of await readdir(join5(root, "servers", scope2.name), { withFileTypes: true })) {
-          if (!role2.isDirectory() || !["host", "client"].includes(role2.name)) throw rejected();
-          await checkIdentity(join5(root, "servers", scope2.name, role2.name), scope2.name);
+      if (!servers.isDirectory()) throw rejected("STORAGE_CONFLICT");
+      for (const scope2 of await readdir(join5(root2, "servers"), { withFileTypes: true })) {
+        if (!scope2.isDirectory() || !/^[a-f0-9]{24}$/.test(scope2.name)) throw rejected("STORAGE_CONFLICT");
+        for (const role2 of await readdir(join5(root2, "servers", scope2.name), { withFileTypes: true })) {
+          if (!role2.isDirectory() || role2.name !== "host" && role2.name !== "client") throw rejected("STORAGE_CONFLICT");
+          await checkIdentity(join5(root2, "servers", scope2.name, role2.name), scope2.name, role2.name);
         }
       }
     }
-    if (identities === 0) throw rejected();
-  } catch {
-    throw rejected();
+    const flat = entries.filter((entry) => entry.name !== "servers");
+    if (flat.length > 0) {
+      if (flat.some((entry) => {
+        if (entry.name.includes(".refresh-lock")) return entry.isSymbolicLink();
+        if (!entry.isFile()) return true;
+        return !identityFiles.has(entry.name) && !isOwnedTempArtifact(entry.name) && !isLockArtifact(entry.name) && !(verifiedScopedIdentities > 0 && isIdentityTempArtifact(entry.name));
+      })) {
+        throw rejected("STORAGE_CONFLICT");
+      }
+      await checkIdentity(root2);
+    }
+    if (identities === 0) throw rejected(failureCode);
+  } catch (error62) {
+    if (error62 instanceof IdentityInvalidError && (error62.message === "Remote storage ownership could not be verified; nothing was moved. Inspect the legacy directory manually." || error62.code === "IDENTITY_LOCKED")) {
+      throw error62;
+    }
+    throw rejected(failureCode);
   }
+}
+async function isRepairableLegacyClientDirectory(directory, names) {
+  for (const name2 of names) {
+    if (name2 === "server-credentials.json" || name2 === "host-pairing.json" || name2 === "pairing-host-only.json" || name2.startsWith("server-credentials.json.") || name2.startsWith("host-pairing.json.") || name2.startsWith("pairing-host-only.json.")) {
+      return false;
+    }
+  }
+  if (names.has("trusted-peers.json")) {
+    const peers = trustedPeersSchema.parse(JSON.parse(await readFile3(join5(directory, "trusted-peers.json"), "utf8"))).peers;
+    if (peers.length > 0) return false;
+  }
+  if (names.has("device.key")) {
+    await assertPrivateMode2(join5(directory, "device.key"));
+  }
+  return true;
 }
 async function storageDirectoryStat(path) {
   try {
-    const entry = await lstat(path);
+    const entry = await lstat(path, { bigint: true });
     if (!entry.isDirectory() || entry.isSymbolicLink()) {
-      throw new IdentityInvalidError("Remote storage must be a real directory; symbolic links are not migrated.");
+      throw new IdentityInvalidError("Remote storage must be a real directory; symbolic links are not migrated.", "STORAGE_CONFLICT");
     }
     return entry;
   } catch (error62) {
@@ -87331,17 +88810,76 @@ async function storageDirectoryStat(path) {
   }
 }
 async function assertStorageIdle(directory) {
-  for (const entry of await readdir(directory, { withFileTypes: true })) {
-    if (entry.isSymbolicLink() || entry.name === LOCK_FILE_NAME || entry.name.includes(".refresh-lock") || entry.name.startsWith(`${LOCK_FILE_NAME}.takeover-`)) {
-      throw new IdentityInvalidError("Remote storage contains a lock or symbolic link; stop all Harness instances and inspect it before migration.");
+  const takeoverPaths = [];
+  const lockPaths = [];
+  const scan = async (currentDirectory) => {
+    for (const entry of await readdir(currentDirectory, { withFileTypes: true })) {
+      const entryPath = join5(currentDirectory, entry.name);
+      if (entry.isSymbolicLink()) {
+        throw new IdentityInvalidError(
+          "Remote storage contains a lock or symbolic link; stop all Harness instances and inspect it before migration.",
+          "STORAGE_CONFLICT"
+        );
+      }
+      if (entry.name === LOCK_FILE_NAME && entry.isFile()) {
+        if (!await isExitedLockArtifact(entryPath)) {
+          throw new IdentityInvalidError(
+            "Remote storage contains a lock or symbolic link; stop all Harness instances and inspect it before migration.",
+            "IDENTITY_LOCKED"
+          );
+        }
+        lockPaths.push(entryPath);
+        continue;
+      }
+      if (isTakeoverLockArtifact(entry.name) && entry.isFile()) {
+        if (!await isExitedLockArtifact(entryPath)) {
+          throw new IdentityInvalidError(
+            "Remote storage contains a lock or symbolic link; stop all Harness instances and inspect it before migration.",
+            "IDENTITY_LOCKED"
+          );
+        }
+        takeoverPaths.push(entryPath);
+        continue;
+      }
+      if (isOwnedTempArtifact(entry.name) && entry.isFile() && !isStaleOwnedTempArtifact(entry.name)) {
+        throw new IdentityInvalidError(
+          "Remote storage contains a lock or symbolic link; stop all Harness instances and inspect it before migration.",
+          "IDENTITY_LOCKED"
+        );
+      }
+      if (entry.name === LOCK_FILE_NAME || entry.name.includes(".refresh-lock") || entry.name.startsWith(`${LOCK_FILE_NAME}.takeover-`)) {
+        throw new IdentityInvalidError(
+          "Remote storage contains a lock or symbolic link; stop all Harness instances and inspect it before migration.",
+          "IDENTITY_LOCKED"
+        );
+      }
+      if (entry.isDirectory()) await scan(entryPath);
     }
-    if (entry.isDirectory()) await assertStorageIdle(join5(directory, entry.name));
+  };
+  await scan(directory);
+  const reclaimed = /* @__PURE__ */ new Set();
+  for (const takeoverPath of takeoverPaths) {
+    if (reclaimed.has(takeoverPath)) continue;
+    if (!await takeOverLockOfExitedOwner(takeoverPath, 0, reclaimed)) {
+      throw new IdentityInvalidError(
+        "Remote storage contains a lock or symbolic link; stop all Harness instances and inspect it before migration.",
+        "IDENTITY_LOCKED"
+      );
+    }
+  }
+  for (const lockPath of lockPaths) {
+    if (!await takeOverLockOfExitedOwner(lockPath, 0, reclaimed)) {
+      throw new IdentityInvalidError(
+        "Remote storage contains a lock or symbolic link; stop all Harness instances and inspect it before migration.",
+        "IDENTITY_LOCKED"
+      );
+    }
   }
 }
-function serverStorageDirectory(root, serverUrl, role2) {
+function serverStorageDirectory(root2, serverUrl, role2) {
   const origin = new URL(serverUrl).origin;
   const scope2 = createHash5("sha256").update(origin).digest("hex").slice(0, 24);
-  return join5(root, "servers", scope2, role2);
+  return join5(root2, "servers", scope2, role2);
 }
 function fingerprint2(publicKey) {
   const compact = createHash5("sha256").update(fromBase64Url2(publicKey)).digest("hex").slice(0, 12).toUpperCase();
@@ -87399,7 +88937,10 @@ async function withIdentityLock(directory, operation) {
       if (await takeOverLockOfExitedOwner(lockPath)) continue;
     }
     if (Date.now() >= deadline) {
-      throw new IdentityInvalidError("device identity is locked by another process; stop other DSH instances and retry");
+      throw new IdentityInvalidError(
+        "device identity is locked by another process; stop other DSH instances and retry",
+        "IDENTITY_LOCKED"
+      );
     }
     await new Promise((resolve9) => setTimeout(resolve9, delay));
     delay = Math.min(delay * 2, LOCK_RETRY_MAX_MS);
@@ -87416,24 +88957,41 @@ async function isLockContention(error62, lockPath) {
   if (error62.code !== "EPERM" || process.platform !== "win32") return false;
   return exists2(lockPath);
 }
-async function takeOverLockOfExitedOwner(lockPath) {
+var MAX_LOCK_TAKEOVER_DEPTH = 8;
+async function takeOverLockOfExitedOwner(lockPath, depth = 0, reclaimed) {
+  if (depth >= MAX_LOCK_TAKEOVER_DEPTH) return false;
   const record11 = await readLockRecord(lockPath);
   if (record11 === void 0 || !ownerExited(record11)) return false;
-  const claimPath = `${lockPath}.takeover-${createHash5("sha256").update(record11).digest("hex").slice(0, 16)}`;
-  try {
-    await writeFile2(claimPath, `${process.pid}
-`, { encoding: "utf8", mode: 384, flag: "wx" });
-  } catch (error62) {
-    if (await isLockContention(error62, claimPath)) return false;
-    throw error62;
-  }
+  const lockName = basename3(lockPath);
+  const claimInput = lockName === LOCK_FILE_NAME ? record11 : `${lockName}
+${record11}`;
+  const claimPath = join5(
+    dirname4(lockPath),
+    `${LOCK_FILE_NAME}.takeover-${createHash5("sha256").update(claimInput).digest("hex").slice(0, 16)}`
+  );
+  if (claimPath === lockPath) return false;
+  if (!await acquireTakeoverClaim(claimPath, depth, reclaimed)) return false;
   try {
     if (await readLockRecord(lockPath) !== record11 || !ownerExited(record11)) return false;
     await rm3(lockPath, { force: true });
+    reclaimed?.add(lockPath);
     return true;
   } finally {
     await rm3(claimPath, { force: true }).catch(() => void 0);
   }
+}
+async function acquireTakeoverClaim(claimPath, depth, reclaimed) {
+  for (let attempt = 0; attempt < 2; attempt++) {
+    try {
+      await writeFile2(claimPath, `${process.pid}
+`, { encoding: "utf8", mode: 384, flag: "wx" });
+      return true;
+    } catch (error62) {
+      if (!await isLockContention(error62, claimPath)) throw error62;
+      if (attempt > 0 || !await takeOverLockOfExitedOwner(claimPath, depth + 1, reclaimed)) return false;
+    }
+  }
+  return false;
 }
 async function readLockRecord(lockPath) {
   try {
@@ -87454,6 +89012,65 @@ function ownerExited(record11) {
     return isNodeError(error62) && error62.code === "ESRCH";
   }
 }
+function isScopedClientDirectory(directory) {
+  return /[\\/]servers[\\/][a-f0-9]{24}[\\/]client$/.test(directory);
+}
+async function hasVerifiedScopedIdentity(directory) {
+  try {
+    const serversPath = join5(directory, "servers");
+    const metadata = await lstat(serversPath);
+    if (!metadata.isDirectory() || metadata.isSymbolicLink()) return false;
+    for (const scope2 of await readdir(serversPath, { withFileTypes: true })) {
+      if (!scope2.isDirectory() || scope2.isSymbolicLink() || !/^[a-f0-9]{24}$/.test(scope2.name)) continue;
+      for (const role2 of await readdir(join5(serversPath, scope2.name), { withFileTypes: true })) {
+        if (!role2.isDirectory() || role2.isSymbolicLink() || role2.name !== "host" && role2.name !== "client") continue;
+        const roleDir = join5(serversPath, scope2.name, role2.name);
+        try {
+          for (const fileName of ["device.json", "device.key"]) {
+            const fileStat = await lstat(join5(roleDir, fileName));
+            if (!fileStat.isFile() || fileStat.isSymbolicLink() || fileStat.nlink !== 1 || fileStat.size > 16 * 1024 * 1024) {
+              throw new Error("invalid identity file metadata");
+            }
+          }
+          await assertPrivateMode2(join5(roleDir, "device.key"));
+          const record11 = identitySchema.parse(JSON.parse(await readFile3(join5(roleDir, "device.json"), "utf8")));
+          const key = (await readFile3(join5(roleDir, "device.key"), "utf8")).trim();
+          if (generateKeyPair(fromBase64Url2(key)).publicKey === record11.publicKey) return true;
+        } catch {
+          continue;
+        }
+      }
+    }
+    return false;
+  } catch {
+    return false;
+  }
+}
+async function canAutoHealClientIdentity(directory, allowServersDirectory = false) {
+  try {
+    const entries = await readdir(directory, { withFileTypes: true });
+    for (const entry of entries) {
+      if (isLockArtifact(entry.name)) continue;
+      const entryPath = join5(directory, entry.name);
+      const metadata = await lstat(entryPath);
+      if (metadata.isSymbolicLink()) return false;
+      if (allowServersDirectory && entry.name === "servers" && metadata.isDirectory()) continue;
+      if (!metadata.isFile()) return false;
+      if (entry.name === "device.json" || entry.name === "device.key" || isIdentityTempArtifact(entry.name) || isPeerTempArtifact(entry.name)) {
+        continue;
+      }
+      if (entry.name === "trusted-peers.json") {
+        const parsed = trustedPeersSchema.parse(JSON.parse(await readFile3(entryPath, "utf8")));
+        if (parsed.peers.length > 0) return false;
+        continue;
+      }
+      return false;
+    }
+    return true;
+  } catch {
+    return false;
+  }
+}
 async function ensureDirectory(directory) {
   await mkdir3(directory, { recursive: true, mode: 448 });
   await chmod2(directory, 448);
@@ -87465,10 +89082,37 @@ async function removeIdentityRecords(directory) {
   } catch {
     return;
   }
-  await Promise.all(entries.filter((name2) => !isLockArtifact(name2)).map((name2) => rm3(join5(directory, name2), { recursive: true, force: true })));
+  await Promise.all(entries.filter((name2) => isOwnedIdentityRecord(name2)).map((name2) => unlink(join5(directory, name2)).catch(() => void 0)));
+}
+function isTakeoverLockArtifact(name2) {
+  return /^device\.lock\.takeover-[0-9a-f]{16}$/.test(name2);
 }
 function isLockArtifact(name2) {
-  return name2 === LOCK_FILE_NAME || name2.startsWith(`${LOCK_FILE_NAME}.takeover-`);
+  return name2 === LOCK_FILE_NAME || isTakeoverLockArtifact(name2);
+}
+async function isExitedLockArtifact(path) {
+  const record11 = await readLockRecord(path);
+  return record11 !== void 0 && ownerExited(record11);
+}
+function isPeerTempArtifact(name2) {
+  return /^trusted-peers\.json\.[1-9]\d*\.[0-9a-f]{8}-[0-9a-f]{4}-7[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}\.tmp$/.test(name2);
+}
+var OWNED_TEMP_ARTIFACT_PATTERN = /^(?:device\.json|device\.key|trusted-peers\.json|server-credentials\.json|host-pairing\.json|pairing-host-only\.json)\.([1-9]\d*)\.[0-9a-f]{8}-[0-9a-f]{4}-7[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}\.tmp$/;
+function isOwnedTempArtifact(name2) {
+  return OWNED_TEMP_ARTIFACT_PATTERN.test(name2);
+}
+function isStaleOwnedTempArtifact(name2) {
+  const match = OWNED_TEMP_ARTIFACT_PATTERN.exec(name2);
+  if (match === null) return false;
+  return ownerExited(`${match[1]}
+`);
+}
+function isIdentityTempArtifact(name2) {
+  return (name2.startsWith("device.json.") || name2.startsWith("device.key.")) && name2.endsWith(".tmp");
+}
+function isOwnedIdentityRecord(name2) {
+  if (name2 === "device.json" || name2 === "device.key" || name2 === "trusted-peers.json" || name2 === "host-pairing.json") return true;
+  return (name2.startsWith("device.json.") || name2.startsWith("device.key.") || name2.startsWith("trusted-peers.json.") || name2.startsWith("host-pairing.json.")) && name2.endsWith(".tmp");
 }
 async function removeStaleTemporaries(directory) {
   let entries;
@@ -87477,10 +89121,19 @@ async function removeStaleTemporaries(directory) {
   } catch {
     return;
   }
-  await Promise.all(entries.filter((name2) => name2.startsWith("device.json.") || name2.startsWith("device.key.")).filter((name2) => name2.endsWith(".tmp")).map((name2) => unlink(join5(directory, name2)).catch(() => void 0)));
+  await Promise.all(entries.map(async (name2) => {
+    const entryPath = join5(directory, name2);
+    if (isIdentityTempArtifact(name2) || isStaleOwnedTempArtifact(name2)) {
+      await unlink(entryPath).catch(() => void 0);
+      return;
+    }
+    if (isTakeoverLockArtifact(name2)) {
+      await takeOverLockOfExitedOwner(entryPath).catch(() => void 0);
+    }
+  }));
 }
 
-// src/control-stream.ts
+// packages/plugin/src/control-stream.ts
 var STATUS_STREAM_SAMPLE_INTERVAL_MS = 1500;
 var STATUS_STREAM_HEARTBEAT_INTERVAL_MS = 15e3;
 var STATUS_STREAM_RETRY_MS = 3e3;
@@ -87623,14 +89276,14 @@ var ControlStatusStream = class {
   }
 };
 
-// src/codex/domain.ts
+// packages/plugin/src/codex/domain.ts
 import { randomUUID as randomUUID13 } from "node:crypto";
 import { accessSync, constants as constants2, existsSync as existsSync2, readdirSync as readdirSync2, readFileSync, statSync as statSync2 } from "node:fs";
 import { readdir as readdir2, realpath, stat as stat3 } from "node:fs/promises";
 import { homedir as homedir3 } from "node:os";
-import { basename as basename3, isAbsolute as isAbsolute3, join as join6, relative, resolve as resolve2 } from "node:path";
+import { basename as basename4, isAbsolute as isAbsolute3, join as join6, relative, resolve as resolve2 } from "node:path";
 
-// src/codex/app-server.ts
+// packages/plugin/src/codex/app-server.ts
 import { spawn as spawn2 } from "node:child_process";
 import { Buffer as Buffer2 } from "node:buffer";
 var APP_SERVER_REQUEST_TIMEOUT_MS = 6e4;
@@ -87814,7 +89467,7 @@ var CodexAppServerClient = class {
       this.handleProcessFailure("CODEX_INVALID_RESPONSE", new Error("Codex App Server emitted invalid JSON."));
       return;
     }
-    if (!isRecord11(value)) {
+    if (!isRecord12(value)) {
       this.handleProcessFailure("CODEX_INVALID_RESPONSE", new Error("Codex App Server emitted an invalid message."));
       return;
     }
@@ -87861,7 +89514,7 @@ var CodexAppServerClient = class {
 var CODEX_THREAD_UNMATERIALIZED = "CODEX_THREAD_UNMATERIALIZED";
 var CODEX_UNMATERIALIZED_THREAD_MESSAGE = "Codex thread has no turns yet.";
 function safeUpstreamError(value) {
-  if (!isRecord11(value) || typeof value.message !== "string") {
+  if (!isRecord12(value) || typeof value.message !== "string") {
     return new CodexAppServerError("CODEX_UPSTREAM_ERROR", "Codex App Server rejected the request.");
   }
   const message = value.message.toLowerCase();
@@ -87879,11 +89532,11 @@ function safeUpstreamError(value) {
     message.includes("not initialized") ? "Codex App Server is not initialized." : "Codex App Server rejected the request."
   );
 }
-function isRecord11(value) {
+function isRecord12(value) {
   return typeof value === "object" && value !== null && !Array.isArray(value);
 }
 
-// src/codex/method-policy.ts
+// packages/plugin/src/codex/method-policy.ts
 var id3 = external_exports.string().min(1).max(256);
 var cursor2 = external_exports.string().min(1).max(4096).nullable().optional();
 var textInput = external_exports.object({
@@ -87996,7 +89649,7 @@ function threadIdFromParams(params) {
   return typeof params.threadId === "string" ? params.threadId : void 0;
 }
 
-// src/compact-history.ts
+// packages/plugin/src/compact-history.ts
 var LIMIT = 512;
 var object2 = (value) => value !== null && typeof value === "object" && !Array.isArray(value);
 var summary2 = (value) => {
@@ -88048,7 +89701,7 @@ function compactHistory(value) {
   return project(value);
 }
 
-// src/codex/history-preview.ts
+// packages/plugin/src/codex/history-preview.ts
 import { randomUUID as randomUUID12 } from "node:crypto";
 var object3 = (v) => v !== null && typeof v === "object" && !Array.isArray(v) ? v : {};
 var details = /* @__PURE__ */ new WeakMap();
@@ -88111,7 +89764,7 @@ async function previewCall(peer, input4, invoke) {
   return preview;
 }
 
-// src/codex/peer-bridge.ts
+// packages/plugin/src/codex/peer-bridge.ts
 import { Buffer as Buffer3 } from "node:buffer";
 var streamOpenSchema = external_exports.object({
   streamId: external_exports.string().min(1).max(128),
@@ -88371,15 +90024,15 @@ function decodeCanonicalBase64(value) {
   }
   return decoded;
 }
-function isRecord12(value) {
+function isRecord13(value) {
   return typeof value === "object" && value !== null && !Array.isArray(value);
 }
 function safeErrorCode2(error62) {
-  if (isRecord12(error62) && typeof error62.code === "string") return error62.code;
+  if (isRecord13(error62) && typeof error62.code === "string") return error62.code;
   return "UNKNOWN";
 }
 function safeMethod(input4) {
-  return isRecord12(input4) && typeof input4.method === "string" ? input4.method : "invalid";
+  return isRecord13(input4) && typeof input4.method === "string" ? input4.method : "invalid";
 }
 function concatChunks(chunks, totalBytes) {
   const output2 = new Uint8Array(totalBytes);
@@ -88391,7 +90044,7 @@ function concatChunks(chunks, totalBytes) {
   return output2;
 }
 
-// src/codex/domain.ts
+// packages/plugin/src/codex/domain.ts
 var APPROVAL_TTL_MS = 5 * 6e4;
 var DEFAULT_RESTART_DELAYS_MS = [1e3, 2e3, 4e3, 8e3, 15e3];
 var CODEX_PAGE_LIMIT2 = 100;
@@ -88917,14 +90570,14 @@ var CodexRemoteDomain = class {
       if (codexPermissionPresetFromResponse(result) !== params.permissionPreset) {
         await this.callUpstream("thread/settings/update", { threadId, ...settings });
         assertCurrent();
-        result = { ...isRecord13(result) ? result : {}, ...settings, sandbox: settings.sandboxPolicy };
+        result = { ...isRecord14(result) ? result : {}, ...settings, sandbox: settings.sandboxPolicy };
       }
     }
     await this.publishPermission(threadId, result);
     return result;
   }
   async publishPermission(threadId, value) {
-    const source = isRecord13(value) ? value : {};
+    const source = isRecord14(value) ? value : {};
     const threadSettings = { approvalPolicy: source.approvalPolicy, sandboxPolicy: source.sandboxPolicy ?? source.sandbox };
     await this.handleInbound({ kind: "notification", method: "thread/settings/updated", params: { threadId, threadSettings } });
   }
@@ -89013,7 +90666,7 @@ var CodexRemoteDomain = class {
       if (legacyThread === void 0 || legacyThread.id !== threadId || !Array.isArray(legacyThread.turns)) {
         throw new RpcError("CODEX_INVALID_RESPONSE", "Codex App Server returned an invalid Thread history.");
       }
-      if (legacyThread.turns.some((turn) => !isRecord13(turn) || typeof turn.id !== "string" || !Array.isArray(turn.items) || turn.items.some((item) => !isRecord13(item)))) {
+      if (legacyThread.turns.some((turn) => !isRecord14(turn) || typeof turn.id !== "string" || !Array.isArray(turn.items) || turn.items.some((item) => !isRecord14(item)))) {
         throw new RpcError("CODEX_INVALID_RESPONSE", "Codex App Server returned invalid Thread history content.");
       }
       return legacyThread;
@@ -89047,17 +90700,17 @@ var CodexRemoteDomain = class {
         }
         throw error62;
       }
-      if (!isRecord13(result) || !Array.isArray(result.data)) {
+      if (!isRecord14(result) || !Array.isArray(result.data)) {
         throw new RpcError("CODEX_INVALID_RESPONSE", "Codex App Server returned an invalid Turn page.");
       }
       const pageResult = result;
       const pageTurns = await Promise.all(result.data.map(async (rawTurn) => {
-        if (!isRecord13(rawTurn) || typeof rawTurn.id !== "string" || rawTurn.id.length === 0 || rawTurn.itemsView === "full" && !Array.isArray(rawTurn.items)) {
+        if (!isRecord14(rawTurn) || typeof rawTurn.id !== "string" || rawTurn.id.length === 0 || rawTurn.itemsView === "full" && !Array.isArray(rawTurn.items)) {
           throw new RpcError("CODEX_INVALID_RESPONSE", "Codex App Server returned an invalid history Turn.");
         }
         const inlineFull = rawTurn.itemsView === "full" || rawTurn.itemsView === void 0 && itemsView === "full" && Array.isArray(rawTurn.items);
         const items = inlineFull ? rawTurn.items : await this.readThreadItems(threadId, rawTurn.id);
-        if (items.some((item) => !isRecord13(item))) {
+        if (items.some((item) => !isRecord14(item))) {
           throw new RpcError("CODEX_INVALID_RESPONSE", "Codex App Server returned an invalid history Item.");
         }
         return { ...rawTurn, items };
@@ -89079,11 +90732,11 @@ var CodexRemoteDomain = class {
         sortDirection: "asc",
         ...cursor3 === void 0 ? {} : { cursor: cursor3 }
       });
-      if (!isRecord13(result) || !Array.isArray(result.data)) {
+      if (!isRecord14(result) || !Array.isArray(result.data)) {
         throw new RpcError("CODEX_INVALID_RESPONSE", "Codex App Server returned an invalid Item page.");
       }
       for (const entry of result.data) {
-        if (!isRecord13(entry) || !isRecord13(entry.item)) {
+        if (!isRecord14(entry) || !isRecord14(entry.item)) {
           throw new RpcError("CODEX_INVALID_RESPONSE", "Codex App Server returned an invalid history Item.");
         }
         items.push(entry.item);
@@ -89151,7 +90804,7 @@ var CodexRemoteDomain = class {
     return [...this.peers.values()].some((peer) => peer.hasThreadSubscription(threadId));
   }
   resolveUpstreamApproval(params) {
-    if (!isRecord13(params) || typeof params.requestId !== "string" && typeof params.requestId !== "number") return;
+    if (!isRecord14(params) || typeof params.requestId !== "string" && typeof params.requestId !== "number") return;
     for (const [handle, approval] of this.approvals) {
       if (approval.upstreamId === params.requestId) this.approvals.delete(handle);
     }
@@ -89223,7 +90876,7 @@ var CodexRemoteDomain = class {
           ...cursor3 === void 0 ? {} : { cursor: cursor3 }
         }));
         for (const project2 of result.data) {
-          const projectRoots = project2.roots.map((root) => root.path).filter((path) => isAbsolute3(path));
+          const projectRoots = project2.roots.map((root2) => root2.path).filter((path) => isAbsolute3(path));
           if (projectRoots.length === 0) continue;
           projectIds.add(project2.id);
           roots.push(...projectRoots);
@@ -89288,10 +90941,10 @@ var CodexRemoteDomain = class {
     } catch {
       throw new RpcError("CODEX_PATH_NOT_ALLOWED", "The CodeX working directory is not available as a Workspace.");
     }
-    for (const root of paths.values()) {
+    for (const root2 of paths.values()) {
       try {
-        if (!containsCodexPath(resolve2(root), lexicalCandidate)) continue;
-        const canonicalRoot = await realpath(root);
+        if (!containsCodexPath(resolve2(root2), lexicalCandidate)) continue;
+        const canonicalRoot = await realpath(root2);
         if (containsCodexPath(canonicalRoot, candidate)) return lexicalCandidate;
       } catch {
       }
@@ -89359,11 +91012,11 @@ var CodexRemoteDomain = class {
     } catch {
       throw new RpcError("CODEX_PATH_NOT_ALLOWED", "The CodeX working directory is not available as a Workspace.");
     }
-    for (const root of authority.roots) {
+    for (const root2 of authority.roots) {
       try {
-        const lexicalRoot = resolve2(root);
+        const lexicalRoot = resolve2(root2);
         if (!containsCodexPath(lexicalRoot, lexicalCandidate)) continue;
-        const canonicalRoot = await realpath(root);
+        const canonicalRoot = await realpath(root2);
         if (containsCodexPath(canonicalRoot, canonicalCandidate)) {
           return { path: lexicalCandidate, root: lexicalRoot, canonicalRoot };
         }
@@ -89375,7 +91028,7 @@ var CodexRemoteDomain = class {
   async listCodexWorkspacePaths() {
     const paths = /* @__PURE__ */ new Map();
     const authority = await this.readWorkspaceAuthority();
-    for (const root of authority.roots) paths.set(normalizeCodexPathForCompare(root), root);
+    for (const root2 of authority.roots) paths.set(normalizeCodexPathForCompare(root2), root2);
     return paths;
   }
 };
@@ -89394,8 +91047,8 @@ function findImageBlock(value, attachmentId) {
     }
     return void 0;
   }
-  if (!isRecord13(value)) return void 0;
-  if (value.type === "image" && isRecord13(value.attachment) && value.attachment.attachmentId === attachmentId && typeof value.data === "string") {
+  if (!isRecord14(value)) return void 0;
+  if (value.type === "image" && isRecord14(value.attachment) && value.attachment.attachmentId === attachmentId && typeof value.data === "string") {
     return { attachment: value.attachment, data: value.data };
   }
   for (const child of Object.values(value)) {
@@ -89420,7 +91073,7 @@ function macOSCodexBinaryCandidates(userHome) {
     const codexCli = join6(chatGptApp, "Contents", "Resources", "codex-cli");
     try {
       const manifest = JSON.parse(readFileSync(join6(codexCli, "codex-package.json"), "utf8"));
-      if (!isRecord13(manifest) || typeof manifest.entrypoint !== "string" || manifest.entrypoint.length === 0) {
+      if (!isRecord14(manifest) || typeof manifest.entrypoint !== "string" || manifest.entrypoint.length === 0) {
         return [];
       }
       const candidate = join6(codexCli, manifest.entrypoint);
@@ -89454,24 +91107,24 @@ function windowsBundledCodexCandidates(userHome) {
   }
 }
 function parseCallEnvelope(input4) {
-  if (!isRecord13(input4) || typeof input4.method !== "string" || !("params" in input4) || Object.keys(input4).some((key) => key !== "method" && key !== "params")) {
+  if (!isRecord14(input4) || typeof input4.method !== "string" || !("params" in input4) || Object.keys(input4).some((key) => key !== "method" && key !== "params")) {
     throw new RpcError("INVALID_MESSAGE", "The Codex call envelope is invalid.");
   }
   return { method: input4.method, params: input4.params };
 }
 function parseRespond(input4) {
-  if (!isRecord13(input4) || typeof input4.requestHandle !== "string" || !["accept", "decline", "cancel"].includes(String(input4.decision)) || Object.keys(input4).some((key) => key !== "requestHandle" && key !== "decision")) {
+  if (!isRecord14(input4) || typeof input4.requestHandle !== "string" || !["accept", "decline", "cancel"].includes(String(input4.decision)) || Object.keys(input4).some((key) => key !== "requestHandle" && key !== "decision")) {
     throw new RpcError("INVALID_MESSAGE", "The Codex approval response is invalid.");
   }
   return input4;
 }
 function accountCanRun(result) {
-  if (!isRecord13(result) || typeof result.requiresOpenaiAuth !== "boolean") return false;
-  return result.requiresOpenaiAuth === false || isRecord13(result.account);
+  if (!isRecord14(result) || typeof result.requiresOpenaiAuth !== "boolean") return false;
+  return result.requiresOpenaiAuth === false || isRecord14(result.account);
 }
 function sanitizeAccount(result) {
-  if (!isRecord13(result)) throw new RpcError("CODEX_INVALID_RESPONSE", "Codex App Server returned invalid account state.");
-  const account = isRecord13(result.account) ? result.account : void 0;
+  if (!isRecord14(result)) throw new RpcError("CODEX_INVALID_RESPONSE", "Codex App Server returned invalid account state.");
+  const account = isRecord14(result.account) ? result.account : void 0;
   return {
     authenticated: account !== void 0 || result.requiresOpenaiAuth === false,
     requiresOpenaiAuth: result.requiresOpenaiAuth === true,
@@ -89484,11 +91137,11 @@ function sanitizeAccount(result) {
   };
 }
 function sanitizeThreadList(result) {
-  if (!isRecord13(result) || !Array.isArray(result.data)) {
+  if (!isRecord14(result) || !Array.isArray(result.data)) {
     throw new RpcError("CODEX_INVALID_RESPONSE", "Codex App Server returned an invalid thread list.");
   }
   const data2 = result.data.flatMap((value) => {
-    if (!isRecord13(value) || typeof value.id !== "string") return [];
+    if (!isRecord14(value) || typeof value.id !== "string") return [];
     return [{
       id: value.id,
       ...typeof value.sessionId === "string" ? { sessionId: value.sessionId } : {},
@@ -89500,7 +91153,7 @@ function sanitizeThreadList(result) {
       ...typeof value.updatedAt === "number" && Number.isFinite(value.updatedAt) ? { updatedAt: value.updatedAt } : {},
       ...typeof value.archived === "boolean" ? { archived: value.archived } : {},
       ...typeof value.isPinned === "boolean" ? { isPinned: value.isPinned } : {},
-      ...isRecord13(value.status) ? { status: value.status } : {}
+      ...isRecord14(value.status) ? { status: value.status } : {}
     }];
   });
   return {
@@ -89510,18 +91163,18 @@ function sanitizeThreadList(result) {
   };
 }
 function filterThreadListByWorkspaceAuthority(result, authority) {
-  if (!isRecord13(result) || !Array.isArray(result.data)) {
+  if (!isRecord14(result) || !Array.isArray(result.data)) {
     throw new RpcError("CODEX_INVALID_RESPONSE", "Codex App Server returned an invalid thread list.");
   }
   return {
     ...result,
-    data: result.data.map((record11) => isRecord13(record11) ? record11 : void 0).filter((thread) => thread !== void 0 && isThreadAllowedByWorkspaceAuthority(thread, authority))
+    data: result.data.map((record11) => isRecord14(record11) ? record11 : void 0).filter((thread) => thread !== void 0 && isThreadAllowedByWorkspaceAuthority(thread, authority))
   };
 }
 function sanitizeProject(value) {
-  if (!isRecord13(value) || typeof value.id !== "string" || typeof value.name !== "string") return void 0;
-  const roots = Array.isArray(value.roots) ? value.roots.flatMap((root) => {
-    const path = isRecord13(root) && typeof root.path === "string" && root.path.length > 0 ? root.path : void 0;
+  if (!isRecord14(value) || typeof value.id !== "string" || typeof value.name !== "string") return void 0;
+  const roots = Array.isArray(value.roots) ? value.roots.flatMap((root2) => {
+    const path = isRecord14(root2) && typeof root2.path === "string" && root2.path.length > 0 ? root2.path : void 0;
     return path === void 0 || !isAbsolute3(path) ? [] : [{ path }];
   }) : [];
   if (roots.length === 0) return void 0;
@@ -89535,7 +91188,7 @@ function sanitizeProject(value) {
   };
 }
 function sanitizeProjectList(result) {
-  if (!isRecord13(result) || !Array.isArray(result.data)) {
+  if (!isRecord14(result) || !Array.isArray(result.data)) {
     throw new RpcError("CODEX_INVALID_RESPONSE", "Codex App Server returned an invalid project list.");
   }
   const data2 = result.data.flatMap((value) => sanitizeProject(value) ?? []);
@@ -89545,7 +91198,7 @@ function sanitizeProjectList(result) {
   };
 }
 function sanitizeProjectCreate(result) {
-  const project2 = isRecord13(result) ? sanitizeProject(result.project) : void 0;
+  const project2 = isRecord14(result) ? sanitizeProject(result.project) : void 0;
   if (project2 === void 0) {
     throw new RpcError("CODEX_INVALID_RESPONSE", "Codex App Server returned an invalid created project.");
   }
@@ -89555,21 +91208,21 @@ function isThreadAllowedByWorkspaceAuthority(thread, authority) {
   const projectId = typeof thread.projectId === "string" ? thread.projectId : void 0;
   if (projectId !== void 0 && authority.projectIds.has(projectId)) return true;
   const cwd2 = typeof thread.cwd === "string" ? thread.cwd : void 0;
-  return cwd2 !== void 0 && authority.roots.some((root) => containsCodexPath(root, cwd2));
+  return cwd2 !== void 0 && authority.roots.some((root2) => containsCodexPath(root2, cwd2));
 }
-function containsCodexPath(root, candidate) {
-  const normalizedRoot = normalizeCodexPathForCompare(root);
+function containsCodexPath(root2, candidate) {
+  const normalizedRoot = normalizeCodexPathForCompare(root2);
   const normalizedCandidate = normalizeCodexPathForCompare(candidate);
   return normalizedCandidate === normalizedRoot || normalizedCandidate.startsWith(`${normalizedRoot}/`) || normalizedCandidate.startsWith(`${normalizedRoot}\\`);
 }
 function normalizeCodexPathForCompare(path) {
   return path.replace(/[\\/]+$/u, "") || path;
 }
-function codexDirectoryCrumbs(root, path) {
-  const crumbs2 = [{ name: basename3(root) || root, path: root, hidden: false }];
-  const remainder = relative(root, path);
+function codexDirectoryCrumbs(root2, path) {
+  const crumbs2 = [{ name: basename4(root2) || root2, path: root2, hidden: false }];
+  const remainder = relative(root2, path);
   if (remainder === "") return crumbs2;
-  let current = root;
+  let current = root2;
   for (const segment of remainder.split(/[\\/]+/u).filter(Boolean)) {
     current = resolve2(current, segment);
     crumbs2.push({ name: segment, path: current, hidden: false });
@@ -89577,23 +91230,23 @@ function codexDirectoryCrumbs(root, path) {
   return crumbs2;
 }
 function extractThread(result) {
-  return isRecord13(result) && isRecord13(result.thread) ? result.thread : void 0;
+  return isRecord14(result) && isRecord14(result.thread) ? result.thread : void 0;
 }
 function extractTurnId(result) {
-  if (!isRecord13(result)) return void 0;
+  if (!isRecord14(result)) return void 0;
   if (typeof result.turnId === "string" && result.turnId.length > 0) return result.turnId;
-  if (isRecord13(result.turn) && typeof result.turn.id === "string" && result.turn.id.length > 0) return result.turn.id;
+  if (isRecord14(result.turn) && typeof result.turn.id === "string" && result.turn.id.length > 0) return result.turn.id;
   return void 0;
 }
 function extractThreadId(params) {
-  if (!isRecord13(params)) return void 0;
+  if (!isRecord14(params)) return void 0;
   if (typeof params.threadId === "string") return params.threadId;
-  if (isRecord13(params.thread) && typeof params.thread.id === "string") return params.thread.id;
-  if (isRecord13(params.turn) && typeof params.turn.threadId === "string") return params.turn.threadId;
+  if (isRecord14(params.thread) && typeof params.thread.id === "string") return params.thread.id;
+  if (isRecord14(params.turn) && typeof params.turn.threadId === "string") return params.turn.threadId;
   return void 0;
 }
 function isTerminalThreadStatus(params) {
-  if (!isRecord13(params) || !isRecord13(params.status) || typeof params.status.type !== "string") return false;
+  if (!isRecord14(params) || !isRecord14(params.status) || typeof params.status.type !== "string") return false;
   return params.status.type !== "active";
 }
 function optionalInteger3(value) {
@@ -89635,13 +91288,13 @@ function mapCodexImageInputs(params) {
   return {
     ...params,
     input: params.input.map((value) => {
-      if (!isRecord13(value) || value.type !== "image" || typeof value.mediaType !== "string" || typeof value.data !== "string") return value;
+      if (!isRecord14(value) || value.type !== "image" || typeof value.mediaType !== "string" || typeof value.data !== "string") return value;
       return { type: "image", url: `data:${value.mediaType};base64,${value.data}` };
     })
   };
 }
 function sanitizeApprovalParams(params, requestHandle) {
-  if (!isRecord13(params)) return { requestHandle };
+  if (!isRecord14(params)) return { requestHandle };
   const safe = { ...params };
   delete safe.proposedExecpolicyAmendment;
   delete safe.additionalPermissions;
@@ -89682,7 +91335,7 @@ function isProjectListFallbackError(error62) {
 function canTryNextBinary(error62) {
   return !(error62 instanceof RpcError) || !["CODEX_AUTH_REQUIRED", "CODEX_CLOSED"].includes(error62.code);
 }
-function isRecord13(value) {
+function isRecord14(value) {
   return typeof value === "object" && value !== null && !Array.isArray(value);
 }
 function maskId(value) {
@@ -89698,7 +91351,7 @@ function isUnmaterializedThreadError(error62) {
   return error62 instanceof RpcError && error62.code === CODEX_THREAD_UNMATERIALIZED;
 }
 
-// src/acp/adapters/session-models.ts
+// packages/plugin/src/acp/adapters/session-models.ts
 var AcpSessionModelState = class {
   constructor(backend) {
     this.backend = backend;
@@ -89777,7 +91430,7 @@ function record8(value) {
   return typeof value === "object" && value !== null && !Array.isArray(value);
 }
 
-// src/acp/adapters/cursor-process.ts
+// packages/plugin/src/acp/adapters/cursor-process.ts
 import { spawn as spawn3 } from "node:child_process";
 import { Buffer as Buffer4 } from "node:buffer";
 var ACP_REQUEST_TIMEOUT_MS = 6e4;
@@ -89831,7 +91484,7 @@ var CursorAcpClient = class {
   async call(method, params, timeoutMs) {
     if (!this.ready) throw new CursorAcpError("CURSOR_UNAVAILABLE", "Cursor ACP is not ready.");
     const backend = this.options.modelBackend ?? (this.options.authenticationMethod === null ? void 0 : "cursor");
-    const id6 = isRecord14(params) && typeof params.sessionId === "string" ? params.sessionId : void 0;
+    const id6 = isRecord15(params) && typeof params.sessionId === "string" ? params.sessionId : void 0;
     if (backend && (method === "dsh/sessionModels" || method === "dsh/selectModel")) {
       const state2 = id6 ? this.modelStates.get(id6) : void 0;
       if (!state2 || !id6) throw new CursorAcpError("ACP_SESSION_NOT_LOADED", "Load the ACP session before selecting a model.");
@@ -89872,7 +91525,7 @@ var CursorAcpClient = class {
     const budget = timeoutMs ?? (method === "session/prompt" ? ACP_PROMPT_TIMEOUT_MS : ACP_REQUEST_TIMEOUT_MS);
     const result = await this.request(method, params, budget);
     if (backend && (method === "session/new" || method === "session/load")) {
-      const returnedId = isRecord14(result) && typeof result.sessionId === "string" ? result.sessionId : void 0;
+      const returnedId = isRecord15(result) && typeof result.sessionId === "string" ? result.sessionId : void 0;
       const sessionId = method === "session/load" ? id6 : returnedId;
       if (!this.ready || !sessionId || returnedId && returnedId !== sessionId) throw new CursorAcpError("ACP_INVALID_SESSION", "ACP returned an invalid session.");
       const state2 = new AcpSessionModelState(backend);
@@ -90036,7 +91689,7 @@ var CursorAcpClient = class {
       this.handleProcessFailure("CURSOR_INVALID_RESPONSE", new Error("Cursor ACP emitted invalid JSON."));
       return;
     }
-    if (!isRecord14(value)) {
+    if (!isRecord15(value)) {
       this.handleProcessFailure("CURSOR_INVALID_RESPONSE", new Error("Cursor ACP emitted an invalid message."));
       return;
     }
@@ -90053,7 +91706,7 @@ var CursorAcpClient = class {
     if (typeof value.method !== "string" || value.method.length === 0 || value.method.length > 160) return;
     const params = value.params ?? {};
     const inbound = value.method !== "session/update" && (typeof value.id === "string" || typeof value.id === "number") ? { kind: "request", id: value.id, method: value.method, params } : { kind: "notification", method: value.method, params };
-    if (inbound.kind === "notification" && inbound.method === "session/update" && isRecord14(params) && typeof params.sessionId === "string") {
+    if (inbound.kind === "notification" && inbound.method === "session/update" && isRecord15(params) && typeof params.sessionId === "string") {
       this.modelStates.get(params.sessionId)?.update(params.update);
     }
     for (const handler of this.inboundHandlers) handler(inbound);
@@ -90085,7 +91738,7 @@ var CursorAcpClient = class {
   }
 };
 function safeUpstreamError2(value) {
-  if (!isRecord14(value) || typeof value.message !== "string") return "Cursor ACP rejected the request.";
+  if (!isRecord15(value) || typeof value.message !== "string") return "Cursor ACP rejected the request.";
   const message = value.message.toLowerCase();
   if (message.includes("auth") || message.includes("login") || message.includes("api key")) {
     return "Cursor ACP authentication failed.";
@@ -90093,11 +91746,11 @@ function safeUpstreamError2(value) {
   if (message.includes("not initialized")) return "Cursor ACP is not initialized.";
   return "Cursor ACP rejected the request.";
 }
-function isRecord14(value) {
+function isRecord15(value) {
   return typeof value === "object" && value !== null && !Array.isArray(value);
 }
 
-// src/acp/history-events.ts
+// packages/plugin/src/acp/history-events.ts
 function acpHistoryEvents(messages, sessionId, provider) {
   const events = [];
   const tools = /* @__PURE__ */ new Map();
@@ -90215,7 +91868,7 @@ function acpHistoryEvents(messages, sessionId, provider) {
   return events;
 }
 
-// src/acp/adapters/isolated-process.ts
+// packages/plugin/src/acp/adapters/isolated-process.ts
 var IsolatedAcpClient = class {
   constructor(binary, logger2, options = {}, factory = () => new CursorAcpClient(
     binary,
@@ -90494,15 +92147,15 @@ var IsolatedAcpClient = class {
   }
 };
 
-// src/workspace-bridge.ts
+// packages/plugin/src/workspace-bridge.ts
 import { realpath as realpath2, lstat as lstat2, readdir as readdir3, open as open4, stat as stat4, watch } from "node:fs/promises";
 import { isAbsolute as isAbsolute5, join as join8, relative as relative2, resolve as resolve3 } from "node:path";
 
-// src/remote-terminal-controller.ts
+// packages/plugin/src/remote-terminal-controller.ts
 var import_headless = __toESM(require_xterm_headless(), 1);
 var import_addon_serialize = __toESM(require_addon_serialize(), 1);
 
-// src/remote-terminal-provider.ts
+// packages/plugin/src/remote-terminal-provider.ts
 import { spawn as spawn4 } from "node:child_process";
 import { access } from "node:fs/promises";
 import { constants as constants3 } from "node:fs";
@@ -90647,7 +92300,7 @@ function subprocessTerminalSpawner(subprocess) {
   }, { shells: (signal) => discoverTerminalShells(subprocess, signal) });
 }
 
-// src/remote-terminal-controller.ts
+// packages/plugin/src/remote-terminal-controller.ts
 var MAX_INPUT_BYTES = 64 * 1024;
 var MAX_COLS = 240;
 var MAX_ROWS = 100;
@@ -91087,7 +92740,7 @@ function dimension(value, max) {
   return value;
 }
 
-// src/workspace-bridge.ts
+// packages/plugin/src/workspace-bridge.ts
 var MAX_READ_BYTES = 4 * 1024 * 1024;
 var WorkspaceBridgeState = class extends RemoteTerminalState {
 };
@@ -91168,10 +92821,10 @@ var WorkspaceBridge = class {
     this.ownedSubscribers.clear();
   }
   async fileCall(endpoint, sessionId, args, signal) {
-    const root = await this.rootFor(sessionId, signal);
+    const root2 = await this.rootFor(sessionId, signal);
     const path = typeof args.path === "string" ? args.path : ".";
     signal.throwIfAborted();
-    const target3 = await this.safePath(root, path, endpoint === "workspaceFiles/list");
+    const target3 = await this.safePath(root2, path, endpoint === "workspaceFiles/list");
     try {
       if (endpoint === "workspaceFiles/list") {
         const entries = await readdir3(target3, { withFileTypes: true });
@@ -91234,8 +92887,8 @@ var WorkspaceBridge = class {
     }
   }
   async watchChanges(sessionId, args, signal) {
-    const root = await this.rootFor(sessionId, signal);
-    const target3 = await this.safePath(root, typeof args.path === "string" ? args.path : ".", true);
+    const root2 = await this.rootFor(sessionId, signal);
+    const target3 = await this.safePath(root2, typeof args.path === "string" ? args.path : ".", true);
     const queue = new AsyncQueue();
     signal.throwIfAborted();
     const watcher = watch(target3, { recursive: false });
@@ -91264,23 +92917,23 @@ var WorkspaceBridge = class {
     const cwd2 = await this.resolveCwd(parsed.nativeId, signal);
     if (!cwd2) throw this.scopeError("WORKSPACE_UNAVAILABLE", "The CodeX thread has no available workspace.");
     try {
-      const root = await realpath2(cwd2);
-      const info = await stat4(root);
+      const root2 = await realpath2(cwd2);
+      const info = await stat4(root2);
       if (!info.isDirectory()) throw new Error();
-      return root;
+      return root2;
     } catch {
       throw this.scopeError("WORKSPACE_UNAVAILABLE", "The CodeX workspace is unavailable.");
     }
   }
-  async safePath(root, path, directory) {
-    const candidate = isAbsolute5(path) ? resolve3(path) : resolve3(root, path);
-    const rel = relative2(root, candidate);
+  async safePath(root2, path, directory) {
+    const candidate = isAbsolute5(path) ? resolve3(path) : resolve3(root2, path);
+    const rel = relative2(root2, candidate);
     if (rel.startsWith("..") || isAbsolute5(rel)) throw this.scopeError("WORKSPACE_PATH_DENIED", "The requested workspace path is outside the CodeX workspace.");
     try {
       const info = await lstat2(candidate);
       if (info.isSymbolicLink()) throw new Error();
       const canonical = await realpath2(candidate);
-      const canonicalRel = relative2(root, canonical);
+      const canonicalRel = relative2(root2, canonical);
       if (canonicalRel.startsWith("..") || isAbsolute5(canonicalRel)) throw new Error();
       if (directory && !info.isDirectory()) throw new Error();
       return canonical;
@@ -91290,8 +92943,8 @@ var WorkspaceBridge = class {
   }
 };
 function argsOf(payload) {
-  const value = isRecord15(payload) ? payload : {};
-  return isRecord15(value.args) ? value.args : value;
+  const value = isRecord16(payload) ? payload : {};
+  return isRecord16(value.args) ? value.args : value;
 }
 function toolScope(endpoint, args) {
   const session2 = args.agentId ?? args.sessionId;
@@ -91301,13 +92954,13 @@ function toolScope(endpoint, args) {
   }
   return session2;
 }
-function isRecord15(value) {
+function isRecord16(value) {
   return typeof value === "object" && value !== null && !Array.isArray(value);
 }
 function byteOrLineRange(args) {
-  const options = isRecord15(args.options) ? args.options : void 0;
-  if (options !== void 0 && isRecord15(options.range)) return options.range;
-  return isRecord15(args.range) ? args.range : args;
+  const options = isRecord16(args.options) ? args.options : void 0;
+  if (options !== void 0 && isRecord16(options.range)) return options.range;
+  return isRecord16(args.range) ? args.range : args;
 }
 function readOffset(args) {
   const range = byteOrLineRange(args);
@@ -91319,14 +92972,14 @@ function readLimit(args) {
   return typeof value === "number" && Number.isInteger(value) && value > 0 ? Math.min(value, MAX_READ_BYTES) : MAX_READ_BYTES;
 }
 
-// src/codex/session-id.ts
+// packages/plugin/src/codex/session-id.ts
 function parseCodexSessionId(value) {
   if (typeof value !== "string") return void 0;
   const match = /^codex:([A-Za-z0-9][A-Za-z0-9._-]{0,255})$/.exec(value);
   return match === null ? void 0 : { sessionId: value, threadId: match[1] };
 }
 
-// src/terminal-policy.ts
+// packages/plugin/src/terminal-policy.ts
 var TERMINAL_CALLS = /* @__PURE__ */ new Set([
   "terminal/environment",
   "terminal/shells",
@@ -91403,7 +93056,7 @@ var TerminalPolicy = class _TerminalPolicy {
   }
 };
 
-// src/acp/workspace-tools.ts
+// packages/plugin/src/acp/workspace-tools.ts
 var AcpWorkspaceTools = class {
   constructor(bridge, terminal) {
     this.bridge = bridge;
@@ -91441,16 +93094,16 @@ var AcpWorkspaceTools = class {
   }
 };
 
-// src/acp/gateway.ts
+// packages/plugin/src/acp/gateway.ts
 import { randomUUID as randomUUID15 } from "node:crypto";
 import { readdir as readdir4, realpath as realpath5, stat as stat5 } from "node:fs/promises";
 import { homedir as homedir6 } from "node:os";
-import { basename as basename5, isAbsolute as isAbsolute7, join as join12, relative as relative4, resolve as resolve5 } from "node:path";
+import { basename as basename6, isAbsolute as isAbsolute7, join as join12, relative as relative4, resolve as resolve5 } from "node:path";
 
-// src/acp/adapters/claude-process.ts
+// packages/plugin/src/acp/adapters/claude-process.ts
 import { Buffer as Buffer5 } from "node:buffer";
 
-// src/acp/adapters/claude-history.ts
+// packages/plugin/src/acp/adapters/claude-history.ts
 function claudeHistoryEvents(messages, sessionId, provider = "claude") {
   const events = [];
   const tools = /* @__PURE__ */ new Map();
@@ -91575,7 +93228,7 @@ function claudeHistoryEvents(messages, sessionId, provider = "claude") {
   return events;
 }
 
-// src/acp/adapters/claude-process.ts
+// packages/plugin/src/acp/adapters/claude-process.ts
 var ClaudeAcpClient = class extends CursorAcpClient {
   live = /* @__PURE__ */ new Map();
   loads = /* @__PURE__ */ new Map();
@@ -91698,7 +93351,7 @@ var ClaudeAcpClient = class extends CursorAcpClient {
   }
 };
 
-// src/acp/adapters/hermes-process.ts
+// packages/plugin/src/acp/adapters/hermes-process.ts
 var HERMES_ACP_COMMAND = "hermes";
 var HERMES_ACP_ARGS = ["acp"];
 var HermesAcpClient = class extends ClaudeAcpClient {
@@ -91707,11 +93360,11 @@ var HermesAcpClient = class extends ClaudeAcpClient {
   }
 };
 
-// src/acp/adapters/pi-process.ts
+// packages/plugin/src/acp/adapters/pi-process.ts
 var PiAcpClient = class extends IsolatedAcpClient {
 };
 
-// src/acp/adapters/antigravity/models.ts
+// packages/plugin/src/acp/adapters/antigravity/models.ts
 import { execFile } from "node:child_process";
 import { promisify as promisify2 } from "node:util";
 var exec = promisify2(execFile);
@@ -91769,10 +93422,10 @@ function agySelectionArgs(catalog, modelId, effort) {
   };
 }
 
-// src/acp/adapters/antigravity/image-store.ts
+// packages/plugin/src/acp/adapters/antigravity/image-store.ts
 import { promises as fs, realpathSync as realpathSync2, constants as constants4 } from "node:fs";
 import { tmpdir } from "node:os";
-import { join as join9, basename as basename4 } from "node:path";
+import { join as join9, basename as basename5 } from "node:path";
 import { createHash as createHash6, randomUUID as randomUUID14 } from "node:crypto";
 var EXTENSIONS = { "image/png": "png", "image/jpeg": "jpg", "image/webp": "webp", "image/gif": "gif" };
 var IMAGE_NAME = /^[0-9a-f-]{36}\.(png|jpg|webp|gif)$/;
@@ -91785,21 +93438,21 @@ async function privateDirectory(path) {
   const info = await fs.lstat(path);
   if (!info.isDirectory() || info.isSymbolicLink() || await fs.realpath(path) !== path || process.getuid && (info.uid !== process.getuid() || (info.mode & 63) !== 0)) throw new Error("Invalid AGY image cache directory.");
 }
-async function prepareAgyImageDirectory(root = AGY_IMAGE_ROOT) {
-  await privateDirectory(root);
-  return root;
+async function prepareAgyImageDirectory(root2 = AGY_IMAGE_ROOT) {
+  await privateDirectory(root2);
+  return root2;
 }
-function stageAgyImages(sessionId, images, root = AGY_IMAGE_ROOT) {
-  const result = stagingChain.then(() => stageImages(sessionId, images, root));
+function stageAgyImages(sessionId, images, root2 = AGY_IMAGE_ROOT) {
+  const result = stagingChain.then(() => stageImages(sessionId, images, root2));
   stagingChain = result.then(() => void 0, () => void 0);
   return result;
 }
-async function stageImages(sessionId, images, root) {
-  await prepareAgyImageDirectory(root);
+async function stageImages(sessionId, images, root2) {
+  await prepareAgyImageDirectory(root2);
   let total = 0;
-  for (const entry of await fs.readdir(root)) {
+  for (const entry of await fs.readdir(root2)) {
     if (!/^[0-9a-f]{64}$/.test(entry)) continue;
-    const dir = join9(root, entry);
+    const dir = join9(root2, entry);
     const info = await fs.lstat(dir);
     if (!info.isDirectory() || info.isSymbolicLink()) continue;
     for (const name2 of await fs.readdir(dir)) {
@@ -91813,7 +93466,7 @@ async function stageImages(sessionId, images, root) {
   }
   const parsed = images.map(parseAcpImage);
   if (total + parsed.reduce((sum, image) => sum + imageByteLength(image.data), 0) > 512 * 1024 * 1024) throw new Error("AGY temporary image cache is full.");
-  const directory = join9(root, sessionFolder(sessionId));
+  const directory = join9(root2, sessionFolder(sessionId));
   await privateDirectory(directory);
   const paths = [];
   try {
@@ -91848,12 +93501,12 @@ function agyImageReferences(text) {
     return [];
   }
 }
-async function readAgyImage(sessionId, path, root = AGY_IMAGE_ROOT) {
-  const name2 = basename4(path);
-  if (!IMAGE_NAME.test(name2) || path !== join9(root, sessionFolder(sessionId), name2)) return void 0;
+async function readAgyImage(sessionId, path, root2 = AGY_IMAGE_ROOT) {
+  const name2 = basename5(path);
+  if (!IMAGE_NAME.test(name2) || path !== join9(root2, sessionFolder(sessionId), name2)) return void 0;
   try {
-    await privateDirectory(root);
-    await privateDirectory(join9(root, sessionFolder(sessionId)));
+    await privateDirectory(root2);
+    await privateDirectory(join9(root2, sessionFolder(sessionId)));
     const info = await fs.lstat(path);
     if (!info.isFile() || info.isSymbolicLink() || info.size > 8 * 1024 * 1024 || Date.now() - info.mtimeMs > TTL) return void 0;
     const file2 = await fs.open(path, constants4.O_RDONLY | (constants4.O_NOFOLLOW ?? 0));
@@ -91871,12 +93524,12 @@ async function readAgyImage(sessionId, path, root = AGY_IMAGE_ROOT) {
   }
 }
 
-// src/acp/adapters/antigravity-process.ts
+// packages/plugin/src/acp/adapters/antigravity-process.ts
 import { spawn as spawn5 } from "node:child_process";
 import { Buffer as Buffer6 } from "node:buffer";
 import { existsSync as existsSync3 } from "node:fs";
 
-// src/acp/adapters/antigravity/transcript-watcher.ts
+// packages/plugin/src/acp/adapters/antigravity/transcript-watcher.ts
 import { promises as fs2 } from "node:fs";
 import { join as join10 } from "node:path";
 import { EventEmitter as EventEmitter2 } from "node:events";
@@ -92020,7 +93673,7 @@ var TranscriptWatcher = class extends EventEmitter2 {
   }
 };
 
-// src/acp/adapters/antigravity-process.ts
+// packages/plugin/src/acp/adapters/antigravity-process.ts
 var ACP_PROMPT_TIMEOUT_MS2 = 10 * 6e4;
 var ACP_START_TIMEOUT_MS2 = 2e4;
 var MAX_STDERR_CAPTURE_BYTES3 = 4 * 1024;
@@ -92608,12 +94261,12 @@ function withoutSelectionArgs(args) {
   return filtered;
 }
 
-// src/acp/adapters/opencode-process.ts
+// packages/plugin/src/acp/adapters/opencode-process.ts
 import { spawn as spawn6 } from "node:child_process";
 import { Buffer as Buffer7 } from "node:buffer";
 import { realpath as realpath4 } from "node:fs/promises";
 
-// src/acp/adapters/opencode-native-api.ts
+// packages/plugin/src/acp/adapters/opencode-native-api.ts
 import { randomBytes as randomBytes12 } from "node:crypto";
 import { createServer as createServer3 } from "node:net";
 import { realpath as realpath3 } from "node:fs/promises";
@@ -92728,7 +94381,7 @@ function unavailable() {
   return new RpcError("OPENCODE_ARCHIVE_UNAVAILABLE", "OpenCode did not confirm the archive operation. Check the Host OpenCode version and retry after refreshing its session list.");
 }
 
-// src/acp/adapters/opencode-process.ts
+// packages/plugin/src/acp/adapters/opencode-process.ts
 var ACP_REQUEST_TIMEOUT_MS2 = 6e4;
 var ACP_PROMPT_TIMEOUT_MS3 = 10 * 6e4;
 var ACP_START_TIMEOUT_MS3 = 2e4;
@@ -92849,7 +94502,7 @@ var OpencodeAcpClient = class _OpencodeAcpClient {
   busy = /* @__PURE__ */ new Set();
   async call(method, params, timeoutMs) {
     if (!this.ready) throw new OpencodeAcpError("OPENCODE_UNAVAILABLE", "OpenCode ACP is not ready.");
-    const p = isRecord16(params) ? params : {};
+    const p = isRecord17(params) ? params : {};
     const id6 = typeof p.sessionId === "string" ? p.sessionId : void 0;
     if (id6 && this.archivingSessions.has(id6)) throw new OpencodeAcpError("ACP_SESSION_BUSY", "The OpenCode session is being archived.");
     if (id6 && this.archivedSessions.has(id6) && ["session/load", "session/prompt", "dsh/selectModel"].includes(method)) throw new OpencodeAcpError("ACP_SESSION_ARCHIVED", "This OpenCode session is archived.");
@@ -92899,7 +94552,7 @@ var OpencodeAcpClient = class _OpencodeAcpClient {
     }
     const result = await this.request(method, params, budget);
     const nativeApi = this.nativeApi;
-    if (method === "session/list" && nativeApi && isRecord16(result) && Array.isArray(result.sessions)) {
+    if (method === "session/list" && nativeApi && isRecord17(result) && Array.isArray(result.sessions)) {
       if (result.sessions.length > 1e3) throw new OpencodeAcpError("INVALID_MESSAGE", "The OpenCode catalog page is too large.");
       const items = result.sessions;
       const archivedItems = /* @__PURE__ */ new Map();
@@ -92909,7 +94562,7 @@ var OpencodeAcpClient = class _OpencodeAcpClient {
           const index = next++;
           if (index >= items.length) return;
           const item = items[index];
-          if (!isRecord16(item) || typeof item.sessionId !== "string" || typeof item.cwd !== "string") continue;
+          if (!isRecord17(item) || typeof item.sessionId !== "string" || typeof item.cwd !== "string") continue;
           const cwd2 = await realpath4(item.cwd).catch(() => void 0);
           if (!cwd2) continue;
           const archived = await nativeApi.isArchived(item.sessionId, cwd2);
@@ -92925,7 +94578,7 @@ var OpencodeAcpClient = class _OpencodeAcpClient {
   }
   async loadSession(method, params, budget, sessionId) {
     const result = await this.request(method, params, budget);
-    const returnedId = isRecord16(result) && typeof result.sessionId === "string" ? result.sessionId : void 0;
+    const returnedId = isRecord17(result) && typeof result.sessionId === "string" ? result.sessionId : void 0;
     const id6 = sessionId ?? returnedId;
     if (!this.ready || !id6 || sessionId && returnedId && returnedId !== sessionId) {
       throw new OpencodeAcpError("ACP_INVALID_SESSION", "OpenCode returned an invalid session.");
@@ -93103,7 +94756,7 @@ var OpencodeAcpClient = class _OpencodeAcpClient {
       this.handleProcessFailure("OPENCODE_INVALID_RESPONSE", new Error("OpenCode ACP emitted invalid JSON."));
       return;
     }
-    if (!isRecord16(value)) {
+    if (!isRecord17(value)) {
       this.handleProcessFailure("OPENCODE_INVALID_RESPONSE", new Error("OpenCode ACP emitted an invalid message."));
       return;
     }
@@ -93120,11 +94773,11 @@ var OpencodeAcpClient = class _OpencodeAcpClient {
     if (typeof value.method !== "string" || value.method.length === 0 || value.method.length > 160) return;
     const params = value.params ?? {};
     const inbound = value.method !== "session/update" && (typeof value.id === "string" || typeof value.id === "number") ? { kind: "request", id: value.id, method: value.method, params } : { kind: "notification", method: value.method, params };
-    if (inbound.kind === "request" && isRecord16(params) && typeof params.sessionId === "string" && this.loads.has(params.sessionId)) {
+    if (inbound.kind === "request" && isRecord17(params) && typeof params.sessionId === "string" && this.loads.has(params.sessionId)) {
       void this.respondError(inbound.id, -32600, "OpenCode session is not loaded.").catch(() => void 0);
       return;
     }
-    if (inbound.kind === "notification" && inbound.method === "session/update" && isRecord16(params) && typeof params.sessionId === "string") {
+    if (inbound.kind === "notification" && inbound.method === "session/update" && isRecord17(params) && typeof params.sessionId === "string") {
       this.models.get(params.sessionId)?.update(params.update);
       if (this.loads.has(params.sessionId) && !this.options.historyReader) return;
     }
@@ -93160,7 +94813,7 @@ var OpencodeAcpClient = class _OpencodeAcpClient {
   }
 };
 function safeUpstreamError3(value) {
-  if (!isRecord16(value) || typeof value.message !== "string") return "OpenCode ACP rejected the request.";
+  if (!isRecord17(value) || typeof value.message !== "string") return "OpenCode ACP rejected the request.";
   const message = value.message.toLowerCase();
   if (message.includes("auth") || message.includes("login") || message.includes("api key")) {
     return "OpenCode ACP authentication failed.";
@@ -93168,11 +94821,11 @@ function safeUpstreamError3(value) {
   if (message.includes("not initialized")) return "OpenCode ACP is not initialized.";
   return "OpenCode ACP rejected the request.";
 }
-function isRecord16(value) {
+function isRecord17(value) {
   return typeof value === "object" && value !== null && !Array.isArray(value);
 }
 
-// src/acp/method-policy.ts
+// packages/plugin/src/acp/method-policy.ts
 var id5 = external_exports.string().min(1).max(256);
 var cwd = external_exports.string().min(1).max(4096);
 var mode = external_exports.enum(["agent", "plan", "ask"]);
@@ -93278,7 +94931,7 @@ function isSessionMutation(method) {
   return method === "session/prompt" || method === "session/cancel" || method === "dsh/selectModel" || method === "dsh/selectPermission" || method === "dsh/toolCall";
 }
 
-// src/acp/adapters/antigravity/transcript-loader.ts
+// packages/plugin/src/acp/adapters/antigravity/transcript-loader.ts
 import { promises as fs3 } from "node:fs";
 import { isAbsolute as isAbsolute6, join as join11, relative as relative3, resolve as resolve4, sep } from "node:path";
 import { fileURLToPath as fileURLToPath2 } from "node:url";
@@ -93578,15 +95231,15 @@ function workspaceMatches(rawUris, requestedWorkspace) {
 async function transcriptPath(baseDir, conversationId) {
   if (!/^[a-zA-Z0-9_-]{1,256}$/.test(conversationId)) return void 0;
   try {
-    const root = await fs3.realpath(baseDir);
-    const expected = join11(root, conversationId, ".system_generated", "logs", "transcript.jsonl");
+    const root2 = await fs3.realpath(baseDir);
+    const expected = join11(root2, conversationId, ".system_generated", "logs", "transcript.jsonl");
     return await fs3.realpath(expected) === expected ? expected : void 0;
   } catch {
     return void 0;
   }
 }
 
-// src/acp/peer-bridge.ts
+// packages/plugin/src/acp/peer-bridge.ts
 import { Buffer as Buffer8 } from "node:buffer";
 var streamOpenSchema2 = external_exports.object({
   streamId: external_exports.string().min(1).max(128),
@@ -93918,15 +95571,15 @@ function decodeCanonicalBase642(value) {
   }
   return decoded;
 }
-function isRecord17(value) {
+function isRecord18(value) {
   return typeof value === "object" && value !== null && !Array.isArray(value);
 }
 function safeErrorCode3(error62) {
-  if (isRecord17(error62) && typeof error62.code === "string") return error62.code;
+  if (isRecord18(error62) && typeof error62.code === "string") return error62.code;
   return "UNKNOWN";
 }
 function safeMethod2(input4) {
-  return isRecord17(input4) && typeof input4.method === "string" ? input4.method : "invalid";
+  return isRecord18(input4) && typeof input4.method === "string" ? input4.method : "invalid";
 }
 function concatChunks2(chunks, totalBytes) {
   const output2 = new Uint8Array(totalBytes);
@@ -93938,7 +95591,7 @@ function concatChunks2(chunks, totalBytes) {
   return output2;
 }
 
-// src/acp/gateway.ts
+// packages/plugin/src/acp/gateway.ts
 var APPROVAL_TTL_MS2 = 5 * 6e4;
 var BACKEND_STABLE_MS = 3e4;
 var DEFAULT_RESTART_DELAYS_MS2 = [1e3, 2e3, 4e3, 8e3, 15e3];
@@ -94011,6 +95664,11 @@ var AcpRemoteGateway = class {
   pendingReconfiguration = /* @__PURE__ */ new Set();
   archivingSessions = /* @__PURE__ */ new Set();
   opencodeOperations = /* @__PURE__ */ new Map();
+  historyEpoch = 0;
+  minValidHistoryEpoch = 0;
+  historyInvalidatedAt = /* @__PURE__ */ new Map();
+  pendingHistoryReads = /* @__PURE__ */ new Map();
+  backendHistoryChains = /* @__PURE__ */ new Map();
   /** Only implemented adapters are advertised; registry entries never select an adapter by executable name. */
   enabledBackends() {
     if (!this.config.enabled) return [];
@@ -94155,6 +95813,7 @@ var AcpRemoteGateway = class {
         if (this.promptsInProgress.has(sessionId2) || [...this.approvals.values()].some((item) => item.sessionId === sessionId2)) throw new RpcError("ACP_SESSION_BUSY", "Stop the OpenCode reply and resolve its approvals before archiving.");
         if (!client.archiveSession) throw new RpcError("OPENCODE_ARCHIVE_UNAVAILABLE", "The Host OpenCode adapter does not support native archiving.");
         await client.archiveSession(sessionId2, cwd2);
+        this.invalidateSessionHistory(sessionId2);
         if (this.closed || this.requireAcp(backend) !== client || this.backendInstances.get(backend) !== instance) throw new RpcError("OPENCODE_ARCHIVE_UNAVAILABLE", "The OpenCode backend changed. Refresh the session list to confirm the archive state.");
         const result = { backend, sessionId: sessionId2, archived: true };
         this.inboundChain = this.inboundChain.then(async () => {
@@ -94188,7 +95847,7 @@ var AcpRemoteGateway = class {
       const requestedBackend = typeof call.params.backend === "string" ? call.params.backend : this.defaultBackend();
       if (isCatalogBackend(requestedBackend)) {
         const sessions = await this.listCatalogSessions(requestedBackend);
-        const discovered = [...new Set(sessions.map((item) => item.cwd))].map((path) => ({ path, title: basename5(path) || "workspace" }));
+        const discovered = [...new Set(sessions.map((item) => item.cwd))].map((path) => ({ path, title: basename6(path) || "workspace" }));
         if (discovered.length > 0 || requestedBackend !== "opencode") return discovered;
         const defaultCandidates = /* @__PURE__ */ new Set();
         const cwd3 = process.cwd();
@@ -94200,7 +95859,7 @@ var AcpRemoteGateway = class {
           } catch {
           }
         }
-        return [...defaultCandidates].map((path) => ({ path, title: basename5(path) || "workspace" }));
+        return [...defaultCandidates].map((path) => ({ path, title: basename6(path) || "workspace" }));
       }
       const candidates = /* @__PURE__ */ new Set();
       const cwd2 = process.cwd();
@@ -94233,7 +95892,7 @@ var AcpRemoteGateway = class {
         }
         return {
           path: p,
-          title: basename5(p) || "workspace",
+          title: basename6(p) || "workspace",
           ...sessionCount > 0 ? { sessionCount } : {}
         };
       }));
@@ -94277,10 +95936,12 @@ var AcpRemoteGateway = class {
       this.requireAcp(backend);
       if (isCatalogBackend(backend)) {
         const cwd2 = await this.catalogSessionCwd(backend, conversationId);
+        assertCurrent();
         const client = this.requireAcp(backend);
         if (!client.history) throw new RpcError("METHOD_NOT_ALLOWED", "The ACP backend does not support history.");
+        const events2 = await this.readCatalogHistory(backend, client, conversationId, cwd2, assertCurrent);
         const preset2 = this.sessionPermissions.get(conversationId);
-        return { events: await client.history(conversationId, cwd2), ...preset2 ? { permissionPreset: preset2 } : {} };
+        return { events: events2, ...preset2 ? { permissionPreset: preset2 } : {} };
       }
       if (backend !== "antigravity") return { events: [] };
       const events = await loadTranscriptEvents(conversationId, rawSessionId);
@@ -94325,7 +95986,7 @@ var AcpRemoteGateway = class {
       const requested = typeof call.params.backend === "string" ? call.params.backend : selected ?? this.defaultBackend();
       if (selected !== void 0 && selected !== requested) throw new RpcError("INVALID_MESSAGE", "The ACP session backend does not match.");
       this.requireAcp(requested);
-      if (Array.isArray(call.params.prompt) && call.params.prompt.some((part) => isRecord18(part) && part.type === "image") && requested !== "antigravity" && requested !== "hermes") throw new RpcError("METHOD_NOT_ALLOWED", "This ACP backend does not accept image prompts.");
+      if (Array.isArray(call.params.prompt) && call.params.prompt.some((part) => isRecord19(part) && part.type === "image") && requested !== "antigravity" && requested !== "hermes") throw new RpcError("METHOD_NOT_ALLOWED", "This ACP backend does not accept image prompts.");
       this.sessionBackends.set(sessionId, requested);
     }
     if (call.method === "session/load") {
@@ -94386,6 +96047,7 @@ var AcpRemoteGateway = class {
     }
     if (call.method === "session/prompt" && sessionId !== void 0) {
       if (this.promptsInProgress.has(sessionId)) throw new RpcError("PROMPT_IN_PROGRESS", "An ACP reply is already in progress.");
+      this.invalidateSessionHistory(sessionId);
       const backend = this.sessionBackends.get(sessionId) ?? this.defaultBackend();
       const task = { backend, client: this.requireAcp(backend) };
       this.promptsInProgress.set(sessionId, task);
@@ -94423,6 +96085,7 @@ var AcpRemoteGateway = class {
       return { accepted: true, stopReason: "in_progress" };
     }
     if (call.method === "session/cancel" && sessionId !== void 0) {
+      this.invalidateSessionHistory(sessionId);
       this.cancelledSessions.add(sessionId);
       const preparation = this.preparingPrompts.get(sessionId);
       if (preparation) {
@@ -94449,7 +96112,7 @@ var AcpRemoteGateway = class {
       const result = await task.client.call("session/prompt", params);
       await this.inboundChain;
       if (!current()) return;
-      const stopReason = isRecord18(result) && typeof result.stopReason === "string" ? result.stopReason : "end_turn";
+      const stopReason = isRecord19(result) && typeof result.stopReason === "string" ? result.stopReason : "end_turn";
       const catchUp = takeTurnCatchUp(this.turnCatchUp, sessionId);
       this.logger.info("ACP prompt finished", {
         sessionId: shortSessionId(sessionId),
@@ -94487,7 +96150,70 @@ var AcpRemoteGateway = class {
     } finally {
       if (this.promptsInProgress.get(sessionId) === task) {
         this.promptsInProgress.delete(sessionId);
+        this.invalidateSessionHistory(sessionId);
         if (!this.isSessionBackendReady(sessionId)) await this.failSessionStreams(sessionId);
+      }
+    }
+  }
+  invalidateSessionHistory(sessionId) {
+    const invalidationEpoch = ++this.historyEpoch;
+    this.historyInvalidatedAt.delete(sessionId);
+    this.historyInvalidatedAt.set(sessionId, invalidationEpoch);
+    while (this.historyInvalidatedAt.size > 256) {
+      const oldestKey = this.historyInvalidatedAt.keys().next().value;
+      if (oldestKey === void 0) break;
+      const oldestEpoch = this.historyInvalidatedAt.get(oldestKey) ?? 0;
+      this.minValidHistoryEpoch = Math.max(this.minValidHistoryEpoch, oldestEpoch);
+      this.historyInvalidatedAt.delete(oldestKey);
+    }
+    for (const key of this.pendingHistoryReads.keys()) {
+      if (key.endsWith(`:${sessionId}`)) {
+        this.pendingHistoryReads.delete(key);
+      }
+    }
+  }
+  isHistoryEpochValid(sessionId, readEpoch) {
+    return readEpoch > this.minValidHistoryEpoch && readEpoch > (this.historyInvalidatedAt.get(sessionId) ?? 0);
+  }
+  async readCatalogHistory(backend, client, conversationId, cwd2, assertCurrent) {
+    const key = `${backend}:${conversationId}`;
+    const existing = this.pendingHistoryReads.get(key);
+    if (existing !== void 0 && existing.client === client && this.isHistoryEpochValid(conversationId, existing.readEpoch)) {
+      const events = await existing.promise;
+      assertCurrent();
+      return events;
+    }
+    const readEpoch = ++this.historyEpoch;
+    const previous = this.backendHistoryChains.get(backend) ?? Promise.resolve();
+    let releaseQueue;
+    const currentTurn = new Promise((resolve9) => {
+      releaseQueue = resolve9;
+    });
+    const nextChain = previous.then(() => currentTurn, () => currentTurn);
+    this.backendHistoryChains.set(backend, nextChain);
+    const readPromise = (async () => {
+      await previous.catch(() => void 0);
+      try {
+        assertCurrent();
+        if (this.requireAcp(backend) !== client) {
+          throw new RpcError("CURSOR_UNAVAILABLE", `The ${backend} ACP backend is not ready.`);
+        }
+        return await client.history(conversationId, cwd2);
+      } finally {
+        releaseQueue();
+        if (this.backendHistoryChains.get(backend) === nextChain) {
+          this.backendHistoryChains.delete(backend);
+        }
+      }
+    })();
+    this.pendingHistoryReads.set(key, { client, readEpoch, promise: readPromise });
+    try {
+      const events = await readPromise;
+      assertCurrent();
+      return events;
+    } finally {
+      if (this.pendingHistoryReads.get(key)?.promise === readPromise) {
+        this.pendingHistoryReads.delete(key);
       }
     }
   }
@@ -94829,7 +96555,7 @@ var AcpRemoteGateway = class {
       await peer.publishInbound(sessionId, {
         method: message.method,
         params: {
-          ...isRecord18(message.params) ? message.params : {},
+          ...isRecord19(message.params) ? message.params : {},
           requestHandle,
           sessionId,
           upstreamMethod: message.method
@@ -94857,8 +96583,8 @@ var AcpRemoteGateway = class {
   recordTurnCatchUp(sessionId, frame) {
     const list2 = this.turnCatchUp.get(sessionId);
     if (list2 === void 0 || frame.method !== "session/update") return;
-    const params = isRecord18(frame.params) ? frame.params : void 0;
-    const update = params !== void 0 && isRecord18(params.update) ? params.update : params;
+    const params = isRecord19(frame.params) ? frame.params : void 0;
+    const update = params !== void 0 && isRecord19(params.update) ? params.update : params;
     const kind = update !== void 0 && typeof update.sessionUpdate === "string" ? update.sessionUpdate : void 0;
     if (kind === void 0 || !CATCH_UP_SESSION_UPDATES.has(kind)) return;
     list2.push({ method: frame.method, params: frame.params });
@@ -95031,11 +96757,11 @@ var AcpRemoteGateway = class {
     for (let page = 0; page < 100; page++) {
       const result = await client.call("session/list", { ...cwd2 ? { cwd: cwd2 } : {}, ...cursor3 ? { cursor: cursor3 } : {} });
       assertCurrent();
-      if (!isRecord18(result) || !Array.isArray(result.sessions) || result.nextCursor != null && (typeof result.nextCursor !== "string" || result.nextCursor.length === 0)) {
+      if (!isRecord19(result) || !Array.isArray(result.sessions) || result.nextCursor != null && (typeof result.nextCursor !== "string" || result.nextCursor.length === 0)) {
         throw new RpcError("INVALID_MESSAGE", "The ACP session catalog response is invalid.");
       }
       for (const item of result.sessions) {
-        if (!isRecord18(item) || typeof item.sessionId !== "string" || typeof item.cwd !== "string") continue;
+        if (!isRecord19(item) || typeof item.sessionId !== "string" || typeof item.cwd !== "string") continue;
         const canonical = await this.requireExistingDirectory(item.cwd).catch(() => void 0);
         assertCurrent();
         if (!canonical || cwd2 && canonical !== cwd2) continue;
@@ -95132,24 +96858,24 @@ var AcpRemoteGateway = class {
   }
 };
 function parseCallEnvelope2(input4) {
-  if (!isRecord18(input4) || typeof input4.method !== "string") {
+  if (!isRecord19(input4) || typeof input4.method !== "string") {
     throw new RpcError("INVALID_MESSAGE", "The Cursor call envelope is invalid.");
   }
   return { method: input4.method, params: input4.params ?? {} };
 }
 function parseRespondEnvelope(input4) {
-  if (!isRecord18(input4) || typeof input4.requestHandle !== "string" || input4.requestHandle.length === 0 || Object.keys(input4).some((key) => !["requestHandle", "decision", "result"].includes(key)) || typeof input4.decision !== "string" || !["allow-once", "reject-once", "cancel"].includes(input4.decision)) {
+  if (!isRecord19(input4) || typeof input4.requestHandle !== "string" || input4.requestHandle.length === 0 || Object.keys(input4).some((key) => !["requestHandle", "decision", "result"].includes(key)) || typeof input4.decision !== "string" || !["allow-once", "reject-once", "cancel"].includes(input4.decision)) {
     throw new RpcError("INVALID_MESSAGE", "The ACP respond envelope is invalid.");
   }
   return input4;
 }
 function permissionOptions(params) {
-  if (!isRecord18(params) || !Array.isArray(params.options) || params.options.length === 0) {
+  if (!isRecord19(params) || !Array.isArray(params.options) || params.options.length === 0) {
     throw new Error("Missing permission options");
   }
   const ids = /* @__PURE__ */ new Set();
   const options = params.options.map((option) => {
-    if (!isRecord18(option) || typeof option.optionId !== "string" || !option.optionId || typeof option.kind !== "string" || !["allow_once", "allow_always", "reject_once", "reject_always"].includes(option.kind) || ids.has(option.optionId)) throw new Error("Invalid permission option");
+    if (!isRecord19(option) || typeof option.optionId !== "string" || !option.optionId || typeof option.kind !== "string" || !["allow_once", "allow_always", "reject_once", "reject_always"].includes(option.kind) || ids.has(option.optionId)) throw new Error("Invalid permission option");
     ids.add(option.optionId);
     return { kind: option.kind, optionId: option.optionId };
   });
@@ -95170,21 +96896,21 @@ function mapPermissionDecision(params, pending) {
   }
   const outcome = pending.method === "cursor/create_plan" ? params.decision === "allow-once" ? "accepted" : params.decision === "cancel" ? "cancelled" : "rejected" : "cancelled";
   if (params.result !== void 0) {
-    if (!isRecord18(params.result) || Object.keys(params.result).length !== 1 || !isRecord18(params.result.outcome) || Object.keys(params.result.outcome).length !== 1 || params.result.outcome.outcome !== outcome) throw invalid();
+    if (!isRecord19(params.result) || Object.keys(params.result).length !== 1 || !isRecord19(params.result.outcome) || Object.keys(params.result.outcome).length !== 1 || params.result.outcome.outcome !== outcome) throw invalid();
   }
   return { outcome: { outcome } };
 }
 function readSessionId(value) {
-  if (!isRecord18(value)) return void 0;
+  if (!isRecord19(value)) return void 0;
   return typeof value.sessionId === "string" ? value.sessionId : void 0;
 }
 function readNestedSessionId(value) {
-  if (!isRecord18(value)) return void 0;
-  if (isRecord18(value.update) && typeof value.update.sessionId === "string") return value.update.sessionId;
+  if (!isRecord19(value)) return void 0;
+  if (isRecord19(value.update) && typeof value.update.sessionId === "string") return value.update.sessionId;
   return void 0;
 }
 function sanitizeSessionResult(value) {
-  if (!isRecord18(value)) return value;
+  if (!isRecord19(value)) return value;
   const next = {};
   for (const [key, entry] of Object.entries(value)) {
     if (key === "sessionId" || key === "stopReason" || key === "mode") next[key] = entry;
@@ -95196,7 +96922,7 @@ function buildCrumbs(path, home) {
   let current = path;
   while (true) {
     crumbs2.unshift({
-      name: current === home ? "~" : basename5(current) || current,
+      name: current === home ? "~" : basename6(current) || current,
       path: current,
       hidden: false
     });
@@ -95244,11 +96970,11 @@ function takeTurnCatchUp(turnCatchUp, sessionId) {
   turnCatchUp.delete(sessionId);
   return list2;
 }
-function isRecord18(value) {
+function isRecord19(value) {
   return typeof value === "object" && value !== null && !Array.isArray(value);
 }
 
-// src/acp/backend-installer.ts
+// packages/plugin/src/acp/backend-installer.ts
 import { execFile as execFile3, execFileSync } from "node:child_process";
 import { existsSync as existsSync4, constants as constants5, accessSync as accessSync2, statSync as statSync3 } from "node:fs";
 import { homedir as homedir7 } from "node:os";
@@ -95586,9 +97312,9 @@ async function installOrConfigureBackend(backendId, options = {}) {
   throw new Error(`Installation of ${spec.name} completed but executable could not be verified.`);
 }
 
-// src/control-runtime.ts
+// packages/plugin/src/control-runtime.ts
 var PluginControlRuntime = class {
-  constructor(config2, identityDirectory, settings, client, host, switchServer, updates) {
+  constructor(config2, identityDirectory, settings, client, host, switchServer, updates, useDefaultStorage = false) {
     this.config = config2;
     this.identityDirectory = identityDirectory;
     this.settings = settings;
@@ -95596,9 +97322,28 @@ var PluginControlRuntime = class {
     this.host = host;
     this.switchServer = switchServer;
     this.updates = updates;
+    this.useDefaultStorage = useDefaultStorage;
   }
   logoutFlight;
   serverSwitchFlight;
+  startupFailure;
+  storageAvailable = true;
+  setStartupFailure(error62, options) {
+    this.startupFailure = error62;
+    if (options?.storageAvailable !== void 0) {
+      this.storageAvailable = options.storageAvailable;
+    }
+    this.client = void 0;
+    this.host = void 0;
+  }
+  clearStartupFailure() {
+    this.startupFailure = void 0;
+    this.storageAvailable = true;
+  }
+  setIdentityDirectory(directory) {
+    this.identityDirectory = directory;
+    this.storageAvailable = true;
+  }
   register(connection, webServer) {
     const statusStream = new ControlStatusStream(() => this.streamStatus());
     return registerControlRoute(
@@ -95620,7 +97365,18 @@ var PluginControlRuntime = class {
   }
   async handle(endpoint, payload, signal) {
     try {
-      if (endpoint !== "settings.server.set") await this.serverSwitchFlight;
+      if (endpoint !== "settings.server.set" && endpoint !== "settings.identity.reset") await this.serverSwitchFlight;
+      if (endpoint.startsWith("host.pairing.")) {
+        if (this.host?.pairingControl === void 0) throw new ClientModeError("METHOD_NOT_ALLOWED", "Host device pairing is unavailable.");
+        const action = endpoint.slice("host.pairing.".length);
+        if (action !== "start" && action !== "status" && action !== "confirm" && action !== "cancel") throw new ClientModeError("METHOD_NOT_ALLOWED", "Unknown pairing action.");
+        const input4 = record9(payload);
+        if (Object.keys(input4).some((key) => key !== "sessionId" && key !== "verificationCode") || input4.sessionId !== void 0 && typeof input4.sessionId !== "string" || input4.verificationCode !== void 0 && typeof input4.verificationCode !== "string") throw new ClientModeError("INVALID_MESSAGE", "Invalid pairing request.");
+        if (action === "start") await this.client?.handleControl("mode.set", { mode: "local" }, signal);
+        const view = await this.host.pairingControl(action, input4);
+        if (view?.localSaved && this.host.hostStatus().pairingHostOnly) await this.client?.handleControl("mode.set", { mode: "local" }, signal);
+        return ok3(view);
+      }
       if (endpoint === "settings.development.set") return ok3(await this.setDevelopment(payload));
       if (endpoint === "settings.appearance.set") return ok3(await this.setAppearance(payload));
       if (endpoint === "settings.get") return ok3(await this.settingsView());
@@ -95634,6 +97390,7 @@ var PluginControlRuntime = class {
       if (endpoint === "settings.acp.remove") return ok3(await this.removeAcp(payload));
       if (endpoint === "settings.acp.installOrConfigure") return ok3(await this.installOrConfigureAcp(payload));
       if (endpoint === "settings.logout") return ok3(await this.logout());
+      if (endpoint === "settings.identity.reset") return ok3(await this.resetIdentity(payload));
       if (endpoint === "host.authorization.set" && this.client !== void 0) {
         const value = record9(payload);
         if (typeof value.enabled !== "boolean") throw new ClientModeError("INVALID_MESSAGE", "Host authorization state is required.");
@@ -95656,6 +97413,19 @@ var PluginControlRuntime = class {
         return ok3(await this.host.pairingCode());
       }
       if (endpoint === "status") {
+        if (this.startupFailure !== void 0) {
+          const startupError = safeStartupError(this.startupFailure);
+          const failureStatus = {
+            mode: "local",
+            available: false,
+            controlUnavailable: false,
+            connected: false,
+            transport: "Disconnected",
+            startupError,
+            hostAuthorizationAvailable: false
+          };
+          return withUpdate(ok3(failureStatus), this.updates?.snapshot());
+        }
         const base = this.client !== void 0 ? await this.client.handleControl(endpoint, payload, signal) : ok3(this.hostOnlyStatus());
         return withUpdate(base, this.updates?.snapshot());
       }
@@ -95680,6 +97450,9 @@ var PluginControlRuntime = class {
       if (endpoint === "mode.set" && record9(payload).mode === "local") {
         return withUpdate(ok3(this.hostOnlyStatus()), this.updates?.snapshot());
       }
+      if (this.startupFailure instanceof Error) {
+        throw this.startupFailure;
+      }
       throw new ClientModeError("METHOD_NOT_ALLOWED", "Remote Client mode is disabled by the plugin role.");
     } catch (error62) {
       return fail5(error62);
@@ -95697,9 +97470,14 @@ var PluginControlRuntime = class {
       throw new ClientModeError("INVALID_MESSAGE", "Server URL is required.");
     }
     const current = editableConfig(resolveConfig(this.settings.get()));
+    if (value.role === "client" && this.host?.hostStatus?.()?.pairingHostOnly) throw new ClientModeError("DEVICE_SCOPE_REQUIRED", "This Host only accepts incoming connections.");
     const next = resolveConfig({ ...current, role: value.role, serverUrl: value.serverUrl });
+    if (!this.storageAvailable && this.startupFailure instanceof Error) {
+      throw this.startupFailure;
+    }
     const identities = new IdentityStore({
-      directory: serverStorageDirectory(this.identityDirectory, next.serverUrl, value.role)
+      directory: serverStorageDirectory(this.identityDirectory, next.serverUrl, value.role),
+      role: value.role
     });
     let identity3 = await identities.loadOrCreate(hostname4());
     const api = value.role === "host" ? new HostServerApi(next.serverUrl, new ServerCredentialStore(identities.directory)) : new ClientServerApi(next.serverUrl, new ServerCredentialStore(identities.directory));
@@ -95751,15 +97529,66 @@ var PluginControlRuntime = class {
     const next = resolveConfig({ ...current, serverUrl: value.serverUrl });
     await this.settings.replace(editableConfig(next));
     if (this.switchServer !== void 0) {
-      if (next.serverUrl !== this.config.serverUrl) {
-        const runtimes = await this.switchServer(next);
-        this.client = runtimes.client;
-        this.host = runtimes.host;
+      if (next.serverUrl !== this.config.serverUrl || this.startupFailure !== void 0) {
+        try {
+          const runtimes = await this.switchServer(next);
+          this.client = runtimes.client;
+          this.host = runtimes.host;
+          this.clearStartupFailure();
+        } catch (error62) {
+          this.config = next;
+          this.setStartupFailure(error62);
+          throw error62;
+        }
       }
       this.config = next;
       return { ...await this.settingsView(), applies: "live" };
     }
     return this.settingsView();
+  }
+  async resetIdentity(payload) {
+    if (this.serverSwitchFlight !== void 0) {
+      throw new ClientModeError("SERVER_SWITCH_BUSY", "A Server switch is already in progress.");
+    }
+    const flight = this.applyResetIdentity(payload);
+    this.serverSwitchFlight = flight;
+    try {
+      return await flight;
+    } finally {
+      if (this.serverSwitchFlight === flight) this.serverSwitchFlight = void 0;
+    }
+  }
+  async applyResetIdentity(payload) {
+    await this.logoutFlight;
+    const value = payload === void 0 ? {} : record9(payload);
+    const roleArg = value.role === void 0 ? "all" : value.role;
+    if (roleArg !== "host" && roleArg !== "client" && roleArg !== "all") {
+      throw new ClientModeError("INVALID_MESSAGE", "Role must be host, client, or all.");
+    }
+    const roles = roleArg === "client" ? ["client"] : roleArg === "host" ? ["host"] : ["host", "client"];
+    const config2 = this.settings === void 0 ? this.config : resolveConfig(this.settings.get());
+    const nextDirectory = await resetDefaultIdentityRoles(
+      roles,
+      config2.serverUrl,
+      hostname4(),
+      this.useDefaultStorage ? {} : { directory: this.identityDirectory }
+    );
+    this.setIdentityDirectory(nextDirectory);
+    if (this.switchServer !== void 0) {
+      try {
+        const runtimes = await this.switchServer(config2);
+        this.client = runtimes.client;
+        this.host = runtimes.host;
+        this.config = config2;
+        this.clearStartupFailure();
+      } catch (error62) {
+        this.setStartupFailure(error62);
+        throw error62;
+      }
+      return { ...await this.settingsView(), applies: "live" };
+    }
+    this.clearStartupFailure();
+    return { ...await this.settingsView(), applies: "live" };
   }
   async setRole(payload) {
     if (this.settings === void 0) {
@@ -95771,6 +97600,7 @@ var PluginControlRuntime = class {
     }
     const current = editableConfig(resolveConfig(this.settings.get()));
     const currentRole = current.role === "client" ? "client" : "host";
+    if (role2 === "client" && this.host?.hostStatus?.()?.pairingHostOnly) throw new ClientModeError("DEVICE_SCOPE_REQUIRED", "This Host only accepts incoming Remote connections.");
     if (role2 !== currentRole && current.serverUrl !== void 0 && await this.association(current.serverUrl, role2) === void 0) {
       await this.authorizeOwnedRole(current.serverUrl, currentRole, role2);
     }
@@ -95935,14 +97765,20 @@ var PluginControlRuntime = class {
     };
   }
   async authorizeOwnedRole(serverUrl, sourceRole, targetRole) {
+    if (!this.storageAvailable && this.startupFailure instanceof Error) {
+      throw this.startupFailure;
+    }
     const sourceDirectory = serverStorageDirectory(this.identityDirectory, serverUrl, sourceRole);
-    const sourceIdentity = await new IdentityStore({ directory: sourceDirectory }).loadOrCreate(hostname4());
+    const sourceIdentity = await new IdentityStore({ directory: sourceDirectory, role: sourceRole }).loadOrCreate(hostname4());
     const sourceStore = new ServerCredentialStore(sourceDirectory);
     if (await sourceStore.load(serverUrl, sourceIdentity.deviceId) === void 0) return;
     const sourceApi = sourceRole === "host" ? new HostServerApi(serverUrl, sourceStore) : new ClientServerApi(serverUrl, sourceStore);
+    sourceApi.bindIdentity(sourceIdentity);
+    await sourceApi.loadStoredPolicy();
+    if (sourceApi.pairingHostOnly()) throw new ClientModeError("DEVICE_SCOPE_REQUIRED", "Paired Host cannot create a Client identity.");
     const sourceCredentials = await sourceApi.authenticate(sourceIdentity);
     const targetDirectory = serverStorageDirectory(this.identityDirectory, serverUrl, targetRole);
-    const targetIdentity = await new IdentityStore({ directory: targetDirectory }).loadOrCreate(hostname4());
+    const targetIdentity = await new IdentityStore({ directory: targetDirectory, role: targetRole }).loadOrCreate(hostname4());
     const targetApi = targetRole === "host" ? new HostServerApi(serverUrl, new ServerCredentialStore(targetDirectory)) : new ClientServerApi(serverUrl, new ServerCredentialStore(targetDirectory));
     await targetApi.authorizeOwnedRole(targetIdentity, sourceCredentials.accessToken, sourceCredentials.account);
   }
@@ -95956,6 +97792,9 @@ var PluginControlRuntime = class {
     return task;
   }
   async clearAuthorization() {
+    if (!this.storageAvailable && this.startupFailure instanceof Error) {
+      throw this.startupFailure;
+    }
     const config2 = this.settings === void 0 ? this.config : resolveConfig(this.settings.get());
     if (config2.serverUrl !== void 0) {
       const runtimes = await Promise.allSettled([
@@ -95983,11 +97822,14 @@ var PluginControlRuntime = class {
       applies: "restart",
       associations,
       acpAvailability: Object.fromEntries((config2.acp?.backends ?? []).map((item) => [item.id, backendCommandAvailable(item.id, item.command ?? "")])),
-      ...association === void 0 ? {} : { association }
+      ...association === void 0 ? {} : { association },
+      ...this.startupFailure === void 0 ? {} : {
+        startupError: safeStartupError(this.startupFailure)
+      }
     };
   }
   async associations(config2) {
-    if (config2.serverUrl === void 0) return {};
+    if (config2.serverUrl === void 0 || !this.storageAvailable) return {};
     const [host, client] = await Promise.all([
       this.association(config2.serverUrl, "host"),
       this.association(config2.serverUrl, "client")
@@ -95998,16 +97840,26 @@ var PluginControlRuntime = class {
     };
   }
   async association(serverUrl, role2) {
-    const identities = new IdentityStore({
-      directory: serverStorageDirectory(this.identityDirectory, serverUrl, role2)
-    });
-    const identity3 = await identities.loadOrCreate(hostname4());
-    const credentials = await new ServerCredentialStore(identities.directory).load(serverUrl, identity3.deviceId);
-    if (credentials === void 0) return void 0;
-    return {
-      method: credentials.authorizationMethod,
-      ...credentials.account === void 0 ? {} : { account: credentials.account }
-    };
+    if (role2 === "client" && this.host?.hostStatus?.()?.pairingHostOnly) return void 0;
+    try {
+      const identities = new IdentityStore({
+        directory: serverStorageDirectory(this.identityDirectory, serverUrl, role2),
+        role: role2
+      });
+      const identity3 = await identities.loadExisting();
+      if (identity3 === void 0) return void 0;
+      const credentials = await new ServerCredentialStore(identities.directory).load(serverUrl, identity3.deviceId);
+      if (credentials === void 0) return void 0;
+      return {
+        method: credentials.authorizationMethod,
+        ...credentials.account === void 0 ? {} : { account: credentials.account }
+      };
+    } catch (error62) {
+      if (error62 instanceof IdentityInvalidError || error62 instanceof ServerCredentialsInvalidError) {
+        return void 0;
+      }
+      throw error62;
+    }
   }
   hostOnlyStatus() {
     return {
@@ -96065,18 +97917,18 @@ function editableConfig(config2) {
     ...config2.acp === void 0 ? {} : { acp: { enabled: config2.acp.enabled, backends: config2.acp.backends } }
   };
 }
-function isRecord19(value) {
+function isRecord20(value) {
   return typeof value === "object" && value !== null && !Array.isArray(value);
 }
 function record9(value) {
-  if (!isRecord19(value)) throw new ClientModeError("INVALID_MESSAGE", "The control request payload is invalid.");
+  if (!isRecord20(value)) throw new ClientModeError("INVALID_MESSAGE", "The control request payload is invalid.");
   return value;
 }
 function ok3(value) {
   return { ok: true, value };
 }
 function withUpdate(result, update) {
-  if (update === void 0 || !result.ok || !isRecord19(result.value)) return result;
+  if (update === void 0 || !result.ok || !isRecord20(result.value)) return result;
   return ok3({ ...result.value, update });
 }
 function fail5(error62) {
@@ -96092,7 +97944,7 @@ function fail5(error62) {
   };
 }
 
-// src/logging.ts
+// packages/plugin/src/logging.ts
 var levels = ["debug", "info", "warn", "error"];
 var secretKey = /authorization|cookie|token|secret|private|shared|ciphertext|payload|prompt|source|workspace|output|registrationCode|deviceCode/i;
 var SafeLogger = class {
@@ -96126,11 +97978,239 @@ function redact(value, key = "") {
   return Object.fromEntries(Object.entries(value).map(([childKey, child]) => [childKey, redact(child, childKey)]));
 }
 
-// src/workspace-upload.ts
+// packages/plugin/src/host-pairing.ts
+import { createHash as createHash7, createHmac as createHmac6, createPrivateKey as createPrivateKey4, createPublicKey as createPublicKey2, diffieHellman as diffieHellman2, hkdfSync, randomBytes as randomBytes13, createCipheriv as createCipheriv5, createDecipheriv as createDecipheriv4 } from "node:crypto";
+import { join as join14 } from "node:path";
+import { rm as rm4 } from "node:fs/promises";
+var root = "/api/v1/device-pairing/sessions";
+var active = /* @__PURE__ */ new Set(["created", "claimed", "approved"]);
+function rawKey(text) {
+  const bytes = Buffer.from(text, "base64url");
+  if (bytes.length !== 32 || bytes.toString("base64url") !== text)
+    throw new ServerApiError("PAIRING_IDENTITY_INVALID", "Invalid pairing key.", false);
+  return bytes;
+}
+function pairingProof(privateKey, serverKey, id6, path, raw, side = "host") {
+  const local = createPrivateKey4({ key: Buffer.concat([Buffer.from("302e020100300506032b656e04220420", "hex"), rawKey(privateKey)]), format: "der", type: "pkcs8" });
+  const peer = createPublicKey2({ key: Buffer.concat([Buffer.from("302a300506032b656e032100", "hex"), rawKey(serverKey)]), format: "der", type: "spki" });
+  const shared = diffieHellman2({ privateKey: local, publicKey: peer });
+  const key = Buffer.from(hkdfSync("sha256", shared, Buffer.from(id6), Buffer.from("dsh-pairing-v1/" + side), 32));
+  try {
+    return createHmac6("sha256", key).update(`POST
+${path}
+${createHash7("sha256").update(raw).digest("hex")}`).digest("base64url");
+  } finally {
+    shared.fill(0);
+    key.fill(0);
+  }
+}
+var fullFingerprint = (key) => createHash7("sha256").update(rawKey(key)).digest("hex");
+var HostPairing = class {
+  constructor(serverUrl, directory, identity3, descriptor, adopt, fetcher = fetch) {
+    this.identity = identity3;
+    this.descriptor = descriptor;
+    this.adopt = adopt;
+    this.fetcher = fetcher;
+    this.serverUrl = normalizeServerUrl(serverUrl);
+    this.path = join14(directory, "host-pairing.json");
+  }
+  path;
+  serverUrl;
+  lifetime = new AbortController();
+  queue = Promise.resolve();
+  close() {
+    this.lifetime.abort();
+  }
+  async discard() {
+    this.close();
+    await this.queue.catch(() => void 0);
+    await rm4(this.path, { force: true });
+  }
+  serial(fn) {
+    const task = this.queue.catch(() => void 0).then(fn);
+    this.queue = task;
+    return task;
+  }
+  start() {
+    return this.serial(async () => {
+      const old = await this.load();
+      if (old) {
+        const status2 = await this.poll(old);
+        if (active.has(status2.state))
+          await this.send(old, "host/cancel", "{}");
+      }
+      const discovery = await this.request("/api/v1/auth/oauth/providers", void 0, void 0, "GET");
+      const compactQr = discovery.capabilities?.devicePairingQr === "fragment-ticket-v1";
+      const session2 = pairingCreatedSchema.parse(await this.request(root, JSON.stringify({ v: 1, device: this.descriptor })));
+      this.assertHost(session2.host);
+      if (session2.expiresAt <= Date.now() || session2.expiresAt > Date.now() + 24e4)
+        throw new ServerApiError("INVALID_MESSAGE", "Invalid pairing expiry.", false);
+      const saved = { serverUrl: this.serverUrl, deviceId: this.identity.deviceId, session: session2, state: "created", localSaved: false, ...compactQr ? { qrFormat: "fragment-ticket-v1" } : {} };
+      await this.save(saved);
+      return this.view(saved);
+    });
+  }
+  status() {
+    return this.serial(async () => {
+      const saved = await this.load();
+      return saved ? this.poll(saved) : void 0;
+    });
+  }
+  confirm(id6, code) {
+    return this.serial(async () => {
+      const saved = await this.requireSession(id6);
+      let raw;
+      if (saved.submission !== void 0) {
+        if (code !== void 0)
+          throw new ServerApiError("PAIRING_ATTEMPT_USED", "Recover the original submission without changing the code.", false);
+        raw = this.crypt(saved.submission, id6, false);
+      } else {
+        if (saved.state !== "claimed" || typeof code !== "string" || !/^[0-9]{8}$/.test(code))
+          throw new ServerApiError("INVALID_MESSAGE", "Confirm on the phone and enter 8 digits.", false);
+        raw = JSON.stringify({ submissionId: uuidV7(), verificationCode: code });
+        saved.submission = this.crypt(raw, id6, true);
+        await this.save(saved);
+      }
+      return this.accept(saved, await this.send(saved, "host/confirm", raw));
+    });
+  }
+  cancel(id6) {
+    return this.serial(async () => {
+      const s = await this.requireSession(id6);
+      return this.accept(s, await this.send(s, "host/cancel", "{}"));
+    });
+  }
+  async load() {
+    const value = await readPrivateJson(this.path);
+    if (value === void 0)
+      return void 0;
+    const s = savedPairingSchema.parse(value);
+    if (s.serverUrl !== this.serverUrl || s.deviceId !== this.identity.deviceId)
+      throw new ServerApiError("PAIRING_IDENTITY_INVALID", "Pairing belongs to another identity.", false);
+    if (s.session.expiresAt + 3e5 <= Date.now()) {
+      await rm4(this.path, { force: true });
+      return void 0;
+    }
+    return s;
+  }
+  async requireSession(id6) {
+    const s = await this.load();
+    if (!s || s.session.sessionId !== id6)
+      throw new ServerApiError("PAIRING_CLOSED", "This pairing was replaced or expired.", false);
+    return s;
+  }
+  save(s) {
+    return atomicWritePrivate(this.path, JSON.stringify(s));
+  }
+  async poll(s) {
+    try {
+      return await this.accept(s, await this.send(s, "host/status", "{}"));
+    } catch (e) {
+      if (!(e instanceof ServerApiError) || e.status !== 404)
+        throw e;
+      s.state = "expired";
+      delete s.submission;
+      await this.save(s);
+      return this.view(s);
+    }
+  }
+  assertHost(d) {
+    if (d.deviceId !== this.identity.deviceId || d.role !== "host" || d.identityKey !== this.identity.publicKey)
+      throw new ServerApiError("PAIRING_IDENTITY_INVALID", "Host identity changed.", false);
+  }
+  async accept(s, value) {
+    this.lifetime.signal.throwIfAborted();
+    const r = pairingStatusSchema.parse(value);
+    if (r.sessionId !== s.session.sessionId || r.expiresAt !== s.session.expiresAt)
+      throw new ServerApiError("INVALID_MESSAGE", "Pairing session changed.", false);
+    this.assertHost(r.host);
+    if (r.mobile) {
+      if (r.mobile.role !== "client" || r.mobile.deviceId === this.identity.deviceId || r.mobile.identityKey === this.identity.publicKey || s.mobile && (s.mobile.deviceId !== r.mobile.deviceId || s.mobile.identityKey !== r.mobile.identityKey))
+        throw new ServerApiError("PAIRING_DEVICE_CONFLICT", "Phone identity changed.", false);
+      s.mobile = r.mobile;
+    }
+    if (r.state === "completed") {
+      if (!r.credentials)
+        throw new ServerApiError("INVALID_MESSAGE", "Missing Host credentials.", false);
+      this.assertHost(r.credentials.device);
+      if (r.credentials.pairingRestricted && !r.credentials.inboundOnly)
+        throw new ServerApiError("DEVICE_SCOPE_REQUIRED", "Paired Host must remain inbound only.", false);
+      if (!s.localSaved) {
+        await this.adopt(r.credentials);
+        s.localSaved = true;
+      }
+    }
+    s.state = r.state;
+    if (!active.has(s.state))
+      delete s.submission;
+    await this.save(s);
+    return this.view(s, r.failureReason);
+  }
+  view(s, reason) {
+    return {
+      sessionId: s.session.sessionId,
+      state: s.state,
+      expiresAt: s.session.expiresAt,
+      serverUrl: this.serverUrl,
+      hostFingerprint: fullFingerprint(this.identity.publicKey),
+      ...s.state === "created" ? { qrPayload: s.qrFormat === "fragment-ticket-v1" ? `${this.serverUrl}/pair#v1.${s.session.scanSecret}` : JSON.stringify({ type: "dsh.remote.pairing", ...s.session, serverUrl: this.serverUrl }) } : {},
+      ...s.mobile ? { mobile: { deviceId: s.mobile.deviceId, name: s.mobile.name, fingerprint: fullFingerprint(s.mobile.identityKey) } } : {},
+      ...reason ? { failureReason: reason } : {},
+      canRetry: s.submission !== void 0 && active.has(s.state),
+      localSaved: s.localSaved
+    };
+  }
+  send(s, action, raw) {
+    const path = `${root}/${s.session.sessionId}/${action}`;
+    return this.request(path, raw, pairingProof(this.identity.privateKey, s.session.serverPublicKey, s.session.sessionId, path, raw));
+  }
+  async request(path, body, proof, method = "POST") {
+    try {
+      const response = await this.fetcher(this.serverUrl + path, { method, redirect: "error", headers: { "Content-Type": "application/json", ...proof ? { "X-DSH-Pairing-Proof": proof } : {} }, body, signal: AbortSignal.any([this.lifetime.signal, AbortSignal.timeout(1e4)]) });
+      if (response.status === 404 && method === "GET" && path === "/api/v1/auth/oauth/providers") return {};
+      if (response.status === 404 && path === root)
+        throw new ServerApiError("PAIRING_UNSUPPORTED", "This Server does not support pairing.", false);
+      const text = await response.text();
+      if (text.length > 32768)
+        throw new Error("oversized response");
+      const value = JSON.parse(text);
+      if (!response.ok) {
+        const code = value.error?.code;
+        throw new ServerApiError(typeof code === "string" && /^[A-Z_]{1,80}$/.test(code) ? code : "PAIRING_REQUEST_FAILED", "Pairing failed; recover the original submission if sent.", response.status >= 500 || response.status === 429, response.status);
+      }
+      return value;
+    } catch (e) {
+      if (e instanceof ServerApiError)
+        throw e;
+      throw new ServerApiError("PAIRING_CONNECTION_FAILED", "Pairing result is unknown. Recover the original submission.", true);
+    }
+  }
+  crypt(value, id6, encrypt) {
+    const key = createHash7("sha256").update("dsh-pairing-host-submission-v1\0").update(rawKey(this.identity.privateKey)).digest();
+    try {
+      if (encrypt) {
+        const iv = randomBytes13(12);
+        const c2 = createCipheriv5("aes-256-gcm", key, iv);
+        c2.setAAD(Buffer.from(id6));
+        const data2 = Buffer.concat([c2.update(value, "utf8"), c2.final()]);
+        return Buffer.concat([iv, c2.getAuthTag(), data2]).toString("base64url");
+      }
+      const b = Buffer.from(value, "base64url");
+      const c = createDecipheriv4("aes-256-gcm", key, b.subarray(0, 12));
+      c.setAAD(Buffer.from(id6));
+      c.setAuthTag(b.subarray(12, 28));
+      return Buffer.concat([c.update(b.subarray(28)), c.final()]).toString("utf8");
+    } finally {
+      key.fill(0);
+    }
+  }
+};
+
+// packages/plugin/src/workspace-upload.ts
 import { randomUUID as randomUUID16 } from "node:crypto";
 import { constants as constants6 } from "node:fs";
 import { link, lstat as lstat3, open as open5, realpath as realpath6, stat as stat6, unlink as unlink2 } from "node:fs/promises";
-import { extname, isAbsolute as isAbsolute8, join as join14 } from "node:path";
+import { extname, isAbsolute as isAbsolute8, join as join15 } from "node:path";
 var WORKSPACE_UPLOAD_BYTES = 20 * 1024 * 1024;
 var WORKSPACE_UPLOAD_CHUNK = 64 * 1024;
 var scope = external_exports.object({ sessionId: external_exports.string().min(1).max(512), uploadId: external_exports.string().uuid() }).strict();
@@ -96206,12 +98286,12 @@ var WorkspaceUploadHost = class {
     const sourceRoot = await this.sessionRoot(p.sessionId);
     this.assertLive();
     if (!sourceRoot || !isAbsolute8(sourceRoot)) throw failure4("UPLOAD_WORKSPACE_UNAVAILABLE");
-    const root = await realpath6(sourceRoot);
-    const directory = await stat6(root);
+    const root2 = await realpath6(sourceRoot);
+    const directory = await stat6(root2);
     if (!directory.isDirectory()) throw failure4("UPLOAD_WORKSPACE_UNAVAILABLE");
-    const temp = join14(root, `.dsh-upload-${randomUUID16()}.part`);
+    const temp = join15(root2, `.dsh-upload-${randomUUID16()}.part`);
     const handle = await open5(temp, constants6.O_CREAT | constants6.O_EXCL | constants6.O_RDWR | (constants6.O_NOFOLLOW ?? 0), 384);
-    const upload = { ...p, received: 0, touched: Date.now(), root, sourceRoot, dev: directory.dev, ino: directory.ino, temp, handle };
+    const upload = { ...p, received: 0, touched: Date.now(), root: root2, sourceRoot, dev: directory.dev, ino: directory.ino, temp, handle };
     this.uploads.set(p.uploadId, upload);
     await this.validateRoot(upload);
     return { uploadId: p.uploadId, chunkBytes: WORKSPACE_UPLOAD_CHUNK };
@@ -96253,7 +98333,7 @@ var WorkspaceUploadHost = class {
       await this.validateRoot(upload);
       const name2 = suffix === 0 ? upload.name : `${stem} (${suffix})${extension2}`;
       try {
-        await link(upload.temp, join14(upload.root, name2));
+        await link(upload.temp, join15(upload.root, name2));
       } catch (error62) {
         if (error62.code === "EEXIST") continue;
         throw error62;
@@ -96304,9 +98384,9 @@ var WorkspaceUploadHost = class {
     const original = await upload.handle.stat().catch(() => void 0);
     await upload.handle.close().catch(() => void 0);
     try {
-      const root = await lstat3(upload.root);
+      const root2 = await lstat3(upload.root);
       const temp = await lstat3(upload.temp);
-      if (original && root.isDirectory() && root.dev === upload.dev && root.ino === upload.ino && temp.isFile() && temp.dev === original.dev && temp.ino === original.ino) await unlink2(upload.temp);
+      if (original && root2.isDirectory() && root2.dev === upload.dev && root2.ino === upload.ino && temp.isFile() && temp.dev === original.dev && temp.ino === original.ino) await unlink2(upload.temp);
     } catch {
     }
   }
@@ -96323,7 +98403,7 @@ function validName(name2) {
   return Buffer.byteLength(name2, "utf8") <= 220 && name2 !== "." && name2 !== ".." && !/[/\\\x00-\x1f\x7f<>:"|?*]/u.test(name2) && !/[. ]$/u.test(name2) && !/^(con|prn|aux|nul|com[1-9]|lpt[1-9])(?:\.|$)/iu.test(name2) && !name2.startsWith(".dsh-upload-");
 }
 
-// src/workspace-upload-authority.ts
+// packages/plugin/src/workspace-upload-authority.ts
 function workspaceUploadRootResolver(gateway, supportsHarnessSessions, codex, acp) {
   return async (sessionId, signal) => {
     signal.throwIfAborted();
@@ -96344,7 +98424,7 @@ function unavailable2() {
   return new RpcError("UPLOAD_WORKSPACE_UNAVAILABLE", "The session workspace is unavailable.");
 }
 
-// src/connection-controller.ts
+// packages/plugin/src/connection-controller.ts
 var ConnectionController = class {
   constructor(identities, createRouter, logger2) {
     this.identities = identities;
@@ -96542,9 +98622,9 @@ function diagnosticReason2(error62) {
   return message.replace(/\s+/g, " ").slice(0, 160) || "Unknown peer connection failure.";
 }
 function extractEndpoint(message) {
-  if (!isRecord20(message) || !isRecord20(message.payload)) return void 0;
+  if (!isRecord21(message) || !isRecord21(message.payload)) return void 0;
   const payload = message.payload;
-  if (isRecord20(payload.params)) {
+  if (isRecord21(payload.params)) {
     if (typeof payload.params.endpoint === "string") return payload.params.endpoint;
     if (typeof payload.params.method === "string") return payload.params.method;
   }
@@ -96552,14 +98632,14 @@ function extractEndpoint(message) {
   if (typeof payload.method === "string") return payload.method;
   return void 0;
 }
-function isRecord20(value) {
+function isRecord21(value) {
   return typeof value === "object" && value !== null && !Array.isArray(value);
 }
 function shortId2(value) {
   return value.length <= 12 ? value : `${value.slice(0, 8)}\u2026${value.slice(-4)}`;
 }
 
-// src/rpc-router.ts
+// packages/plugin/src/rpc-router.ts
 var wireRequestSchema = external_exports.object({ method: external_exports.string().min(1), params: external_exports.unknown() }).strict();
 var emptyParamsSchema = external_exports.object({}).strict();
 var historyConfigureSchema = external_exports.object({ compact: external_exports.boolean() }).strict();
@@ -96812,12 +98892,12 @@ function errorResponse2(requestId, error62) {
   );
 }
 
-// src/file-viewer-contract.ts
+// packages/plugin/src/file-viewer-contract.ts
 var REMOTE_FILE_CHUNK_BYTES = 512 * 1024;
 var MAX_REMOTE_FILE_LOCATOR_CHARS = 4096;
 var MAX_REMOTE_DIRECTORY_ENTRIES = 1e3;
 
-// src/file-viewer-bridge.ts
+// packages/plugin/src/file-viewer-bridge.ts
 var locatorSchema = external_exports.string().min(1).max(MAX_REMOTE_FILE_LOCATOR_CHARS);
 var callSchema2 = external_exports.discriminatedUnion("endpoint", [
   external_exports.object({
@@ -96932,7 +99012,7 @@ function isOversizedListing(value) {
   return typeof value === "object" && value !== null && "entries" in value && Array.isArray(value.entries) && value.entries.length > MAX_REMOTE_DIRECTORY_ENTRIES;
 }
 
-// src/server-connection.ts
+// packages/plugin/src/server-connection.ts
 var DEFAULT_WEBRTC_NEGOTIATE_TIMEOUT_MS = 12e3;
 var HostServerConnection = class {
   constructor(config2, identity3, identities, api, connections, logger2, createWebSocket = (url2) => new WebSocket(url2), rtcFactoryProvider, hostCapabilities = () => [], harnessVersion) {
@@ -96948,6 +99028,7 @@ var HostServerConnection = class {
     this.harnessVersion = harnessVersion;
   }
   socket;
+  forceCloseSocket;
   running;
   stopped = true;
   online = false;
@@ -96961,6 +99042,7 @@ var HostServerConnection = class {
   rtcFactory;
   negotiatedCapabilities = ["transport.relay"];
   controlFrameLimits = {};
+  heartbeatIntervalMs = DEFAULT_HEARTBEAT_INTERVAL_MS;
   webRtcNegotiateTimeoutMs = DEFAULT_WEBRTC_NEGOTIATE_TIMEOUT_MS;
   start() {
     if (this.running !== void 0) return;
@@ -96976,6 +99058,7 @@ var HostServerConnection = class {
       this.start();
       return;
     }
+    this.retryWake?.();
     if (this.resumeQueued) return;
     this.resumeQueued = true;
     void this.running.finally(() => {
@@ -96989,7 +99072,8 @@ var HostServerConnection = class {
     this.retryWake?.();
     this.retryWake = void 0;
     for (const tunnel of this.tunnels.values()) this.notifyTunnelClosed(tunnel);
-    this.socket?.close(1e3, "plugin stopped");
+    if (this.forceCloseSocket) this.forceCloseSocket(1e3, "plugin stopped");
+    else this.socket?.close(1e3, "plugin stopped");
     await this.running;
     await this.dropTunnels();
   }
@@ -97021,7 +99105,8 @@ var HostServerConnection = class {
     }
     this.reconnectRequested = true;
     this.retryWake?.();
-    this.socket?.close(4e3, "manual reconnect");
+    if (this.forceCloseSocket) this.forceCloseSocket(4e3, "manual reconnect");
+    else this.socket?.close(4e3, "manual reconnect");
     void this.running.finally(() => {
       if (!this.reconnectRequested || this.stopped) return;
       this.reconnectRequested = false;
@@ -97085,25 +99170,186 @@ var HostServerConnection = class {
     const socket = this.createWebSocket(websocketUrl2(this.api.baseUrl));
     this.socket = socket;
     this.controlFrameLimits = {};
+    this.heartbeatIntervalMs = DEFAULT_HEARTBEAT_INTERVAL_MS;
     let acknowledged = false;
     let retainOnClose = false;
     let invalidControl = false;
+    let socketError;
     let messageQueue = Promise.resolve();
     await new Promise((resolve9, reject) => {
       let settled = false;
+      let closing = false;
+      let upgradeTimer;
       let helloTimer;
+      let refreshTimer;
+      let livenessTimer;
+      const clearLiveness = () => {
+        if (livenessTimer === void 0) return;
+        clearTimeout(livenessTimer);
+        livenessTimer = void 0;
+      };
       const finish = (error62) => {
         if (settled) return;
         settled = true;
+        if (upgradeTimer !== void 0) clearTimeout(upgradeTimer);
         if (helloTimer !== void 0) clearTimeout(helloTimer);
+        if (refreshTimer !== void 0) clearTimeout(refreshTimer);
+        clearLiveness();
         this.online = false;
-        if (this.socket === socket) this.socket = void 0;
+        socket.onopen = socket.readyState === 0 ? () => {
+          socket.onopen = null;
+          try {
+            socket.close(1e3, "connection abandoned");
+          } catch {
+          }
+          ;
+          socket.terminate?.();
+        } : null;
+        socket.onmessage = null;
+        socket.onerror = () => void 0;
+        socket.onclose = () => {
+          socket.onopen = null;
+          socket.onerror = null;
+          socket.onclose = null;
+        };
+        if (this.socket === socket) {
+          this.socket = void 0;
+          this.forceCloseSocket = void 0;
+        }
         const preserve = this.config.reconnect.enabled && !this.stopped && !this.reconnectRequested && (error62 === void 0 ? retainOnClose : isRetryable(error62)) && !invalidControl && !TERMINAL_AUTH_ERRORS.has(this.terminalError ?? "") && [...this.tunnels.values()].some((tunnel) => tunnel.lease?.canDetach());
         const cleanup = preserve ? Promise.all([...this.tunnels.values()].filter((tunnel) => !tunnel.lease?.canDetach()).map((tunnel) => this.dropTunnel(tunnel.connectionId))) : this.dropTunnels();
-        void cleanup.finally(() => error62 === void 0 ? resolve9() : reject(error62));
+        void cleanup.catch(() => void 0).finally(() => error62 === void 0 ? resolve9() : reject(error62));
       };
+      let forceDrainWake;
+      const handleClose = (event, forced = false) => {
+        if (settled || this.socket !== socket) return;
+        if (closing) {
+          if (forced) {
+            forceDrainWake?.();
+            if (this.stopped || this.reconnectRequested) finish();
+          }
+          return;
+        }
+        closing = true;
+        clearLiveness();
+        const closeSemantics = classifyControlClose(event.code, event.reason);
+        retainOnClose = [1e3, 1001, 4007].includes(event.code) || closeSemantics.retryable && !closeSemantics.replaced;
+        const close = async () => {
+          if (!forced) {
+            let drainTimer;
+            await Promise.race([
+              messageQueue.catch(() => void 0),
+              new Promise((resolve10) => {
+                forceDrainWake = resolve10;
+                drainTimer = setTimeout(resolve10, 50);
+              })
+            ]);
+            if (drainTimer !== void 0) clearTimeout(drainTimer);
+          }
+          forceDrainWake = void 0;
+          if (settled) return;
+          if (this.stopped) {
+            finish();
+            return;
+          }
+          if (event.code === 4003 || event.reason === "CONNECTION_REPLACED" || socketError === "CONNECTION_REPLACED") {
+            finish(new ControlConnectionError("CONNECTION_REPLACED", "Another instance connected with this Host identity."));
+            return;
+          }
+          if (event.code === 4004 || event.reason === "DEVICE_REVOKED" || socketError === "DEVICE_REVOKED" || this.terminalError === "DEVICE_REVOKED") {
+            finish(new ControlConnectionError("DEVICE_REVOKED", "The Server revoked this Host device."));
+            return;
+          }
+          if (event.code === 4011 || event.reason === "UNSUPPORTED_VERSION" || socketError === "UNSUPPORTED_VERSION" || this.terminalError === "UNSUPPORTED_VERSION") {
+            finish(new ControlConnectionError("UNSUPPORTED_VERSION", "The Server does not support the Remote protocol version."));
+            return;
+          }
+          if (!acknowledged && recoveryTickets.length && ([4008, 4012].includes(event.code) || event.code === 4002 && event.reason === "recovery authorization rejected")) {
+            await this.dropTunnels();
+            if (settled) return;
+            finish(new ControlConnectionError("CREDENTIALS_REFRESHED", "Retry control without recovery state."));
+            return;
+          }
+          const isAuthRejection = event.code === 4002 || socketError === "AUTH_INVALID" || socketError === "TOKEN_EXPIRED" || event.code === 4001 && (event.reason === "AUTH_INVALID" || event.reason === "TOKEN_EXPIRED");
+          if (isAuthRejection) {
+            if (this.authRecoveryAttempted) {
+              finish(new ControlConnectionError("AUTH_INVALID", "Server rejected refreshed credentials."));
+              return;
+            }
+            this.terminalError = void 0;
+            try {
+              await Promise.race([
+                this.api.refreshCredentials(credentials.accessToken),
+                new Promise((_, rejectRefresh) => {
+                  refreshTimer = setTimeout(
+                    () => rejectRefresh(new ControlConnectionError("CONNECTION_FAILED", "Credential refresh timed out.")),
+                    15e3
+                  );
+                })
+              ]);
+            } catch (error62) {
+              if (refreshTimer !== void 0) {
+                clearTimeout(refreshTimer);
+                refreshTimer = void 0;
+              }
+              if (settled) return;
+              finish(asError2(error62));
+              return;
+            }
+            if (refreshTimer !== void 0) {
+              clearTimeout(refreshTimer);
+              refreshTimer = void 0;
+            }
+            if (settled) return;
+            this.authRecoveryAttempted = true;
+            this.terminalError = void 0;
+            finish(new ControlConnectionError("CREDENTIALS_REFRESHED", "Retry hello with refreshed credentials."));
+            return;
+          }
+          const finalCode = socketError ?? closeCode(event.code);
+          if (acknowledged && this.terminalError === void 0) this.terminalError = finalCode;
+          finish(acknowledged ? void 0 : new ControlConnectionError(finalCode, event.reason || "Server control connection closed."));
+        };
+        void close();
+      };
+      const closeSocket = (code, reason) => {
+        try {
+          socket.close(code, reason);
+        } catch {
+          try {
+            socket.close(1e3, reason);
+          } catch {
+          }
+        }
+        ;
+        socket.terminate?.();
+        handleClose({ code, reason }, true);
+      };
+      this.forceCloseSocket = closeSocket;
+      const armLiveness = () => {
+        clearLiveness();
+        const timeoutMs = Math.max(15e3, this.heartbeatIntervalMs * 3);
+        livenessTimer = setTimeout(() => {
+          livenessTimer = void 0;
+          if (this.stopped || settled || closing || this.socket !== socket) return;
+          const silentMs = this.lastActiveAt === void 0 ? timeoutMs : Math.max(0, Date.now() - this.lastActiveAt);
+          this.logger.warn("server control heartbeat timeout; reconnecting", {
+            silentMs,
+            heartbeatIntervalMs: this.heartbeatIntervalMs
+          });
+          closeSocket(4009, "heartbeat timeout");
+        }, timeoutMs);
+        livenessTimer.unref?.();
+      };
+      upgradeTimer = setTimeout(() => closeSocket(4001, "upgrade timeout"), 3e4);
+      upgradeTimer.unref?.();
       socket.onopen = () => {
-        helloTimer = setTimeout(() => socket.close(4001, "hello timeout"), 1e4);
+        if (settled || closing || this.socket !== socket) return;
+        if (upgradeTimer !== void 0) {
+          clearTimeout(upgradeTimer);
+          upgradeTimer = void 0;
+        }
+        helloTimer = setTimeout(() => closeSocket(4001, "hello timeout"), 1e4);
         this.sendControl("hello", {
           role: "host",
           deviceId: this.identity.deviceId,
@@ -97116,13 +99362,28 @@ var HostServerConnection = class {
         });
       };
       socket.onmessage = (event) => {
-        if (this.socket !== socket) return;
+        if (settled || closing || this.socket !== socket) return;
+        try {
+          const preview = decodeControl(event.data, this.controlFrameLimits);
+          if (preview.type === "error") {
+            const payload = requireControlError(preview.payload);
+            if (payload.code === "DEVICE_REVOKED" || payload.connectionId === void 0) {
+              socketError = payload.code;
+              if (payload.code !== "AUTH_INVALID" && payload.code !== "TOKEN_EXPIRED") {
+                this.terminalError = payload.code;
+              }
+            }
+          }
+        } catch {
+        }
         messageQueue = messageQueue.then(async () => {
-          if (this.socket !== socket) return;
+          if (settled || this.socket !== socket) return;
           const frame = decodeControl(event.data, this.controlFrameLimits);
           this.lastActiveAt = Date.now();
+          if (acknowledged) armLiveness();
           if (frame.type === "hello.ack") {
             const payload = requireHelloAck(frame.payload);
+            this.heartbeatIntervalMs = payload.heartbeatIntervalMs;
             this.webRtcNegotiateTimeoutMs = Math.max(
               DEFAULT_WEBRTC_NEGOTIATE_TIMEOUT_MS,
               payload.webrtcFallbackTimeoutMs ?? DEFAULT_WEBRTC_NEGOTIATE_TIMEOUT_MS
@@ -97138,6 +99399,7 @@ var HostServerConnection = class {
             }
             acknowledged = true;
             clearTimeout(helloTimer);
+            armLiveness();
             if (this.rtcFactory === void 0 && this.rtcFactoryProvider !== void 0 && !this.config.forceRelay) {
               void this.rtcFactoryProvider().then((factory) => {
                 if (factory !== void 0) this.rtcFactory ??= factory;
@@ -97156,9 +99418,13 @@ var HostServerConnection = class {
             for (const tunnel of this.tunnels.values()) tunnel.lease?.tick(true);
             return;
           }
-          if (!acknowledged) throw new ControlConnectionError("INVALID_MESSAGE", "Server sent a frame before hello.ack.");
+          if (!acknowledged && (frame.type !== "error" || requireControlError(frame.payload).connectionId !== void 0)) {
+            throw new ControlConnectionError("INVALID_MESSAGE", "Server sent a frame before hello.ack.");
+          }
           await this.handleFrame(frame);
+          if (!acknowledged && !closing) closeSocket(4001, socketError ?? "hello rejected");
         }).catch((error62) => {
+          if (settled || this.socket !== socket) return;
           invalidControl = true;
           const code = errorCode4(error62);
           this.terminalError = code;
@@ -97166,58 +99432,14 @@ var HostServerConnection = class {
             code,
             reason: diagnosticReason3(error62)
           });
-          socket.close(4008, "invalid control frame");
+          closeSocket(4008, "invalid control frame");
         });
       };
       socket.onerror = () => {
         if (!acknowledged) finish(new ControlConnectionError("CONNECTION_FAILED", "Unable to open the Server WebSocket."));
       };
       socket.onclose = (event) => {
-        if (this.socket !== socket) return;
-        const closeSemantics = classifyControlClose(event.code, event.reason);
-        retainOnClose = [1e3, 1001, 4007].includes(event.code) || closeSemantics.retryable && !closeSemantics.replaced;
-        const close = async () => {
-          await messageQueue.catch(() => void 0);
-          if (this.stopped) {
-            finish();
-            return;
-          }
-          if (event.code === 4003) {
-            finish(new ControlConnectionError("CONNECTION_REPLACED", "Another instance connected with this Host identity."));
-            return;
-          }
-          if (!acknowledged && recoveryTickets.length && ([4008, 4012].includes(event.code) || event.code === 4002 && event.reason === "recovery authorization rejected")) {
-            await this.dropTunnels();
-            finish(new ControlConnectionError("CREDENTIALS_REFRESHED", "Retry control without recovery state."));
-            return;
-          }
-          if (event.code === 4002) {
-            if (this.authRecoveryAttempted) {
-              finish(new ControlConnectionError("AUTH_INVALID", "Server rejected refreshed credentials."));
-              return;
-            }
-            try {
-              await this.api.refreshCredentials(credentials.accessToken);
-            } catch (error62) {
-              finish(asError2(error62));
-              return;
-            }
-            this.authRecoveryAttempted = true;
-            finish(new ControlConnectionError("CREDENTIALS_REFRESHED", "Retry hello with refreshed credentials."));
-            return;
-          }
-          if (event.code === 4004) {
-            finish(new ControlConnectionError("DEVICE_REVOKED", "The Server revoked this Host device."));
-            return;
-          }
-          if (event.code === 4011) {
-            finish(new ControlConnectionError("UNSUPPORTED_VERSION", "The Server does not support the Remote protocol version."));
-            return;
-          }
-          if (acknowledged) this.terminalError = closeCode(event.code);
-          finish(acknowledged ? void 0 : new ControlConnectionError(closeCode(event.code), event.reason || "Server control connection closed."));
-        };
-        void close();
+        handleClose(event);
       };
     });
   }
@@ -97271,7 +99493,8 @@ var HostServerConnection = class {
       const payload = requireControlError(frame.payload);
       if (payload.code === "DEVICE_REVOKED") {
         this.terminalError = payload.code;
-        this.socket?.close(4004, "device revoked");
+        if (this.forceCloseSocket) this.forceCloseSocket(4004, "device revoked");
+        else this.socket?.close(4004, "device revoked");
       } else if (payload.connectionId !== void 0) {
         await this.dropTunnel(payload.connectionId, payload.code, {
           closedBy: "server",
@@ -97284,6 +99507,20 @@ var HostServerConnection = class {
         };
         if (payload.retryable) this.logger.info("server closed a remote connection", fields);
         else this.logger.warn("server closed a remote connection", fields);
+      } else if (payload.code === "AUTH_INVALID" || payload.code === "TOKEN_EXPIRED") {
+        this.logger.warn("server returned a control error", { code: payload.code, retryable: payload.retryable });
+        if (this.forceCloseSocket) this.forceCloseSocket(4002, payload.code);
+        else this.socket?.close(4002, payload.code);
+      } else if (payload.code === "UNSUPPORTED_VERSION") {
+        this.terminalError = payload.code;
+        this.logger.warn("server returned a control error", { code: payload.code, retryable: payload.retryable });
+        if (this.forceCloseSocket) this.forceCloseSocket(4011, "unsupported version");
+        else this.socket?.close(4011, "unsupported version");
+      } else if (payload.code === "CONNECTION_REPLACED") {
+        this.terminalError = payload.code;
+        this.logger.warn("server returned a control error", { code: payload.code, retryable: payload.retryable });
+        if (this.forceCloseSocket) this.forceCloseSocket(4003, "connection replaced");
+        else this.socket?.close(4003, "connection replaced");
       } else {
         this.terminalError = payload.code;
         this.logger.warn("server returned a control error", { code: payload.code, retryable: payload.retryable });
@@ -97293,10 +99530,12 @@ var HostServerConnection = class {
     throw new ControlConnectionError("INVALID_MESSAGE", `Unexpected Server control frame: ${frame.type}`);
   }
   async handleConnectIncoming(payload) {
+    const sourceSocket = this.socket;
     let descriptor;
     try {
       descriptor = await this.api.deviceFor(payload.clientDeviceId);
     } catch (error62) {
+      if (this.socket !== sourceSocket) return;
       this.sendControl("connect.rejected", { connectionId: payload.connectionId });
       this.logger.warn("connection rejected by account authorization", {
         clientDeviceId: shortId3(payload.clientDeviceId),
@@ -97304,6 +99543,7 @@ var HostServerConnection = class {
       });
       return;
     }
+    if (this.socket !== sourceSocket) return;
     if (descriptor.role !== "client" || descriptor.deviceId !== payload.clientDeviceId || descriptor.identityKey !== payload.clientIdentityKey) {
       this.sendControl("connect.rejected", { connectionId: payload.connectionId });
       this.logger.warn("connection rejected by peer identity validation", {
@@ -97333,6 +99573,7 @@ var HostServerConnection = class {
       publicKey: descriptor.identityKey,
       membershipId: descriptor.membershipId
     });
+    if (this.socket !== sourceSocket) return;
     const previous = this.tunnels.get(payload.connectionId);
     previous?.noise.destroy();
     const noise = new NoiseIkSession({
@@ -97414,8 +99655,10 @@ var HostServerConnection = class {
     const leaseTicket = viaWebRtc ? tunnel.recoveryTicket : tunnel.transport === "relay" && tunnel.dataReady && tunnel.dataSocket?.readyState === 1 ? tunnel.relayRecoveryTicket : void 0;
     if (leaseTicket) {
       tunnel.lease = new ControlLease(tunnel.connectionId, leaseTicket, (payload2) => {
-        if (this.online && this.lastActiveAt !== void 0 && Date.now() - this.lastActiveAt >= 75e3) {
-          this.socket?.close(1012, "control heartbeat timeout");
+        const heartbeatTimeoutMs = Math.max(15e3, this.heartbeatIntervalMs * 3);
+        if (this.online && this.lastActiveAt !== void 0 && Date.now() - this.lastActiveAt >= heartbeatTimeoutMs) {
+          if (this.forceCloseSocket) this.forceCloseSocket(4009, "heartbeat timeout");
+          else this.socket?.close(4009, "heartbeat timeout");
           throw new Error("Control heartbeat timed out");
         }
         this.sendControl("connection.lease.request", payload2);
@@ -97700,11 +99943,17 @@ var HostServerConnection = class {
     });
   }
   async sendRelay(tunnel, ciphertext) {
+    if (this.tunnels.get(tunnel.connectionId) !== tunnel || tunnel.channel === void 0) {
+      throw new Error("Relay tunnel closed");
+    }
     const counter = Number(tunnel.noise.sendingCounter() - 1n);
     if (!Number.isSafeInteger(counter) || counter < 0) throw new ControlConnectionError("FRAME_TOO_LARGE", "Noise transport counter overflowed.");
     const socket = tunnel.dataSocket ?? this.socket;
     if (socket === void 0) throw new Error("Relay transport closed");
     await waitForRelayCapacity(socket);
+    if (this.tunnels.get(tunnel.connectionId) !== tunnel || tunnel.channel === void 0) {
+      throw new Error("Relay tunnel closed");
+    }
     if (tunnel.dataSocket !== void 0) {
       if (tunnel.dataSocket !== socket || tunnel.dataSocket.readyState !== 1 || !tunnel.dataReady) {
         throw new Error("Relay data transport is not ready");
@@ -97913,7 +100162,10 @@ var ServerNoiseChannel = class {
     try {
       await this.sends.run(encoded.byteLength, async () => {
         if (this.closed) throw new Error("Secure channel closed");
-        for (const plaintext of this.outgoing.encode(encoded)) await this.transmit(this.tunnel.noise.encrypt(plaintext));
+        for (const plaintext of this.outgoing.encode(encoded)) {
+          if (this.closed) throw new Error("Secure channel closed");
+          await this.transmit(this.tunnel.noise.encrypt(plaintext));
+        }
       });
     } catch (error62) {
       await this.close().catch(() => void 0);
@@ -97970,7 +100222,7 @@ function decodeControl(data2, limits) {
 }
 function requireHelloAck(value) {
   const payload = requireObject(value);
-  if (payload.protocol !== PROTOCOL_VERSION || typeof payload.serverVersion !== "string" || typeof payload.connectionSessionId !== "string" || !Number.isSafeInteger(payload.heartbeatIntervalMs) || !Number.isSafeInteger(payload.maxControlFrameBytes) || !Number.isSafeInteger(payload.maxRelayFrameBytes)) {
+  if (payload.protocol !== PROTOCOL_VERSION || typeof payload.serverVersion !== "string" || typeof payload.connectionSessionId !== "string" || !Number.isSafeInteger(payload.heartbeatIntervalMs) || payload.heartbeatIntervalMs <= 0 || !Number.isSafeInteger(payload.maxControlFrameBytes) || !Number.isSafeInteger(payload.maxRelayFrameBytes)) {
     throw new ControlConnectionError("INVALID_MESSAGE", "hello.ack payload is invalid.");
   }
   return payload;
@@ -98081,15 +100333,15 @@ function closeCode(code) {
   return "CONNECTION_FAILED";
 }
 
-// src/harness-remote-bridge.ts
+// packages/plugin/src/harness-remote-bridge.ts
 import { randomUUID as randomUUID17 } from "node:crypto";
 import { lstat as lstat4, realpath as realpath7, stat as stat8 } from "node:fs/promises";
-import { dirname as dirname7, isAbsolute as isAbsolute10, join as join15, parse as parse4, relative as relative5, resolve as resolve8, sep as sep2 } from "node:path";
+import { dirname as dirname7, isAbsolute as isAbsolute10, join as join16, parse as parse4, relative as relative5, resolve as resolve8, sep as sep2 } from "node:path";
 
-// src/remote-directory-browser.ts
+// packages/plugin/src/remote-directory-browser.ts
 import { mkdir as mkdir4, readdir as readdir5, stat as stat7 } from "node:fs/promises";
 import { homedir as homedir8, platform as platform2 } from "node:os";
-import { basename as basename6, dirname as dirname6, isAbsolute as isAbsolute9, parse as parse3, resolve as resolve7 } from "node:path";
+import { basename as basename7, dirname as dirname6, isAbsolute as isAbsolute9, parse as parse3, resolve as resolve7 } from "node:path";
 var MAX_ENTRIES = 500;
 async function ensureHostWorkspaceDirectory(path) {
   if (typeof path !== "string" || path.trim() === "" || path.includes("\0") || !isAbsolute9(path) || resolve7(path) === parse3(path).root) {
@@ -98122,12 +100374,12 @@ async function listRemoteDirectory(path, signal) {
   };
 }
 function crumbs(path) {
-  const root = parse3(path).root;
-  const result = [{ name: root, path: root, hidden: false }];
+  const root2 = parse3(path).root;
+  const result = [{ name: root2, path: root2, hidden: false }];
   const segments = [];
   let current = path;
-  while (current !== root) {
-    segments.unshift(basename6(current));
+  while (current !== root2) {
+    segments.unshift(basename7(current));
     current = dirname6(current);
   }
   for (const segment of segments) {
@@ -98137,7 +100389,7 @@ function crumbs(path) {
   return result;
 }
 
-// src/harness-remote-bridge.ts
+// packages/plugin/src/harness-remote-bridge.ts
 var endpointSchema = external_exports.string().min(1).max(128).regex(/^(?:\$events(?:\/result)?|[A-Za-z0-9_$.-]+\/[A-Za-z0-9_$.-]+)$/);
 var callSchema3 = external_exports.object({ endpoint: endpointSchema, payload: external_exports.unknown() }).strict();
 var streamOpenSchema3 = external_exports.object({
@@ -98455,7 +100707,7 @@ var HarnessRemoteBridge = class {
       const record11 = await this.schedule.create(sessionId, request, AbortSignal.timeout(6e4));
       return { ok: true, value: record11 };
     } catch (error62) {
-      const published = isRecord21(error62) && typeof error62.code === "string" ? PUBLIC_SCHEDULE_ERRORS[error62.code] : void 0;
+      const published = isRecord22(error62) && typeof error62.code === "string" ? PUBLIC_SCHEDULE_ERRORS[error62.code] : void 0;
       if (published === void 0) {
         return {
           ok: false,
@@ -98602,12 +100854,12 @@ var HarnessRemoteBridge = class {
   }
   closeStream(input4) {
     const params = streamCloseSchema3.parse(input4);
-    const active = this.streams.get(params.streamId);
-    if (active !== void 0) {
+    const active2 = this.streams.get(params.streamId);
+    if (active2 !== void 0) {
       this.streams.delete(params.streamId);
-      active.controller.abort("client-closed");
+      active2.controller.abort("client-closed");
     }
-    return { closed: active !== void 0, streamId: params.streamId };
+    return { closed: active2 !== void 0, streamId: params.streamId };
   }
   async closeAll(reason = "peer-disconnected") {
     const streams = [...this.streams.entries()];
@@ -98633,8 +100885,8 @@ var HarnessRemoteBridge = class {
     const args = parsed.data.args;
     const result = await this.gateway.dispatch(plugin ? "pluginManager/listPlugins" : "pluginManager/listBundles", { args: {} }, AbortSignal.timeout(6e4));
     if (!result.ok || !Array.isArray(result.value)) throw new RpcError("PERMISSION_DENIED", "Cannot verify the Host plugin inventory.");
-    const row = result.value.find((value) => isRecord21(value) && value[plugin ? "entryId" : "name"] === args[key]);
-    if (!isRecord21(row) || row.readOnlyReason !== void 0) throw new RpcError("PERMISSION_DENIED", "The Host plugin cannot be changed remotely.");
+    const row = result.value.find((value) => isRecord22(value) && value[plugin ? "entryId" : "name"] === args[key]);
+    if (!isRecord22(row) || row.readOnlyReason !== void 0) throw new RpcError("PERMISSION_DENIED", "The Host plugin cannot be changed remotely.");
     if (remoteOwnedBundleRow(row, plugin)) {
       throw new RpcError("PERMISSION_DENIED", "The Remote plugin can only be enabled or disabled locally on the Host.");
     }
@@ -98654,8 +100906,8 @@ var HarnessRemoteBridge = class {
     if (!parsed.success) throw new RpcError("INVALID_MESSAGE", "Invalid plugin update request.");
     const result = await this.gateway.dispatch("pluginManager/listBundles", { args: {} }, AbortSignal.timeout(6e4));
     if (!result.ok || !Array.isArray(result.value)) throw new RpcError("PERMISSION_DENIED", "Cannot verify the Host plugin inventory.");
-    const row = result.value.find((value) => isRecord21(value) && value.name === parsed.data.args.name);
-    if (!isRecord21(row) || row.readOnlyReason !== void 0 || row.updatable !== true) {
+    const row = result.value.find((value) => isRecord22(value) && value.name === parsed.data.args.name);
+    if (!isRecord22(row) || row.readOnlyReason !== void 0 || row.updatable !== true) {
       throw new RpcError("PERMISSION_DENIED", "The Host plugin cannot be updated remotely.");
     }
     if (remoteOwnedBundleRow(row, false)) {
@@ -98745,7 +100997,7 @@ var HarnessRemoteBridge = class {
     }
   }
   async assertNativeWorkspaceFileCall(endpoint, payload, signal) {
-    const rootPayload = isRecord21(payload) ? payload : {};
+    const rootPayload = isRecord22(payload) ? payload : {};
     const args = requestArgs(payload);
     const sessionId = typeof args.workspaceFileScopeId === "string" ? args.workspaceFileScopeId : typeof args.sessionId === "string" ? args.sessionId : typeof args.agentId === "string" ? args.agentId : void 0;
     if (sessionId === void 0) {
@@ -98755,7 +101007,7 @@ var HarnessRemoteBridge = class {
     if (!sessionWorkspace) {
       throw new RpcError("WORKSPACE_UNAVAILABLE", "The workspace is unavailable.");
     }
-    const options = isRecord21(args.options) ? args.options : void 0;
+    const options = isRecord22(args.options) ? args.options : void 0;
     const rawBaseFile = endpoint === "workspaceFiles/readBytes" ? typeof options?.baseFile === "string" ? options.baseFile : typeof args.baseFile === "string" ? args.baseFile : void 0 : void 0;
     if (endpoint === "workspaceFiles/readBytes") {
       if (options !== void 0 && "baseFile" in options && options.baseFile !== void 0 && typeof options.baseFile !== "string") {
@@ -98789,8 +101041,8 @@ var HarnessRemoteBridge = class {
       }
       safeRel = await this.verifyWorkspacePathContainment(sessionWorkspace.root, sessionWorkspace.cwd, path, endpoint);
     }
-    let finalArgs = isRecord21(rootPayload.args) ? { ...rootPayload.args, path: safeRel } : { ...rootPayload, path: safeRel };
-    if (isRecord21(finalArgs.options)) {
+    let finalArgs = isRecord22(rootPayload.args) ? { ...rootPayload.args, path: safeRel } : { ...rootPayload, path: safeRel };
+    if (isRecord22(finalArgs.options)) {
       const { baseFile: _baseFile, ...restOptions } = finalArgs.options;
       finalArgs.options = restOptions;
     }
@@ -98802,11 +101054,11 @@ var HarnessRemoteBridge = class {
       const boundedLength = Math.min(rawLength, MAX_READ_BYTES2);
       const normalizedRange = { offset, length: boundedLength };
       if (requiresWorkspaceChangePath(this.harnessVersion)) {
-        finalArgs.options = { ...isRecord21(finalArgs.options) ? finalArgs.options : {}, range: normalizedRange };
+        finalArgs.options = { ...isRecord22(finalArgs.options) ? finalArgs.options : {}, range: normalizedRange };
         delete finalArgs.range;
       } else {
         finalArgs.range = normalizedRange;
-        if (isRecord21(finalArgs.options)) {
+        if (isRecord22(finalArgs.options)) {
           finalArgs.options = { ...finalArgs.options, range: normalizedRange };
         }
       }
@@ -98815,7 +101067,7 @@ var HarnessRemoteBridge = class {
         finalArgs.length = boundedLength;
       }
     }
-    return isRecord21(rootPayload.args) ? { ...rootPayload, args: finalArgs } : finalArgs;
+    return isRecord22(rootPayload.args) ? { ...rootPayload, args: finalArgs } : finalArgs;
   }
   async resolveWorkspaceRootForSession(sessionId, signal) {
     signal.throwIfAborted();
@@ -98827,39 +101079,39 @@ var HarnessRemoteBridge = class {
       throw new RpcError("WORKSPACE_UNAVAILABLE", "The workspace is unavailable.");
     }
     try {
-      const root = await realpath7(cwd2);
-      const info = await stat8(root);
+      const root2 = await realpath7(cwd2);
+      const info = await stat8(root2);
       if (!info.isDirectory()) throw new Error();
-      return { root, cwd: cwd2 };
+      return { root: root2, cwd: cwd2 };
     } catch {
       throw new RpcError("WORKSPACE_UNAVAILABLE", "The workspace is unavailable.");
     }
   }
-  async verifyWorkspacePathContainment(root, cwd2, path, endpoint) {
+  async verifyWorkspacePathContainment(root2, cwd2, path, endpoint) {
     const candidate = isAbsolute10(path) ? resolve8(path) : resolve8(cwd2, path);
     if (process.platform === "win32") {
-      const rootDrive = parse4(root).root.toLowerCase();
+      const rootDrive = parse4(root2).root.toLowerCase();
       const candDrive = parse4(candidate).root.toLowerCase();
       if (rootDrive !== candDrive) {
         throw new RpcError("WORKSPACE_PATH_DENIED", "The requested workspace path is outside the workspace.");
       }
     }
     const relCwd = relative5(cwd2, candidate);
-    const relRoot = relative5(root, candidate);
+    const relRoot = relative5(root2, candidate);
     if (isPathOutside(relCwd) && isPathOutside(relRoot)) {
       throw new RpcError("WORKSPACE_PATH_DENIED", "The requested workspace path is outside the workspace.");
     }
     try {
-      const rootLstat = await lstat4(root);
+      const rootLstat = await lstat4(root2);
       if (rootLstat.isSymbolicLink() || !rootLstat.isDirectory()) {
         throw new RpcError("WORKSPACE_PATH_DENIED", "The workspace root is invalid or a symlink.");
       }
-      const base = !isPathOutside(relCwd) ? cwd2 : root;
+      const base = !isPathOutside(relCwd) ? cwd2 : root2;
       const rel = relative5(base, candidate);
       const parts = rel.split(sep2).filter((p) => p.length > 0 && p !== ".");
       let currentPath = base;
       for (let i = 0; i < parts.length - 1; i++) {
-        currentPath = join15(currentPath, parts[i]);
+        currentPath = join16(currentPath, parts[i]);
         const dirRel = relative5(base, currentPath);
         if (isPathOutside(dirRel)) {
           throw new RpcError("WORKSPACE_PATH_DENIED", "The requested workspace path is outside the workspace.");
@@ -98875,13 +101127,13 @@ var HarnessRemoteBridge = class {
       }
       const canonical = await realpath7(candidate);
       if (process.platform === "win32") {
-        const rootDrive = parse4(root).root.toLowerCase();
+        const rootDrive = parse4(root2).root.toLowerCase();
         const canonicalDrive = parse4(canonical).root.toLowerCase();
         if (rootDrive !== canonicalDrive) {
           throw new RpcError("WORKSPACE_PATH_DENIED", "The requested workspace path is outside the workspace.");
         }
       }
-      const canonicalRel = relative5(root, canonical);
+      const canonicalRel = relative5(root2, canonical);
       if (isPathOutside(canonicalRel)) {
         throw new RpcError("WORKSPACE_PATH_DENIED", "The requested workspace path is outside the workspace.");
       }
@@ -98893,9 +101145,9 @@ var HarnessRemoteBridge = class {
         throw new RpcError("WORKSPACE_TOO_LARGE", "The requested workspace file is too large.");
       }
       const safeRel = canonicalRel === "" ? "." : process.platform === "win32" ? canonicalRel.replaceAll("\\", "/") : canonicalRel;
-      const dispatchedCandidate = resolve8(root, safeRel);
+      const dispatchedCandidate = resolve8(root2, safeRel);
       const dispatchedCanonical = await realpath7(dispatchedCandidate);
-      const dispatchedRel = relative5(root, dispatchedCanonical);
+      const dispatchedRel = relative5(root2, dispatchedCanonical);
       if (isPathOutside(dispatchedRel)) {
         throw new RpcError("WORKSPACE_PATH_DENIED", "The requested workspace path is outside the workspace.");
       }
@@ -98914,17 +101166,17 @@ function isPathOutside(rel) {
   return rel.startsWith("../");
 }
 function byteOrLineRange2(args) {
-  const options = isRecord21(args.options) ? args.options : void 0;
-  if (options !== void 0 && isRecord21(options.range)) return options.range;
-  return isRecord21(args.range) ? args.range : args;
+  const options = isRecord22(args.options) ? args.options : void 0;
+  if (options !== void 0 && isRecord22(options.range)) return options.range;
+  return isRecord22(args.range) ? args.range : args;
 }
 function normalizeWorkspaceChangesPayload(endpoint, payload, harnessVersion) {
   if (endpoint !== "workspaceFiles/changes" || !requiresWorkspaceChangePath(harnessVersion)) return payload;
-  if (!isRecord21(payload) || !isRecord21(payload.args) || Object.hasOwn(payload.args, "path")) return payload;
+  if (!isRecord22(payload) || !isRecord22(payload.args) || Object.hasOwn(payload.args, "path")) return payload;
   return { ...payload, args: { ...payload.args, path: "." } };
 }
 function normalizeWorkspaceRequestPayload(endpoint, payload, harnessVersion) {
-  if (!isRecord21(payload) || !isRecord21(payload.args)) return payload;
+  if (!isRecord22(payload) || !isRecord22(payload.args)) return payload;
   const args = payload.args;
   if (endpoint === "workspaceFiles/readBytes" && requiresWorkspaceChangePath(harnessVersion)) {
     if (!Object.hasOwn(args, "range") || Object.hasOwn(args, "options")) return payload;
@@ -98938,10 +101190,10 @@ function normalizeWorkspaceRequestPayload(endpoint, payload, harnessVersion) {
   return payload;
 }
 async function normalizeSessionAttachmentPayload(endpoint, payload, harnessVersion, gateway, signal) {
-  if (endpoint !== "session/attachment" || !isRecord21(payload) || !isRecord21(payload.args)) return payload;
-  const request = isRecord21(payload.args.request) ? payload.args.request : void 0;
+  if (endpoint !== "session/attachment" || !isRecord22(payload) || !isRecord22(payload.args)) return payload;
+  const request = isRecord22(payload.args.request) ? payload.args.request : void 0;
   if (request === void 0) return payload;
-  const attachment = isRecord21(request.attachment) ? request.attachment : void 0;
+  const attachment = isRecord22(request.attachment) ? request.attachment : void 0;
   const attachmentId = attachment !== void 0 && typeof attachment.attachmentId === "string" ? attachment.attachmentId : typeof request.attachmentId === "string" ? request.attachmentId : void 0;
   if (attachmentId === void 0) return payload;
   if (!isDshV022OrNewer(harnessVersion)) {
@@ -98973,7 +101225,7 @@ async function findSessionAttachmentReference(gateway, sessionId, attachmentId, 
       const result = await gateway.dispatch("session/page", { args: { request: pageRequest } }, signal);
       const reference = extractAttachmentReference(result, attachmentId);
       if (reference !== void 0) return reference;
-      if (result.ok === true && isRecord21(result.value)) {
+      if (result.ok === true && isRecord22(result.value)) {
         if (result.value.hasMore === true && typeof result.value.beforeSeq === "number") {
           beforeSeq = result.value.beforeSeq;
           continue;
@@ -98997,7 +101249,7 @@ function extractAttachmentReference(result, attachmentId) {
   const value = result.value;
   let records;
   if (Array.isArray(value)) records = value;
-  else if (isRecord21(value)) {
+  else if (isRecord22(value)) {
     if (Array.isArray(value.records)) records = value.records;
     else if (Array.isArray(value.events)) records = value.events;
   }
@@ -99018,7 +101270,7 @@ function findImageReference(value, attachmentId, depth) {
     return void 0;
   }
   const block = value;
-  const candidate = isRecord21(block.attachment) ? block.attachment : block;
+  const candidate = isRecord22(block.attachment) ? block.attachment : block;
   const candidateId = typeof candidate.attachmentId === "string" ? candidate.attachmentId : void 0;
   if (candidateId === attachmentId && isCompleteImageReference(candidate)) {
     return {
@@ -99165,7 +101417,7 @@ var DANGEROUS_KEYS = /* @__PURE__ */ new Set(["__proto__", "prototype", "constru
 var MAX_WHITELIST_PROJECTION_BYTES = 64 * 1024;
 var MAX_UNKNOWN_PROJECTION_BYTES = 4096;
 function filterSessionProjections(session2) {
-  if (!isRecord21(session2) || !isRecord21(session2.projections) || !isRecord21(session2.projections.values)) {
+  if (!isRecord22(session2) || !isRecord22(session2.projections) || !isRecord22(session2.projections.values)) {
     return session2;
   }
   const originalValues = session2.projections.values;
@@ -99198,12 +101450,32 @@ function filterSessionProjections(session2) {
     }
   };
 }
+var SESSION_LIST_ROW_BUDGET = 2048;
+function trimSessionCatalogRows(endpoint, items) {
+  if (endpoint !== "session/list" || items.length <= SESSION_LIST_ROW_BUDGET) return items;
+  const roots = items.filter(isListableRemoteSession);
+  const kept = roots.length > 0 ? roots : items;
+  return kept.length <= SESSION_LIST_ROW_BUDGET ? kept : kept.slice().sort((left, right) => updatedAtOf(right) - updatedAtOf(left)).slice(0, SESSION_LIST_ROW_BUDGET);
+}
+function isListableRemoteSession(session2) {
+  return isRecord22(session2) && session2.parentSessionId === void 0 && session2.origin !== "subagent";
+}
+function updatedAtOf(session2) {
+  return isRecord22(session2) && typeof session2.updatedAt === "number" ? session2.updatedAt : 0;
+}
+function withSessionRowTitle(session2) {
+  if (!isRecord22(session2) || typeof session2.title === "string" && session2.title !== "") return session2;
+  const values = isRecord22(session2.projections) ? session2.projections.values : void 0;
+  const title = isRecord22(values) ? values.title : void 0;
+  return typeof title === "string" && title !== "" ? { ...session2, title } : session2;
+}
 function filterSessionListProjections(resultOrEndpoint, maybeResult) {
-  const result = typeof resultOrEndpoint === "string" ? maybeResult : resultOrEndpoint;
-  if (typeof resultOrEndpoint === "string" && resultOrEndpoint !== "session/list" && resultOrEndpoint !== "session/search") return result;
+  const endpoint = typeof resultOrEndpoint === "string" ? resultOrEndpoint : void 0;
+  const result = endpoint === void 0 ? resultOrEndpoint : maybeResult;
+  if (endpoint !== void 0 && endpoint !== "session/list" && endpoint !== "session/search") return result;
   if (!result || !result.ok) return result;
-  const filterList = (items) => items.map(filterSessionProjections);
-  if (isRecord21(result.value)) {
+  const filterList = (items) => trimSessionCatalogRows(endpoint, items).map(filterSessionProjections).map(withSessionRowTitle);
+  if (isRecord22(result.value)) {
     let changed = false;
     const updated = { ...result.value };
     if (Array.isArray(result.value.items)) {
@@ -99227,27 +101499,27 @@ function filterSessionListProjections(resultOrEndpoint, maybeResult) {
 function filterRemotePluginInventory(endpoint, result) {
   if (!result.ok) return result;
   const isRemote = (value) => typeof value === "string" && /^(?:ds-harness-remote|dsh-remote)(?:\/|$)/.test(value);
-  const filterEntries = (entries) => entries.filter((entry) => !isRecord21(entry) || !isRemote(entry.moduleName));
+  const filterEntries = (entries) => entries.filter((entry) => !isRecord22(entry) || !isRemote(entry.moduleName));
   if (endpoint === "pluginManager/listPlugins" && Array.isArray(result.value)) {
     return { ...result, value: filterEntries(result.value) };
   }
   if (endpoint === "pluginManager/listBundles" && Array.isArray(result.value)) {
-    return { ...result, value: result.value.filter((bundle) => !isRecord21(bundle) || !isRemote(bundle.name)).map((bundle) => isRecord21(bundle) && Array.isArray(bundle.rows) ? { ...bundle, rows: filterEntries(bundle.rows) } : bundle) };
+    return { ...result, value: result.value.filter((bundle) => !isRecord22(bundle) || !isRemote(bundle.name)).map((bundle) => isRecord22(bundle) && Array.isArray(bundle.rows) ? { ...bundle, rows: filterEntries(bundle.rows) } : bundle) };
   }
-  if (endpoint === "pluginInventory/list" && isRecord21(result.value) && Array.isArray(result.value.entries)) {
+  if (endpoint === "pluginInventory/list" && isRecord22(result.value) && Array.isArray(result.value.entries)) {
     return { ...result, value: { ...result.value, entries: filterEntries(result.value.entries) } };
   }
   return result;
 }
 function requestArgs(payload) {
-  const root = record10(payload);
-  const args = isRecord21(root.args) ? root.args : root;
+  const root2 = record10(payload);
+  const args = isRecord22(root2.args) ? root2.args : root2;
   return record10(args.request ?? args._request ?? args);
 }
 function record10(value) {
-  return isRecord21(value) ? value : {};
+  return isRecord22(value) ? value : {};
 }
-function isRecord21(value) {
+function isRecord22(value) {
   return typeof value === "object" && value !== null && !Array.isArray(value);
 }
 function isCompactSnapshot(value) {
@@ -99256,14 +101528,14 @@ function isCompactSnapshot(value) {
 function remoteOwnedBundleRow(row, plugin) {
   const remoteModule = (value) => typeof value === "string" && /^(?:ds-harness-remote|dsh-remote)(?:\/|$)/.test(value);
   if (remoteModule(plugin ? row.moduleName : row.name)) return true;
-  return !plugin && (!Array.isArray(row.rows) || row.rows.some((value) => !isRecord21(value) || remoteModule(value.moduleName)) || Array.isArray(row.overrides) && row.overrides.some((value) => remoteModule(value)));
+  return !plugin && (!Array.isArray(row.rows) || row.rows.some((value) => !isRecord22(value) || remoteModule(value.moduleName)) || Array.isArray(row.overrides) && row.overrides.some((value) => remoteModule(value)));
 }
 
-// src/service.ts
+// packages/plugin/src/service.ts
 import { execFileSync as execFileSync3 } from "node:child_process";
 import { existsSync as existsSync5 } from "node:fs";
 
-// src/codex-workspace-bridge.ts
+// packages/plugin/src/codex-workspace-bridge.ts
 var CodexWorkspaceBridge = class extends WorkspaceBridge {
   constructor(resolveCwd, terminalEnabled, state2 = new WorkspaceBridgeState(), spawnTerminal = pipeTerminalSpawner()) {
     super(resolveCwd, terminalEnabled, state2, spawnTerminal, {
@@ -99280,7 +101552,7 @@ var CodexWorkspaceBridge = class extends WorkspaceBridge {
   }
 };
 
-// src/service.ts
+// packages/plugin/src/service.ts
 var HostPluginRuntime = class {
   constructor(config2, identities, logger2, localGateway, fileViewerHost, terminalSpawner, pluginRoutes, schedule) {
     this.config = config2;
@@ -99364,6 +101636,7 @@ var HostPluginRuntime = class {
   serverApi;
   serverConnection;
   harnessVersion;
+  pairing;
   closed = false;
   codex;
   acp;
@@ -99413,6 +101686,8 @@ var HostPluginRuntime = class {
       this.harnessVersion = await this.readHarnessVersion();
       this.serverApi.setHarnessVersion(this.harnessVersion);
       this.serverApi.bindIdentity(this.identity);
+      await this.serverApi.loadStoredPolicy();
+      this.initializePairing();
       this.serverConnection = this.createServerConnection(this.identity);
       if (this.config.hostControl?.enabled !== false) this.serverConnection.start();
     }
@@ -99454,9 +101729,35 @@ var HostPluginRuntime = class {
       ...error62 === void 0 ? {} : { error: error62 },
       ...authorization?.account === void 0 ? {} : { account: authorization.account },
       authorized: authorization !== void 0,
+      pairingHostOnly: this.serverApi?.pairingHostOnly() ?? false,
       accountRequired: error62 === "ACCOUNT_AUTH_REQUIRED" || error62 === "AUTH_REQUIRED" || error62 === "AUTH_INVALID" || error62 === "TOKEN_EXPIRED" || error62 === "DEVICE_REVOKED" || error62 === "DEVICE_OWNERSHIP_REQUIRED",
       connectedClients: this.listConnectedClients()
     };
+  }
+  initializePairing() {
+    this.pairing?.close();
+    if (!this.serverApi || !this.identity || !this.config.serverUrl) {
+      this.pairing = void 0;
+      return;
+    }
+    this.pairing = new HostPairing(this.config.serverUrl, this.identities.directory, this.identity, {
+      deviceId: this.identity.deviceId,
+      name: this.identity.name,
+      role: "host",
+      platform: process.platform,
+      identityKey: this.identity.publicKey,
+      ...this.harnessVersion === void 0 ? {} : { harnessVersion: this.harnessVersion }
+    }, async (result) => {
+      await this.serverApi.adoptPairing(result);
+      if (!this.closed) this.serverConnection?.reconnect();
+    });
+  }
+  async pairingControl(action, input4) {
+    if (this.pairing === void 0 || this.closed) throw new ServerApiError("SERVER_NOT_CONFIGURED", "Configure and save the Server URL before pairing.", false);
+    if (action === "start") return this.pairing.start();
+    if (action === "status") return this.pairing.status();
+    if (typeof input4.sessionId !== "string") throw new ServerApiError("INVALID_MESSAGE", "A specific pairing session is required.", false);
+    return action === "confirm" ? this.pairing.confirm(input4.sessionId, input4.verificationCode) : this.pairing.cancel(input4.sessionId);
   }
   async hasStoredAuthorization() {
     return this.serverApi?.hasStoredAuthorization() ?? false;
@@ -99500,9 +101801,12 @@ var HostPluginRuntime = class {
     }
     const result = await this.serverApi.pollOAuthQrLogin(this.currentIdentity(), qrId, async () => {
       await this.serverConnection?.stop();
+      await this.pairing?.discard();
+      this.pairing = void 0;
       this.identity = await this.identities.reset(this.config.deviceName);
       this.serverApi.bindIdentity(this.identity);
       this.serverConnection = this.createServerConnection(this.identity);
+      this.initializePairing();
       return this.identity;
     });
     if (result.status === "complete") {
@@ -99512,6 +101816,8 @@ var HostPluginRuntime = class {
     return result;
   }
   async clearHostAuthorization() {
+    await this.pairing?.discard();
+    this.pairing = void 0;
     await this.serverConnection?.stop();
     let revokeFailure;
     try {
@@ -99522,6 +101828,7 @@ var HostPluginRuntime = class {
     this.identity = await this.identities.reset(this.config.deviceName);
     this.serverApi?.bindIdentity(this.identity);
     if (this.serverApi !== void 0) this.serverConnection = this.createServerConnection(this.identity);
+    this.initializePairing();
     this.logger.info("Host authorization cleared");
     if (revokeFailure !== void 0) throw revokeFailure;
   }
@@ -99546,9 +101853,12 @@ var HostPluginRuntime = class {
     } catch (error62) {
       if (!(error62 instanceof ServerApiError) || error62.code !== "DEVICE_REVOKED") throw error62;
       await this.serverConnection?.stop();
+      await this.pairing?.discard();
+      this.pairing = void 0;
       this.identity = await this.identities.reset(this.config.deviceName);
       this.serverApi.bindIdentity(this.identity);
       this.serverConnection = this.createServerConnection(this.identity);
+      this.initializePairing();
       result = await this.serverApi.authorizeOwnedRole(this.identity, accessToken, account);
       this.logger.info("Rotated revoked Host identity before owned-device authorization");
     }
@@ -99562,9 +101872,12 @@ var HostPluginRuntime = class {
     }
     const result = await this.serverApi.authorizeWithAccount(this.currentIdentity(), email3, password, async () => {
       await this.serverConnection?.stop();
+      await this.pairing?.discard();
+      this.pairing = void 0;
       this.identity = await this.identities.reset(this.config.deviceName);
       this.serverApi.bindIdentity(this.identity);
       this.serverConnection = this.createServerConnection(this.identity);
+      this.initializePairing();
       this.logger.info("Rotated revoked Host identity before account authorization");
       return this.identity;
     });
@@ -99629,6 +101942,7 @@ var HostPluginRuntime = class {
   async close() {
     if (this.closed) return;
     this.closed = true;
+    this.pairing?.close();
     this.serverApi?.close();
     await this.serverConnection?.stop();
     await this.connections.close();
@@ -99777,7 +102091,7 @@ function isPlainRecord(value) {
   return typeof value === "object" && value !== null && !Array.isArray(value);
 }
 
-// src/plugin-route-dispatcher.ts
+// packages/plugin/src/plugin-route-dispatcher.ts
 function createPluginRouteDispatcher(readConnection, readPort, peer) {
   let cookie;
   return async (route, body, signal) => {
@@ -99832,7 +102146,7 @@ function withSignal(pending, signal) {
   });
 }
 
-// src/remote-tools.ts
+// packages/plugin/src/remote-tools.ts
 var emptyInput = external_exports.object({}).strict();
 var workspaceInput = external_exports.object({ hostId: external_exports.string().min(1).max(256) }).strict();
 var string8 = { type: "string" };
@@ -99984,7 +102298,7 @@ function installRemoteDiscoveryTools(ctx, resolve9) {
   });
 }
 
-// src/hmr-safe-settings.ts
+// packages/plugin/src/hmr-safe-settings.ts
 var PUMP_KEY = Symbol.for("ds-harness-remote.hmr-safe-settings-pump");
 function createPump() {
   const queue = [];
@@ -100027,7 +102341,7 @@ function runHmrSafe(run, hmr) {
   });
 }
 
-// src/update-check.ts
+// packages/plugin/src/update-check.ts
 var DIST_TAG_URLS = [
   "https://registry.npmjs.org/-/package/ds-harness-remote/dist-tags",
   "https://registry.npmmirror.com/-/package/ds-harness-remote/dist-tags"
@@ -100129,7 +102443,32 @@ var PluginUpdateChecker = class {
   }
 };
 
-// src/owner-peer.ts
+// packages/plugin/src/tui-event-source.ts
+async function assertRemoteEventSource(gateway) {
+  const peerGateway = gateway.createPeer?.();
+  if (peerGateway?.peer === void 0) {
+    await peerGateway?.dispose?.();
+    throw new Error("dsh-TUI Remote requires an official owner Peer for Remote events.");
+  }
+  const signal = AbortSignal.timeout(5e3);
+  let iterator;
+  try {
+    const source = await peerGateway.open("$events", { args: {} }, signal);
+    iterator = source[Symbol.asyncIterator]();
+    const first2 = await iterator.next();
+    const value = first2.value;
+    if (first2.done || typeof value !== "object" || value === null || !("type" in value) || value.type !== "ready") {
+      throw new Error("The Host Remote event source did not send a ready frame.");
+    }
+  } catch {
+    throw new Error("dsh-TUI Remote needs @deepseek-ai/dsh-api-remotes and its Host API packages.");
+  } finally {
+    await iterator?.return?.().catch(() => void 0);
+    await peerGateway.dispose?.();
+  }
+}
+
+// packages/plugin/src/owner-peer.ts
 function ownerPeerConstructor(connectionExports) {
   const candidate = typeof connectionExports.Peer === "function" ? connectionExports.Peer : connectionExports.OperatorPeer;
   return typeof candidate === "function" ? candidate : void 0;
@@ -100152,7 +102491,7 @@ function createOwnerPeerFactory(ctx, constructor, connection) {
   };
 }
 
-// src/remote-file-content-provider.ts
+// packages/plugin/src/remote-file-content-provider.ts
 var REMOTE_FILE_SAVE_AS_MAX_BYTES = 100 * 1024 * 1024;
 var REMOTE_FILE_FAST_SAVE_AS_MAX_BYTES = 1024 * 1024 * 1024;
 function createRemoteFileContentProvider(call, options = {}) {
@@ -100225,10 +102564,10 @@ function decodeBase64(value) {
   return bytes;
 }
 
-// src/cli.ts
+// packages/plugin/src/cli.ts
 import { stat as stat9 } from "node:fs/promises";
 import { hostname as hostname5 } from "node:os";
-import { join as join16 } from "node:path";
+import { join as join17 } from "node:path";
 var QR_POLL_INTERVAL_MS = 2e3;
 var TERMINAL_QR_MARGIN = 4;
 async function runCli(args = process.argv.slice(2), dependencies = {}) {
@@ -100239,6 +102578,7 @@ async function runCli(args = process.argv.slice(2), dependencies = {}) {
     if (command === "register") return await register(rest, runtime);
     if (command === "status") return await status(rest, runtime);
     if (command === "logout") return await logout(rest, runtime);
+    if (command === "reset-identity") return await resetIdentity(rest, runtime);
     if (command === "help" || command === "--help" || command === "-h" || command === void 0) {
       write2(runtime.stdout, helpText());
       return 0;
@@ -100312,14 +102652,14 @@ Waiting for authorization...
 async function status(args, runtime) {
   if (args.length !== 0) throw new CliUsageError("Usage: ds-harness-remote status");
   const serverUrl = selectedServer();
-  const root = await prepareDefaultIdentityDirectory({ env: runtime.env });
-  const directory = serverStorageDirectory(root, serverUrl, "host");
+  const root2 = await prepareDefaultIdentityDirectory({ env: runtime.env });
+  const directory = serverStorageDirectory(root2, serverUrl, "host");
   const lines = [
     "Remote Host status",
     `Server: ${serverUrl}`,
     "Host control: enabled"
   ];
-  if (!await exists3(join16(directory, "device.json"))) {
+  if (!await exists3(join17(directory, "device.json"))) {
     lines.push("Device: not initialized", "Authorization: logged out", "Credential: unavailable");
     write2(runtime.stdout, `${lines.join("\n")}
 
@@ -100327,7 +102667,7 @@ Run "ds-harness-remote login" to authorize this Host.
 `);
     return 0;
   }
-  const identities = runtime.createIdentityStore({ directory, env: runtime.env });
+  const identities = runtime.createIdentityStore({ directory, env: runtime.env, role: "host" });
   const deviceName = runtime.env.DSH_REMOTE_DEVICE_NAME ?? hostname5();
   const identity3 = await identities.loadOrCreate(deviceName);
   const store = new ServerCredentialStore(directory);
@@ -100362,37 +102702,78 @@ Run "ds-harness-remote login" to authorize this Host.
 async function logout(args, runtime) {
   if (args.length !== 0) throw new CliUsageError("Usage: ds-harness-remote logout");
   const serverUrl = selectedServer();
-  const root = await prepareDefaultIdentityDirectory({ env: runtime.env });
-  const directory = serverStorageDirectory(root, serverUrl, "host");
-  if (!await exists3(join16(directory, "device.json"))) {
+  const deviceName = runtime.env.DSH_REMOTE_DEVICE_NAME ?? hostname5();
+  let root2;
+  try {
+    root2 = await prepareDefaultIdentityDirectory({ env: runtime.env });
+  } catch (error62) {
+    if (error62 instanceof IdentityInvalidError && error62.code === "IDENTITY_INVALID") {
+      await resetDefaultIdentityRoles(["host"], serverUrl, deviceName, {
+        env: runtime.env,
+        createIdentityStore: runtime.createIdentityStore
+      });
+      write2(runtime.stdout, "Remote Host logged out and its local device identity was rotated. Restart the Harness instance.\n");
+      return 0;
+    }
+    throw error62;
+  }
+  const directory = serverStorageDirectory(root2, serverUrl, "host");
+  const [hasDevice, hasKey, hasCredentials] = await Promise.all([
+    exists3(join17(directory, "device.json")),
+    exists3(join17(directory, "device.key")),
+    exists3(join17(directory, "server-credentials.json"))
+  ]);
+  if (!hasDevice && !hasKey && !hasCredentials) {
     await new ServerCredentialStore(directory).clear();
     write2(runtime.stdout, "This Host is already logged out.\n");
     return 0;
   }
-  const deviceName = runtime.env.DSH_REMOTE_DEVICE_NAME ?? hostname5();
-  const identities = runtime.createIdentityStore({ directory, env: runtime.env });
-  const identity3 = await identities.loadOrCreate(deviceName);
-  const api = runtime.createHostApi(serverUrl, new ServerCredentialStore(directory));
-  api.bindIdentity(identity3);
+  const identities = runtime.createIdentityStore({ directory, env: runtime.env, role: "host" });
   let revokeFailure;
   try {
+    const identity3 = await identities.loadOrCreate(deviceName);
+    const api = runtime.createHostApi(serverUrl, new ServerCredentialStore(directory));
+    api.bindIdentity(identity3);
     await api.revokeCurrentDevice();
   } catch (error62) {
     revokeFailure = error62;
   }
   await identities.reset(deviceName);
-  if (revokeFailure !== void 0) {
+  await new ServerCredentialStore(directory).clear();
+  if (revokeFailure !== void 0 && !(revokeFailure instanceof IdentityInvalidError) && !(revokeFailure instanceof ServerCredentialsInvalidError)) {
     throw new Error(`Local Host credentials were cleared, but Server revocation failed: ${cliErrorMessage(revokeFailure)}`);
   }
   write2(runtime.stdout, "Remote Host logged out and its local device identity was rotated. Restart the Harness instance.\n");
   return 0;
 }
+async function resetIdentity(args, runtime) {
+  if (args.length > 1) {
+    throw new CliUsageError("Usage: ds-harness-remote reset-identity [host|client|all]");
+  }
+  const roleArg = args[0];
+  if (roleArg !== void 0 && roleArg !== "host" && roleArg !== "client" && roleArg !== "all") {
+    throw new CliUsageError("Usage: ds-harness-remote reset-identity [host|client|all]");
+  }
+  const serverUrl = selectedServer();
+  const deviceName = runtime.env.DSH_REMOTE_DEVICE_NAME ?? hostname5();
+  const roles = roleArg === "client" ? ["client"] : roleArg === "host" ? ["host"] : ["host", "client"];
+  await resetDefaultIdentityRoles(roles, serverUrl, deviceName, {
+    env: runtime.env,
+    createIdentityStore: runtime.createIdentityStore
+  });
+  for (const role2 of roles) {
+    write2(runtime.stdout, `Remote ${role2} identity was reset and a new key pair was created.
+`);
+  }
+  write2(runtime.stdout, "Restart the Harness instance to use the fresh identity.\n");
+  return 0;
+}
 async function hostContext(runtime) {
   const serverUrl = selectedServer();
-  const root = await prepareDefaultIdentityDirectory({ env: runtime.env });
-  const directory = serverStorageDirectory(root, serverUrl, "host");
+  const root2 = await prepareDefaultIdentityDirectory({ env: runtime.env });
+  const directory = serverStorageDirectory(root2, serverUrl, "host");
   const deviceName = runtime.env.DSH_REMOTE_DEVICE_NAME ?? hostname5();
-  const identities = runtime.createIdentityStore({ directory, env: runtime.env });
+  const identities = runtime.createIdentityStore({ directory, env: runtime.env, role: "host" });
   const identity3 = await identities.loadOrCreate(deviceName);
   const api = runtime.createHostApi(serverUrl, new ServerCredentialStore(directory));
   return { api, identities, identity: identity3, deviceName };
@@ -100452,6 +102833,7 @@ function helpText() {
     "  ds-harness-remote register <server-token>",
     "  ds-harness-remote status",
     "  ds-harness-remote logout",
+    "  ds-harness-remote reset-identity [host|client|all]",
     "",
     "login uses an available QR provider (preferring Zhihu). Use login list to see available providers.",
     `The Server is ${DEFAULT_REMOTE_SERVER_URL}.`,
@@ -100478,7 +102860,7 @@ async function exists3(path) {
 var CliUsageError = class extends Error {
 };
 
-// src/acp.ts
+// packages/plugin/src/acp.ts
 var AcpGateway = class {
   constructor(adapters) {
     this.adapters = adapters;
@@ -100520,7 +102902,7 @@ var AcpGateway = class {
   }
 };
 
-// src/index.ts
+// packages/plugin/src/index.ts
 var name = "ds-harness-remote";
 var legacyLoaderModuleNames = /* @__PURE__ */ new Set(["@dsh-remote/plugin"]);
 var pluginSettingsNamespace = "ds-harness-remote";
@@ -100535,21 +102917,33 @@ function apply(ctx, entry = void 0) {
     settingsContext.effect(() => settings.configure({ auto: false }, ctx.fiber));
   });
   const activateWhenCarrierReady = async (runtimeContext) => {
-    const identityDirectory = await prepareDefaultIdentityDirectory();
     const gateway = runtimeContext.get("typertGateway");
     const connection = runtimeContext.get("connection");
     const webServer = runtimeContext.get("webServer");
     let disposePendingControl;
-    const installPendingControl = () => {
+    const installPendingControl = async () => {
       if (connection === void 0 || disposePendingControl !== void 0) return;
+      let identityDirectory = new IdentityStore().directory;
+      let storageError;
+      try {
+        identityDirectory = await prepareDefaultIdentityDirectory();
+      } catch (error62) {
+        storageError = error62;
+      }
       disposePendingControl = runtimeContext.effect(() => {
         const control = new PluginControlRuntime(
           resolveConfig(readConfig()),
           identityDirectory,
           void 0,
           void 0,
-          void 0
+          void 0,
+          void 0,
+          void 0,
+          true
         );
+        if (storageError !== void 0) {
+          control.setStartupFailure(storageError, { storageAvailable: false });
+        }
         return control.register(connection, webServer);
       }, "ds-harness-remote pending control");
     };
@@ -100561,20 +102955,49 @@ function apply(ctx, entry = void 0) {
     if (new TypertGatewaySwitch(gateway).supportsCarrier()) {
       return startActiveRuntime(runtimeContext);
     }
-    installPendingControl();
+    await installPendingControl();
   };
   ctx.inject(["settings", "connection", "typertGateway"], activateWhenCarrierReady);
 }
-async function activate(ctx, readConfig, entryId) {
+function applyTuiHost(ctx, entry) {
+  const readConfig = () => readEntryConfig(entry);
+  const entryId = locateEntryId(ctx);
+  ctx.inject(["settings", "typertGateway"], async (runtimeContext) => {
+    const gateway = runtimeContext.get("typertGateway");
+    if (!new TypertGatewaySwitch(gateway).supportsCarrier()) {
+      throw new Error("dsh-TUI Remote requires the official Typert Gateway carrier.");
+    }
+    await activate(runtimeContext, readConfig, entryId, true);
+  });
+}
+async function activate(ctx, readConfig, entryId, requireRemoteEvents = false) {
   const settings = ctx.get("settings");
   const settingsBinding = await createSettingsBinding(ctx, settings, readConfig, entryId);
   const connection = ctx.get("connection");
   const webServer = ctx.get("webServer");
   const config2 = resolveConfig(settingsBinding?.get() ?? readConfig());
-  const defaultIdentityDirectory = await prepareDefaultIdentityDirectory();
+  let defaultIdentityDirectory = new IdentityStore().directory;
+  let initialStorageError;
+  try {
+    defaultIdentityDirectory = await prepareDefaultIdentityDirectory();
+  } catch (error62) {
+    initialStorageError = error62;
+  }
   if (!config2.enabled) {
     if (connection !== void 0) {
-      const controlRuntime2 = new PluginControlRuntime(config2, defaultIdentityDirectory, settingsBinding, void 0, void 0);
+      const controlRuntime2 = new PluginControlRuntime(
+        config2,
+        defaultIdentityDirectory,
+        settingsBinding,
+        void 0,
+        void 0,
+        void 0,
+        void 0,
+        true
+      );
+      if (initialStorageError !== void 0) {
+        controlRuntime2.setStartupFailure(initialStorageError, { storageAvailable: false });
+      }
       ctx.effect(() => controlRuntime2.register(connection, webServer), "ds-harness-remote disabled control");
     }
     return;
@@ -100625,11 +103048,13 @@ async function activate(ctx, readConfig, entryId) {
       }
     };
   };
+  if (requireRemoteEvents) await assertRemoteEventSource(localTypertGateway);
   const subprocess = ctx.get("subprocess", false);
   const schedule = ctx.get("schedule", false) ?? (ctx.root === void 0 ? void 0 : ctx.root.get("schedule", false));
   const createRuntimes = (config3) => {
     const hostIdentities = new IdentityStore({
-      directory: config3.serverUrl === void 0 ? defaultIdentityDirectory : serverStorageDirectory(defaultIdentityDirectory, config3.serverUrl, "host")
+      directory: config3.serverUrl === void 0 ? defaultIdentityDirectory : serverStorageDirectory(defaultIdentityDirectory, config3.serverUrl, "host"),
+      role: "host"
     });
     const runtime2 = new HostPluginRuntime(
       config3,
@@ -100648,7 +103073,8 @@ async function activate(ctx, readConfig, entryId) {
     let clientRuntime2;
     if (config3.serverUrl !== void 0 && connection !== void 0) {
       const clientIdentities = new IdentityStore({
-        directory: serverStorageDirectory(defaultIdentityDirectory, config3.serverUrl, "client")
+        directory: serverStorageDirectory(defaultIdentityDirectory, config3.serverUrl, "client"),
+        role: "client"
       });
       clientRuntime2 = new ClientModeRuntime(
         config3,
@@ -100661,19 +103087,50 @@ async function activate(ctx, readConfig, entryId) {
     }
     return { runtime: runtime2, clientRuntime: clientRuntime2 };
   };
-  let { runtime, clientRuntime } = createRuntimes(config2);
+  let runtime;
+  let clientRuntime;
+  let hostServiceProvided = false;
+  let clientServiceProvided = false;
+  let clientActive = false;
+  if (initialStorageError === void 0) {
+    ;
+    ({ runtime, clientRuntime } = createRuntimes(config2));
+  }
   let closed = false;
-  let clientServiceProvided = clientRuntime !== void 0;
   let startup;
   let replacement;
+  const syncOptionalService = (serviceName, value, owned) => {
+    try {
+      if (serviceName === "dshRemote") {
+        if (owned) ctx.dshRemote = value;
+        else ctx.provide("dshRemote", value);
+      } else if (owned) {
+        ctx.dshRemoteClient = value;
+      } else {
+        ctx.provide("dshRemoteClient", value);
+      }
+      return true;
+    } catch {
+      logger2.warn("failed to provide remote service", {
+        service: serviceName,
+        code: "SERVICE_PROVIDE_CONFLICT"
+      });
+      return false;
+    }
+  };
   const replaceServer = (next) => {
+    const previousReplacement = replacement;
     const operation = async () => {
-      await startup;
+      await startup?.catch(() => void 0);
+      await previousReplacement?.catch(() => void 0);
       if (closed) throw new Error("Remote plugin is closed");
-      const shutdown = await Promise.allSettled([clientRuntime?.close(), runtime.close()]);
+      clientActive = false;
+      const shutdown = await Promise.allSettled([clientRuntime?.close(), runtime?.close()]);
       const failure5 = shutdown.find((result) => result.status === "rejected");
       if (failure5?.status === "rejected") throw failure5.reason;
       if (closed) throw new Error("Remote plugin is closed");
+      defaultIdentityDirectory = await prepareDefaultIdentityDirectory();
+      controlRuntime?.setIdentityDirectory(defaultIdentityDirectory);
       const fresh = createRuntimes(next);
       try {
         await fresh.runtime.start();
@@ -100685,56 +103142,77 @@ async function activate(ctx, readConfig, entryId) {
       }
       runtime = fresh.runtime;
       clientRuntime = fresh.clientRuntime;
-      ctx.dshRemote = runtime;
+      clientActive = clientRuntime !== void 0;
+      controlRuntime?.clearStartupFailure();
+      hostServiceProvided = syncOptionalService("dshRemote", runtime, hostServiceProvided);
       if (clientRuntime !== void 0) {
-        if (clientServiceProvided) ctx.dshRemoteClient = clientRuntime;
-        else {
-          ctx.provide("dshRemoteClient", clientRuntime);
-          clientServiceProvided = true;
-        }
+        clientServiceProvided = syncOptionalService("dshRemoteClient", clientRuntime, clientServiceProvided);
       }
+      if (connection !== void 0) updateChecker.start();
       return { client: clientRuntime, host: runtime };
     };
     replacement = operation();
     return replacement;
   };
-  const controlRuntime = connection === void 0 ? void 0 : new PluginControlRuntime(config2, defaultIdentityDirectory, settingsBinding, clientRuntime, runtime, replaceServer, updateChecker);
-  ctx.provide("dshRemote", runtime);
-  if (clientRuntime !== void 0) ctx.provide("dshRemoteClient", clientRuntime);
+  const controlRuntime = connection === void 0 ? void 0 : new PluginControlRuntime(
+    config2,
+    defaultIdentityDirectory,
+    settingsBinding,
+    clientRuntime,
+    runtime,
+    replaceServer,
+    updateChecker,
+    true
+  );
+  if (initialStorageError !== void 0) {
+    controlRuntime?.setStartupFailure(initialStorageError, { storageAvailable: false });
+  }
+  if (runtime !== void 0) {
+    hostServiceProvided = syncOptionalService("dshRemote", runtime, hostServiceProvided);
+  }
+  if (clientRuntime !== void 0) {
+    clientServiceProvided = syncOptionalService("dshRemoteClient", clientRuntime, clientServiceProvided);
+  }
   await disableLegacyLoaderEntries(ctx, logger2);
   await ctx.effect(async () => {
     const disposeControl = controlRuntime?.register(connection, webServer);
-    try {
-      startup = (async () => {
-        await runtime.start();
-        if (clientRuntime !== void 0) {
-          await clientRuntime.start();
-        } else {
-          logger2.warn("client remote mode is unavailable", {
-            serverConfigured: config2.serverUrl !== void 0,
-            remoteGatewayAvailable: localTypertGateway.supportsCarrier,
-            connectionAvailable: connection !== void 0
-          });
-        }
-      })();
-      await startup;
-      if (connection !== void 0) updateChecker.start();
-    } catch (error62) {
-      await disposeControl?.();
-      await clientRuntime?.close();
-      await runtime.close();
-      throw error62;
+    if (initialStorageError !== void 0) {
+      logger2.error("Remote plugin startup failed", safeStartupError(initialStorageError));
+    } else {
+      try {
+        startup = (async () => {
+          await runtime.start();
+          if (clientRuntime !== void 0) {
+            await clientRuntime.start();
+            clientActive = true;
+          } else {
+            logger2.warn("client remote mode is unavailable", {
+              serverConfigured: config2.serverUrl !== void 0,
+              remoteGatewayAvailable: localTypertGateway.supportsCarrier,
+              connectionAvailable: connection !== void 0
+            });
+          }
+        })();
+        await startup;
+        if (connection !== void 0) updateChecker.start();
+      } catch (error62) {
+        clientActive = false;
+        logger2.error("Remote plugin startup failed", safeStartupError(error62));
+        controlRuntime?.setStartupFailure(error62);
+        await Promise.allSettled([clientRuntime?.close(), runtime?.close()]);
+      }
     }
     return async () => {
       closed = true;
+      clientActive = false;
       updateChecker.stop();
       await replacement?.catch(() => void 0);
       await disposeControl?.();
       await clientRuntime?.close();
-      await runtime.close();
+      await runtime?.close();
     };
   }, "ds-harness-remote lifecycle");
-  if (config2.remoteTools?.enabled) installRemoteDiscoveryTools(ctx, () => closed ? void 0 : clientRuntime);
+  if (config2.remoteTools?.enabled) installRemoteDiscoveryTools(ctx, () => closed || !clientActive ? void 0 : clientRuntime);
 }
 function readEntryConfig(entry) {
   if (entry === void 0) return {};
@@ -100765,8 +103243,10 @@ async function createSettingsBinding(ctx, settings, readConfig, entryId) {
       }, hmr)
     };
   }
-  const scope2 = settings.register(pluginSettingsNamespace, Config, {
-    base: readConfig(),
+  const base = readConfig();
+  const resolveRegistration = (input4) => entryConfigSchema(input4 === void 0 ? base : input4);
+  const scope2 = settings.register(pluginSettingsNamespace, resolveRegistration, {
+    base,
     applies: "restart",
     validate: (value) => {
       resolveConfig(value);
@@ -100842,10 +103322,12 @@ export {
   ServerCredentialsInvalidError,
   TypertGatewaySwitch,
   apply,
+  applyTuiHost,
   createRemoteFileContentProvider,
   fingerprint2 as fingerprint,
   name,
   prepareDefaultIdentityDirectory,
+  resetDefaultIdentityRoles,
   resolveConfig,
   runCli,
   serverStorageDirectory

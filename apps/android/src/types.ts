@@ -382,6 +382,7 @@ export interface ApprovalActivity extends ChatItemBase {
   kind: 'approval'
   approvalId: string
   toolName: string
+  callId?: string
   reason?: string
   frameRpcId?: string
   outcome?: ApprovalOutcome
@@ -471,6 +472,7 @@ export interface ConnectionSnapshot {
   phase: ConnectionPhase
   stats: TransportStats
   error?: string
+  errorCode?: string
   /** False for protocol/security refusals or a replaced connection. */
   retryable?: boolean
 }

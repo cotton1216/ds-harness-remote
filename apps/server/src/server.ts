@@ -17,11 +17,13 @@ import {
   HEARTBEAT_DISCONNECT_MS_MAX,
   HELLO_TIMEOUT_MS_RANGE,
   HEARTBEAT_INTERVAL_MS_RANGE,
+  MAX_FRAMES_PER_SEC_RANGE,
   normalizeForceTerminateGraceMs,
   normalizeGatewayOptions,
   normalizeHeartbeatDisconnectMs,
   normalizeHeartbeatIntervalMs,
   normalizeHelloTimeoutMs,
+  normalizeMaxFramesPerSec,
 } from './config.js'
 
 export interface Config {
@@ -35,6 +37,7 @@ export interface Config {
   heartbeatIntervalMs?: number
   heartbeatDisconnectMs?: number
   forceTerminateGraceMs?: number
+  maxFramesPerSec?: number
   logLevel?: LogLevel
   ice?: IceConfig
   /** When set, logins are delegated to this IAM deployment instead of local accounts. */
@@ -73,16 +76,22 @@ export function parseForceTerminateGrace(val: string | undefined): number {
   return normalizeForceTerminateGraceMs(val)
 }
 
+export function parseMaxFramesPerSec(val: string | undefined): number {
+  return normalizeMaxFramesPerSec(val)
+}
+
 export {
   normalizeGatewayOptions,
   normalizeHelloTimeoutMs,
   normalizeHeartbeatIntervalMs,
   normalizeHeartbeatDisconnectMs,
   normalizeForceTerminateGraceMs,
+  normalizeMaxFramesPerSec,
   HELLO_TIMEOUT_MS_RANGE,
   HEARTBEAT_INTERVAL_MS_RANGE,
   HEARTBEAT_DISCONNECT_MS_MAX,
   FORCE_TERMINATE_GRACE_MS_RANGE,
+  MAX_FRAMES_PER_SEC_RANGE,
 }
 export type { GatewayTimingOptions, NormalizedGatewayOptions } from './config.js'
 
@@ -358,6 +367,7 @@ export function createRemoteServer(config: Config) {
   })
   const gateway = new Gateway(server, store, url.origin, {
     ...timing,
+    maxFramesPerSec: normalizeMaxFramesPerSec(config.maxFramesPerSec),
     logLevel: config.logLevel,
     logger: logger.child('gateway'),
     turnEnabled: ice.turnUrls.length > 0,
