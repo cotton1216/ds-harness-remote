@@ -21,8 +21,14 @@ export function LoginPanel({ onAuthSuccess, initialError }: { onAuthSuccess: (ac
   useEffect(() => {
     let alive = true
     authConfig()
-      .then(config => { if (!alive) return; setOidc(config.oidc); setLocalAccount(config.password) })
-      .catch(() => { if (alive) setOidc(null) })
+      .then(config => {
+        if (!alive) return
+        setOidc(config.oidc); setLocalAccount(config.password)
+        // 没有统一登录时，密码就是唯一入口，别再让人多点一次链接。
+        setShowPassword(config.oidc === null)
+      })
+      // 拿不到配置就不能猜登录方式：给一句能自救的提示，而不是渲染一个空卡片。
+      .catch(() => { if (alive) { setOidc(null); setError('无法获取登录配置，请刷新页面重试。') } })
     return () => { alive = false }
   }, [])
 
@@ -44,13 +50,15 @@ export function LoginPanel({ onAuthSuccess, initialError }: { onAuthSuccess: (ac
 
   const ssoAvailable = oidc !== undefined && oidc !== null
   const passwordForm = showPassword && localAccount
+  // 副标题要说实话：没有统一登录时不该还写「使用企业统一身份账号继续」。
+  const subtitle = oidc === undefined ? '' : ssoAvailable ? '使用企业统一身份账号继续' : '使用本地管理员账号登录'
 
   return <><main className="auth-page">
     <div className="auth-language-menu"><ThemeToggle className="auth-theme-toggle" /></div>
     <section className="auth-content">
       <div className="auth-logo-stack"><a className="auth-home-link" href="/" aria-label="返回首页"><img className="auth-brand-icon" src="/brand-ruyi.png" alt="" width="48" height="48" /><Typography.Title>{BRAND}</Typography.Title></a></div>
       <Card className="auth-panel">
-        <div className="auth-intro"><Typography.Title level={3} className="auth-title">登录</Typography.Title><Typography.Paragraph className="auth-subtitle" type="secondary">使用企业统一身份账号继续</Typography.Paragraph></div>
+        <div className="auth-intro"><Typography.Title level={3} className="auth-title">登录</Typography.Title>{subtitle !== '' && <Typography.Paragraph className="auth-subtitle" type="secondary">{subtitle}</Typography.Paragraph>}</div>
         {error && <Alert className="selfhost-auth-error" type="error" showIcon message={error} />}
         {oidc === undefined
           ? <div className="auth-sso-loading" role="status">正在检查登录方式…</div>
