@@ -8,7 +8,7 @@ import { z } from 'zod'
 import { accountDeviceDescriptorSchema, deviceRegistrationRequestSchema, deviceRefreshRequestSchema, PROTOCOL_VERSION } from '@dsh-remote/protocol'
 import { ApiError, Store, hash, secret, validateAccounts, type AccountConfig } from './store.js'
 import { IamError, iamLogin, iamProfile, type IamConfig, type IamIdentity, type IamUser } from './iam.js'
-import { OidcError, oidcConfigFromEnv, oidcIdentityFromCode, type OidcConfig } from './iam-oidc.js'
+import { OidcError, oidcAuthorizeEndpoint, oidcConfigFromEnv, oidcIdentityFromCode, type OidcConfig } from './iam-oidc.js'
 import { Gateway } from './gateway.js'
 import { buildIceServers, parseIceConfig, type IceConfig } from './ice.js'
 import { Logger, type LogLevel } from './logger.js'
@@ -47,6 +47,17 @@ export interface Config {
    * `DSH_IAM_OIDC_*` 环境变量读取；都没有就视为未启用，路由返回 404。
    */
   oidc?: OidcConfig
+  /**
+   * 浏览器侧 OIDC 回跳地址（例如 `https://relay.example.com/app/callback`）。
+   * 配置后 Web 登录页显示「企业统一登录」，并把它加入 redirect_uri 白名单；
+   * 留空则表示该部署只支持手机 App 的 `dshgo://` 回调。
+   */
+  webRedirectUri?: string
+  /**
+   * 覆盖换票默认允许的 redirect_uri 集合（默认只有手机端的 `dshgo://auth/callback`）。
+   * 仅供测试与自建客户端使用；`DSH_WEB_REDIRECT_URI` 会额外加入，不受此处影响。
+   */
+  allowedRedirectUris?: readonly string[]
   /**
    * Allow a device to move to another account when it re-presents the same identity
    * key. Off by default: only enable it while migrating accounts deliberately.
@@ -150,6 +161,21 @@ export function normalizeTrustedProxyIps(values: readonly string[] = []): Readon
   }
   return result
 }
+/**
+ * 浏览器 OIDC 回调地址必须是绝对 HTTP(S) URL，且不带 query / hash / 凭据：
+ * IAM 的 redirect_uri 白名单是逐字比对，任何附加片段都会让授权请求直接失败。
+ * 空值表示「不启用浏览器登录」，不是错误。
+ */
+export function normalizeWebRedirectUri(raw: string | undefined): string | undefined {
+  const value = raw?.trim()
+  if (!value) return undefined
+  let parsed: URL
+  try { parsed = new URL(value) } catch { throw new Error('Invalid DSH_WEB_REDIRECT_URI.') }
+  if (!['http:', 'https:'].includes(parsed.protocol) || parsed.search || parsed.hash || parsed.username || parsed.password) {
+    throw new Error('Invalid DSH_WEB_REDIRECT_URI: expected an absolute HTTP(S) URL without query, hash or credentials.')
+  }
+  return value
+}
 function readSingleForwardedFor(req: IncomingMessage): string {
   let value: string | undefined
   let count = 0
@@ -191,6 +217,21 @@ export function createRemoteServer(config: Config) {
     throw new Error('DSH_IAM_ISSUER (or DSH_IAM_OIDC_ISSUER) is required when DSH_IAM_BASE is set.')
   }
   const iam = config.iam === undefined ? undefined : { ...config.iam, expectedIssuer: trustedIssuer! }
+  /**
+   * 浏览器回调地址与 OIDC 配置是一体的：没有 OIDC 就没有换票端点，配了回调也
+   * 登录不了。启动时直接报错，避免线上「按钮点了没反应」这种隐性故障。
+   */
+  const webRedirectUri = normalizeWebRedirectUri(config.webRedirectUri ?? process.env['DSH_WEB_REDIRECT_URI'])
+  if (webRedirectUri !== undefined && oidcConfig === undefined) {
+    throw new Error('DSH_WEB_REDIRECT_URI requires DSH_IAM_OIDC_ISSUER, DSH_IAM_OIDC_CLIENT_ID and DSH_IAM_OIDC_CLIENT_SECRET.')
+  }
+  /**
+   * 允许换票的 redirect_uri。手机 App 的自定义 scheme 是固定值，浏览器地址由
+   * DSH_WEB_REDIRECT_URI 声明。换票时逐字比对，授权码不能被换到未声明的地址。
+   * `allowedRedirectUris` 只给测试和自建客户端留口子，生产靠上面两个来源。
+   */
+  const allowedRedirectUris = new Set<string>(config.allowedRedirectUris ?? ['dshgo://auth/callback'])
+  if (webRedirectUri !== undefined) allowedRedirectUris.add(webRedirectUri)
   const accounts = validateAccounts(
     config.accounts ?? (iam !== undefined || oidcConfig !== undefined ? [] : [{ account: config.account ?? '', password: config.password ?? '' }]),
     { allowEmpty: iam !== undefined || oidcConfig !== undefined },
@@ -392,9 +433,13 @@ export function createRemoteServer(config: Config) {
     const requestUrl = new URL(req.url ?? '/', url)
     const path = requestUrl.pathname
     const method = req.method
-    if (req.headers.origin && req.headers.origin !== url.origin) throw new ApiError('AUTH_INVALID', 403)
-    if (req.headers['sec-fetch-site'] === 'cross-site') throw new ApiError('AUTH_INVALID', 403)
-    const staticAsset = path.startsWith('/assets/') || ['/icon.png', '/brand-whale.webp', '/landing-atmosphere.webp'].includes(path)
+    // CSRF 防护只作用于 API。浏览器从 IAM 域回跳 `/app/callback` 是跨站顶级导航，
+    // Sec-Fetch-Site 必然是 `cross-site`；把它一并拦掉会让单点登录在回跳那一刻 403。
+    // 静态入口没有副作用，不需要 CSRF 保护。
+    const isApi = path.startsWith('/api/')
+    if (isApi && req.headers.origin && req.headers.origin !== url.origin) throw new ApiError('AUTH_INVALID', 403)
+    if (isApi && req.headers['sec-fetch-site'] === 'cross-site') throw new ApiError('AUTH_INVALID', 403)
+    const staticAsset = path.startsWith('/assets/') || ['/icon.png', '/brand-ruyi.png', '/landing-atmosphere.webp'].includes(path)
     // SPA fallback: any GET that is not API / WebSocket / health-check returns index.html.
     // Without this, refreshing a client route such as /app/remote hits the unknown-method branch and yields METHOD_NOT_FOUND.
     const spaRoute = method === 'GET' && !staticAsset && !path.startsWith('/api/') && !path.startsWith('/ws/') && !['/health', '/healthz', '/ready'].includes(path)
@@ -402,7 +447,7 @@ export function createRemoteServer(config: Config) {
       const name = staticAsset ? path.slice(1) : 'index.html'
       const asset = assets.get(name)
       if (!asset) throw new ApiError('METHOD_NOT_FOUND', 404)
-      const contentType = name.endsWith('.js') ? 'text/javascript; charset=utf-8' : name.endsWith('.css') ? 'text/css; charset=utf-8' : name.endsWith('.png') ? 'image/png' : name.endsWith('.webp') ? 'image/webp' : 'text/html; charset=utf-8'
+      const contentType = name.endsWith('.js') ? 'text/javascript; charset=utf-8' : name.endsWith('.css') ? 'text/css; charset=utf-8' : name.endsWith('.png') ? 'image/png' : name.endsWith('.webp') ? 'image/webp' : name.endsWith('.svg') ? 'image/svg+xml' : 'text/html; charset=utf-8'
       if (!staticAsset) res.setHeader('Cache-Control', 'no-cache')
       res.setHeader('Content-Type', contentType)
       res.end(asset); return
@@ -410,6 +455,21 @@ export function createRemoteServer(config: Config) {
     if (method === 'GET' && (path === '/health' || path === '/healthz' || path === '/ready')) { json(res, 200, { status: 'ok' }); return }
     const client = clientAddress(req, trustedProxyIps)
     rate(`api:${client}`, 240)
+    // 登录页先问「这台中继支持哪些登录方式」，再决定渲染统一登录按钮还是只有密码框。
+    // 只回传公开参数：client_secret 永远留在进程环境里。
+    if (method === 'GET' && path === '/api/v1/auth/config') {
+      rate(`config:${client}`, 120)
+      json(res, 200, {
+        // 只有真的配了本地账号才暴露密码入口，否则给出一个点了必然 401 的表单。
+        password: accounts.length > 0,
+        oidc: webRedirectUri === undefined ? null : {
+          clientId: oidcConfig!.clientId,
+          redirectUri: webRedirectUri,
+          authorizeEndpoint: await oidcAuthorizeEndpoint(oidcConfig!),
+          scope: 'openid profile email',
+        },
+      }); return
+    }
     if (method === 'POST' && path === '/api/v1/auth/login') {
       rate(`login:${client}`, 20)
       const credentials = loginSchema.parse(await body(req))
@@ -435,6 +495,8 @@ export function createRemoteServer(config: Config) {
         redirectUri: z.string().url().max(2048),
         nonce: z.string().min(1).max(256).optional(),
       }).strict().parse(await body(req))
+      // 只接受声明过的回调地址：授权码不能换到别处去。
+      if (!allowedRedirectUris.has(input.redirectUri)) throw new ApiError('INVALID_MESSAGE', 400)
       let identity
       try {
         identity = await oidcIdentityFromCode(oidcConfig, input)

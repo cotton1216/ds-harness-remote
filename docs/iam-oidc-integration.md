@@ -11,7 +11,7 @@
 | issuer | `https://ai.thchengtay.com/iam` | 不带尾部斜杠；服务端 `DSH_IAM_OIDC_ISSUER` |
 | client_id | `dsh-remote-mobile` | 服务端 `DSH_IAM_OIDC_CLIENT_ID`；手机端同名 dart-define |
 | client_secret | **不记录** | 由 IAM 管理员在密钥渠道提供，只写入服务端 `DSH_IAM_OIDC_CLIENT_SECRET`；绝不进 App、代码库、文档、命令行历史或日志 |
-| redirect_uri 白名单 | `dshgo://auth/callback` | **一字不差**；请求参数后面不能自行追加 `?xxx=yyy`，带了就失败 |
+| redirect_uri 白名单 | `dshgo://auth/callback` | **一字不差**；请求参数后面不能自行追加 `?xxx=yyy`，带了就失败。Web 管理台还需另加一条，见 §11 |
 | response_type | `code` | 授权码模式 |
 | scope | `openid profile email` | |
 | PKCE | `S256` | token 端点强制校验 `code_verifier` |
@@ -298,3 +298,43 @@ OIDC-only 部署（只配 `DSH_IAM_OIDC_*`、不配 `DSH_IAM_BASE`）现在允�
 - `state` / `nonce` 每次登录重新生成并校验；PKCE `code_verifier` 不出 App、只存进程内存，不落盘、不进日志。App 在登录期间被回收即作废本次登录（§8.2 第 8 项）。
 - `client_id` 是公开标识，允许作为代码库默认值与 dart-define；这不改变对 `client_secret` 与管理员密钥的排除。
 - 业务方不保存 IAM 令牌（`refresh_token_ttl=0`），中继只签发自己的账号会话。
+
+## 11. Web 管理台（浏览器）单点登录
+
+手机端走 `dshgo://` 自定义 scheme 回跳；浏览器没有 scheme，必须由 IAM 后台把
+Web 回调加入同一 client 的 `redirect_uri` 白名单。**这是启用该功能的唯一外部前置条件**。
+
+| 项 | 值 |
+|---|---|
+| 待登记的回调地址 | `https://118.196.18.181:8443/app/callback` |
+| 与手机端的关系 | 同一 `client_id`（`dsh-remote-mobile`）下**新增**一条，`dshgo://auth/callback` 必须保留 |
+| 新增 scope / 端点 | 无：仍用 `openid profile email`、`response_type=code`、PKCE `S256`、`client_secret_basic` |
+| CORS | 不需要：换票在中继服务端完成，浏览器不直连 IAM 的 token 端点 |
+
+若 IAM 不允许一个 client 挂多个 `redirect_uri`，则需新开一个 `dsh-remote-web`
+并单独下发 secret；服务端再加一套配置即可，现有 `dsh-remote-mobile` 不受影响。
+若 IAM 不接受「IP + 非 443 端口」形式的回调，则需要先给中继配正式域名。
+
+### 浏览器侧链路
+
+1. `GET /api/v1/auth/config` 返回 `{ password, oidc }`；`oidc` 为 `null` 表示未启用
+   （服务端没配 `DSH_WEB_REDIRECT_URI`），前端只渲染本地账号入口。
+2. 点「使用如意 AI 账号登录」→ 前端生成 `code_verifier` / `state` / `nonce`，
+   存 `sessionStorage`（同标签页跨域往返仍在，关页即失效），跳 `authorization_endpoint`。
+3. IAM 回跳 `/app/callback?code=&state=`；前端比对 `state` 后
+   `POST /api/v1/auth/iam/oidc`，带上 `codeVerifier` / `redirectUri` / `nonce`。
+4. 中继用 `client_secret_basic` 换 `id_token`，验签后签发自己的 `dsh_session` Cookie。
+
+### 服务端配套改动（已在 `feat/multi-account` 之后的分支实现）
+
+- `DSH_WEB_REDIRECT_URI`：非空即启用 Web 单点登录，并自动加入换票白名单
+  （默认白名单只有 `dshgo://auth/callback`）。配了它却没有 OIDC 三项时**启动即失败**，
+  避免线上出现「按钮点了没反应」。
+- `GET /api/v1/auth/config`：只回传 `clientId` / `redirectUri` / `authorizeEndpoint` / `scope`，
+  绝不回传 `client_secret`。
+- `DSH_IAM_OIDC_AUTHORIZE_ENDPOINT`（可选）：写死授权端点，免去 discovery 往返；写错
+  （不在 issuer 之下）会被忽略并回退 discovery。
+- `normalizeWebRedirectUri()`：回调地址必须是绝对 HTTP(S)、不带 query / hash / 凭据。
+- **CSRF 检查改为只作用于 `/api/`**：浏览器从 IAM 域回跳 `/app/callback` 是跨站顶级导航，
+  `Sec-Fetch-Site: cross-site` 是必然的；原实现会在回跳那一刻返回 403。静态入口没有
+  副作用，不需要 CSRF 保护。

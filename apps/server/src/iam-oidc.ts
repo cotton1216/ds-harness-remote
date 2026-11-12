@@ -19,6 +19,11 @@ export interface OidcConfig {
   clientId: string
   clientSecret: string
   timeoutMs: number
+  /**
+   * 浏览器登录跳转的授权端点。留空时按 discovery 发现，发现失败回退到
+   * `${issuer}/api/oidc/authorize`。显式配置可让登录页不依赖任何网络请求。
+   */
+  authorizationEndpoint?: string
 }
 
 export interface OidcIdentity {
@@ -52,8 +57,13 @@ interface Jwk {
 const DISCOVERY_TTL_MS = 10 * 60_000
 const JWKS_MIN_TTL_MS = 60_000
 
+/** discovery 未声明 authorization_endpoint 时的标准相对路径。 */
+function defaultAuthorizeEndpoint(issuer: string): string {
+  return `${issuer}/api/oidc/authorize`
+}
+
 /** 缓存 discovery 与 JWKS：登录是高频路径，不能每次都打 IAM。 */
-const discoveryCache = new Map<string, { value: { tokenEndpoint: string; jwksUri: string }; expires: number }>()
+const discoveryCache = new Map<string, { value: { tokenEndpoint: string; jwksUri: string; authorizationEndpoint: string }; expires: number }>()
 const jwksCache = new Map<string, { value: Map<string, Jwk>; expires: number }>()
 
 /** 三个环境变量齐全才启用；缺任何一个就当作未配置，路由不注册。 */
@@ -63,7 +73,14 @@ export function oidcConfigFromEnv(env: NodeJS.ProcessEnv): OidcConfig | undefine
   const clientSecret = env['DSH_IAM_OIDC_CLIENT_SECRET']?.trim()
   if (!issuer || !clientId || !clientSecret) return undefined
   if (!/^https?:\/\/[^\s]+$/.test(issuer)) return undefined
-  return { issuer, clientId, clientSecret, timeoutMs: 10_000 }
+  // 授权端点必须落在 issuer 之下；写错就当作未配置，回退 discovery，
+  // 而不是让整个 OIDC（含手机端换票）一起失效。
+  const declared = env['DSH_IAM_OIDC_AUTHORIZE_ENDPOINT']?.trim()
+  const authorizationEndpoint = declared?.startsWith(`${issuer}/`) ? declared : undefined
+  return {
+    issuer, clientId, clientSecret, timeoutMs: 10_000,
+    ...(authorizationEndpoint ? { authorizationEndpoint } : {}),
+  }
 }
 
 function b64urlToBuffer(value: string): Buffer {
@@ -92,7 +109,7 @@ async function fetchJson(url: string, init: RequestInit, timeoutMs: number, fetc
   return body
 }
 
-async function discovery(config: OidcConfig, fetchImpl: FetchLike): Promise<{ tokenEndpoint: string; jwksUri: string }> {
+async function discovery(config: OidcConfig, fetchImpl: FetchLike): Promise<{ tokenEndpoint: string; jwksUri: string; authorizationEndpoint: string }> {
   const cached = discoveryCache.get(config.issuer)
   if (cached !== undefined && cached.expires > Date.now()) return cached.value
   const body = await fetchJson(`${config.issuer}/.well-known/openid-configuration`, { headers: { accept: 'application/json' } }, config.timeoutMs, fetchImpl)
@@ -106,9 +123,26 @@ async function discovery(config: OidcConfig, fetchImpl: FetchLike): Promise<{ to
   for (const endpoint of [tokenEndpoint, jwksUri]) {
     if (!endpoint.startsWith(`${config.issuer}/`)) throw new OidcError('UNAVAILABLE', 200, 'foreign-endpoint')
   }
-  const value = { tokenEndpoint, jwksUri }
+  // 授权端点只用来拼跳转地址，不参与验签，所以缺省时回退到标准相对路径，
+  // 而不是让整个 discovery 失败。
+  const declared = record?.['authorization_endpoint']
+  const authorizationEndpoint = typeof declared === 'string' && declared.startsWith(`${config.issuer}/`) ? declared : defaultAuthorizeEndpoint(config.issuer)
+  const value = { tokenEndpoint, jwksUri, authorizationEndpoint }
   discoveryCache.set(config.issuer, { value, expires: Date.now() + DISCOVERY_TTL_MS })
   return value
+}
+/**
+ * 浏览器登录要跳去的授权端点。显式配置时直接用；否则按 discovery 发现，
+ * 发现失败回退到 issuer 下的标准路径。这里只决定「把用户送到哪」，
+ * 不承担任何信任判断，所以可用性优先于严格性。
+ */
+export async function oidcAuthorizeEndpoint(config: OidcConfig, fetchImpl: FetchLike = fetch): Promise<string> {
+  if (config.authorizationEndpoint !== undefined) return config.authorizationEndpoint
+  try {
+    return (await discovery(config, fetchImpl)).authorizationEndpoint
+  } catch {
+    return defaultAuthorizeEndpoint(config.issuer)
+  }
 }
 
 async function jwks(uri: string, config: OidcConfig, fetchImpl: FetchLike): Promise<Map<string, Jwk>> {

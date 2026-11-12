@@ -1,3 +1,4 @@
+import type { AuthConfig } from './oidc'
 export interface Account { account: string }
 export interface Device {
   deviceId: string; name: string; role: 'host' | 'client'; platform: string;
@@ -19,8 +20,19 @@ export async function api<T>(path: string, body?: unknown): Promise<T> {
   } catch { throw new RequestError('连接失败，请重试。', 0) }
   const data = await response.json()
   if (!response.ok) {
-    const messages: Record<string, string> = { AUTH_INVALID: '账号或密码错误，请重试。', ACCOUNT_AUTH_REQUIRED: '登录已过期，请重新登录。', RATE_LIMITED: '请求频繁，请稍后重试。' }
+    const messages: Record<string, string> = { AUTH_INVALID: '账号或密码错误，请重试。', ACCOUNT_AUTH_REQUIRED: '登录已过期，请重新登录。', RATE_LIMITED: '请求频繁，请稍后重试。', IAM_UNAVAILABLE: '统一身份服务暂时不可用，请稍后重试。' }
     throw new RequestError(messages[data.error?.code] ?? '请求失败，请稍后重试。', response.status)
   }
   return data as T
+}
+/** 登录页先问可用登录方式，再决定渲染统一登录按钮还是只有本地账号。 */
+export function authConfig(): Promise<AuthConfig> {
+  return api<AuthConfig>('/auth/config')
+}
+/**
+ * 用浏览器拿到的授权码换本服务会话。`codeVerifier` 是与授权请求配套的那个，
+ * `client_secret` 不在这里出现——它只存在于中继进程的环境变量中。
+ */
+export function exchangeOidcCode(input: { code: string; codeVerifier: string; redirectUri: string; nonce: string }): Promise<Account> {
+  return api<Account>('/auth/iam/oidc', input)
 }

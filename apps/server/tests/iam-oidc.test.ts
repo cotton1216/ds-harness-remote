@@ -180,6 +180,8 @@ describe('POST /api/v1/auth/iam/oidc', () => {
       accounts: [{ account: 'breakglass', password: 'breakglass-password-1' }],
       dataFile: join(dir, 'state.json'),
       publicUrl: 'http://localhost:8080',
+      // 换票端点只接受声明过的 redirect_uri；这里把用例里用的回环地址声明进去。
+      allowedRedirectUris: ['http://127.0.0.1:8765/callback'],
       ...(oidc === undefined ? {} : { oidc }),
     })
     app.server.listen(0, '127.0.0.1')
