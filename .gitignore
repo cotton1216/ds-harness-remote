@@ -25,3 +25,11 @@ artifacts/
 
 # Minimal self-hosted Server credentials and local state
 apps/server/data/
+
+# Self-hosted relay secrets: real files are copied from the *.example templates
+# and filled locally. Never commit client_secret / account passwords / env files.
+*.env
+!*.env.example
+deploy/**/unified.env
+deploy/**/accounts.json
+deploy/relay/*.env
