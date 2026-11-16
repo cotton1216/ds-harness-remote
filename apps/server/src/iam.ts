@@ -1,9 +1,12 @@
 /**
- * IAM (AI-Server) identity adapter.
+ * Identity adapter — everything here talks to **AI-Server**, not to the IAM
+ * issuer. The relay knows one identity source: the AI-Server deployment that
+ * owns the user records. IAM only appears in this file as two values copied out
+ * of an AI-Server response (`identities.oidc.issuer` / `subject`).
  *
  * The relay never trusts a bearer token on its own: the only way to learn who a
- * caller is, is to ask IAM. Two entry points are used, both observed against the
- * live deployment:
+ * caller is, is to ask AI-Server. Two entry points are used, both observed
+ * against the live deployment:
  *
  *   POST {base}/api/v1/auth/login   { email, password } -> { access_token }
  *   GET  {base}/api/v1/user/profile Authorization: Bearer -> { id, email, username, identities }
@@ -17,7 +20,11 @@
  */
 
 export interface IamConfig {
-  /** Deployment base URL including its reverse-proxy prefix, without trailing slash. */
+  /**
+   * AI-Server base URL including its reverse-proxy prefix, without trailing
+   * slash. Configured through `DSH_IDENTITY_BASE` (legacy: `DSH_IAM_BASE`, which
+   * never held an IAM URL either — the name was simply wrong).
+   */
   baseUrl: string
   timeoutMs: number
   /**
@@ -78,16 +85,34 @@ export function normalizeTrustedIssuer(value: string | undefined): string | unde
   return `${url.origin}${url.pathname.replace(/\/+$/, '')}`
 }
 
+/**
+ * Resolve the identity base from the environment.
+ *
+ * `DSH_IDENTITY_BASE` is the honest name: the value is the AI-Server deployment
+ * that answers `/api/v1/user/profile`. `DSH_IAM_BASE` is the historical name and
+ * is still honoured so existing deployments keep starting, but it never held an
+ * IAM URL — reporting it as `legacy` lets the entry point say so once at boot.
+ */
+export function identityBaseFromEnv(env: NodeJS.ProcessEnv = process.env): { value: string | undefined; legacy: boolean } {
+  const preferred = env['DSH_IDENTITY_BASE']
+  if (preferred !== undefined && preferred.trim() !== '') return { value: preferred, legacy: false }
+  const fallback = env['DSH_IAM_BASE']
+  return { value: fallback, legacy: fallback !== undefined && fallback.trim() !== '' }
+}
+
+/** `DSH_IDENTITY_BASE` names the value; the legacy alias is shown too so the error is actionable. */
+const BASE_VAR_LABEL = 'DSH_IDENTITY_BASE (legacy DSH_IAM_BASE)'
+
 /** Accepts only an absolute http(s) base URL; rejects credentials, query, hash and percent-escaped path separators. */
 export function parseIamConfig(value: string | undefined, timeoutRaw?: string, expectedIssuerRaw?: string): IamConfig | undefined {
   const expectedIssuer = normalizeTrustedIssuer(expectedIssuerRaw)
   if (value === undefined || value.trim() === '') return undefined
   let url: URL
-  try { url = new URL(value.trim()) } catch { throw new Error('Invalid DSH_IAM_BASE.') }
+  try { url = new URL(value.trim()) } catch { throw new Error(`Invalid ${BASE_VAR_LABEL}.`) }
   if (url.username || url.password || url.search || url.hash || /%2f|%5c/i.test(url.pathname)) {
-    throw new Error('Invalid DSH_IAM_BASE.')
+    throw new Error(`Invalid ${BASE_VAR_LABEL}.`)
   }
-  if (url.protocol !== 'https:' && url.protocol !== 'http:') throw new Error('Invalid DSH_IAM_BASE.')
+  if (url.protocol !== 'https:' && url.protocol !== 'http:') throw new Error(`Invalid ${BASE_VAR_LABEL}.`)
   const timeoutMs = timeoutRaw === undefined || timeoutRaw.trim() === '' ? DEFAULT_TIMEOUT_MS : Number(timeoutRaw)
   if (!Number.isInteger(timeoutMs) || timeoutMs < 1000 || timeoutMs > 30_000) throw new Error('Invalid DSH_IAM_TIMEOUT_MS.')
   return {

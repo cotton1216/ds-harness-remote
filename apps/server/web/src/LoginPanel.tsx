@@ -1,8 +1,10 @@
-// 如意 AI 登录页：以企业统一身份（IAM OIDC）为主路径，本地账号仅作 break-glass 兜底。
+// 如意 AI 登录页：主路径是「如意账号登录」（AI-Server 桌面授权），企业统一身份（IAM OIDC）
+// 保留为后备入口，本地账号仅作 break-glass 兜底。三套可以任意组合，页面按实际可用的渲染。
 import { Alert, Button, Card, Divider, Form, Input, Typography } from 'antd'
 import { SafetyCertificateOutlined } from '@ant-design/icons'
 import { useEffect, useState } from 'react'
 import { api, authConfig, type Account } from './api'
+import { buildAiserverAuthorizeUrl, clearLoginPending, type AiserverLoginConfig } from './aiserver'
 import { buildAuthorizeUrl, type OidcLoginConfig } from './oidc'
 import { ThemeToggle } from './ThemeToggle'
 import { SiteFooter } from './SiteFooter'
@@ -13,6 +15,7 @@ export function LoginPanel({ onAuthSuccess, initialError }: { onAuthSuccess: (ac
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState(initialError ?? '')
   const [oidc, setOidc] = useState<OidcLoginConfig | null>()
+  const [aserver, setAserver] = useState<AiserverLoginConfig | null>()
   const [localAccount, setLocalAccount] = useState(false)
   const [showPassword, setShowPassword] = useState(false)
   const [form] = Form.useForm<{ email: string; password: string }>()
@@ -23,12 +26,12 @@ export function LoginPanel({ onAuthSuccess, initialError }: { onAuthSuccess: (ac
     authConfig()
       .then(config => {
         if (!alive) return
-        setOidc(config.oidc); setLocalAccount(config.password)
-        // 没有统一登录时，密码就是唯一入口，别再让人多点一次链接。
-        setShowPassword(config.oidc === null)
+        setOidc(config.oidc); setAserver(config.aiserver); setLocalAccount(config.password)
+        // 没有任何单点登录时，密码就是唯一入口，别再让人多点一次链接。
+        setShowPassword(config.oidc === null && config.aiserver === null)
       })
       // 拿不到配置就不能猜登录方式：给一句能自救的提示，而不是渲染一个空卡片。
-      .catch(() => { if (alive) { setOidc(null); setError('无法获取登录配置，请刷新页面重试。') } })
+      .catch(() => { if (alive) { setOidc(null); setAserver(null); setError('无法获取登录配置，请刷新页面重试。') } })
     return () => { alive = false }
   }, [])
 
@@ -41,17 +44,34 @@ export function LoginPanel({ onAuthSuccess, initialError }: { onAuthSuccess: (ac
     finally { setLoading(false) }
   }
 
-  async function sso() {
-    if (oidc === null || oidc === undefined) return
+  async function ssoAiserver() {
+    if (aserver === null || aserver === undefined) return
     setLoading(true); setError('')
-    try { window.location.assign(await buildAuthorizeUrl(oidc)) }
-    catch { setError('无法发起统一身份登录，请刷新页面重试。'); setLoading(false) }
+    try {
+      // 两套流程互斥：开始这一套就把另一套的谜题清掉，回调时才不会取错。
+      clearLoginPending()
+      window.location.assign(await buildAiserverAuthorizeUrl(aserver))
+    } catch { setError('无法发起如意账号登录，请刷新页面重试。'); setLoading(false) }
   }
 
-  const ssoAvailable = oidc !== undefined && oidc !== null
+  async function ssoOidc() {
+    if (oidc === null || oidc === undefined) return
+    setLoading(true); setError('')
+    try {
+      clearLoginPending()
+      window.location.assign(await buildAuthorizeUrl(oidc))
+    } catch { setError('无法发起统一身份登录，请刷新页面重试。'); setLoading(false) }
+  }
+
+  const aserverAvailable = aserver !== undefined && aserver !== null
+  const oidcAvailable = oidc !== undefined && oidc !== null
+  const ssoAvailable = aserverAvailable || oidcAvailable
   const passwordForm = showPassword && localAccount
-  // 副标题要说实话：没有统一登录时不该还写「使用企业统一身份账号继续」。
-  const subtitle = oidc === undefined ? '' : ssoAvailable ? '使用企业统一身份账号继续' : '使用本地管理员账号登录'
+  // 副标题要说实话：没有单点登录时不该还写「使用企业统一身份账号继续」。
+  const subtitle = aserver === undefined || oidc === undefined ? ''
+    : aserverAvailable ? '使用如意账号继续'
+    : oidcAvailable ? '使用企业统一身份账号继续'
+    : '使用本地管理员账号登录'
 
   return <><main className="auth-page">
     <div className="auth-language-menu"><ThemeToggle className="auth-theme-toggle" /></div>
@@ -60,11 +80,22 @@ export function LoginPanel({ onAuthSuccess, initialError }: { onAuthSuccess: (ac
       <Card className="auth-panel">
         <div className="auth-intro"><Typography.Title level={3} className="auth-title">登录</Typography.Title>{subtitle !== '' && <Typography.Paragraph className="auth-subtitle" type="secondary">{subtitle}</Typography.Paragraph>}</div>
         {error && <Alert className="selfhost-auth-error" type="error" showIcon message={error} />}
-        {oidc === undefined
+        {aserver === undefined || oidc === undefined
           ? <div className="auth-sso-loading" role="status">正在检查登录方式…</div>
           : ssoAvailable && <div className="auth-sso">
-              <Button className="auth-sso-button" size="large" block type="primary" loading={loading} icon={<SafetyCertificateOutlined />} onClick={() => void sso()}>使用 {BRAND} 账号登录</Button>
-              <Typography.Paragraph className="auth-sso-hint" type="secondary">将跳转到企业统一身份认证页面，登录后自动返回。</Typography.Paragraph>
+              <Button
+                className="auth-sso-button" size="large" block type="primary" loading={loading}
+                icon={<SafetyCertificateOutlined />}
+                onClick={() => void (aserverAvailable ? ssoAiserver() : ssoOidc())}
+              >使用 {BRAND} 账号登录</Button>
+              <Typography.Paragraph className="auth-sso-hint" type="secondary">
+                {aserverAvailable
+                  ? '将跳转到如意账号授权页面，登录后自动返回。'
+                  : '将跳转到企业统一身份认证页面，登录后自动返回。'}
+              </Typography.Paragraph>
+              {/* 两套都可用时，把企业统一身份降级成后备入口：主路径统一走如意账号，
+                  但 IAM 侧出问题时还能从这条进来，不用等我们改配置。 */}
+              {aserverAvailable && oidcAvailable && <Button type="link" className="auth-break-glass" disabled={loading} onClick={() => void ssoOidc()}>使用企业统一身份账号登录</Button>}
             </div>}
         {passwordForm && <>
           {ssoAvailable && <Divider plain className="auth-divider">或</Divider>}

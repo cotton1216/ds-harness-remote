@@ -9,6 +9,14 @@ import { accountDeviceDescriptorSchema, deviceRegistrationRequestSchema, deviceR
 import { ApiError, Store, hash, secret, validateAccounts, type AccountConfig } from './store.js'
 import { IamError, iamLogin, iamProfile, type IamConfig, type IamIdentity, type IamUser } from './iam.js'
 import { OidcError, oidcAuthorizeEndpoint, oidcConfigFromEnv, oidcIdentityFromCode, type OidcConfig } from './iam-oidc.js'
+import {
+  AiserverError,
+  aiserverAuthorizeEndpoint,
+  aiserverConfigFromEnv,
+  aiserverLoginEnabled,
+  exchangeDesktopCode,
+  type AiserverDesktopConfig,
+} from './aiserver-desktop.js'
 import { Gateway } from './gateway.js'
 import { buildIceServers, parseIceConfig, type IceConfig } from './ice.js'
 import { Logger, type LogLevel } from './logger.js'
@@ -47,6 +55,14 @@ export interface Config {
    * `DSH_IAM_OIDC_*` 环境变量读取；都没有就视为未启用，路由返回 404。
    */
   oidc?: OidcConfig
+  /**
+   * 如意账号登录（AI-Server 桌面授权，`/api/v1/auth/aiserver/exchange`）。缺省时从
+   * `DSH_AISERVER_*` 环境变量读取；都没有就视为未启用，路由返回 404、登录页不显示入口。
+   *
+   * 与 `oidc` 是两条平行入口，产物不同：OIDC 换 id_token（中继自己就是 IAM 客户端），
+   * 如意账号换 AI-Server 的 access_token（公开客户端 PKCE，无需 client_secret）。
+   */
+  aiserver?: AiserverDesktopConfig
   /**
    * 浏览器侧 OIDC 回跳地址（例如 `https://relay.example.com/app/callback`）。
    * 配置后 Web 登录页显示「企业统一登录」，并把它加入 redirect_uri 白名单；
@@ -205,6 +221,8 @@ export function createRemoteServer(config: Config) {
   if (config.accounts !== undefined && (config.account !== undefined || config.password !== undefined)) throw new Error('DSH_SERVER_ACCOUNTS_JSON cannot be combined with DSH_SERVER_ACCOUNT or DSH_SERVER_PASSWORD.')
   // OIDC 三个环境变量齐全才启用；缺省时 /auth/iam/oidc 返回 404。
   const oidcConfig = config.oidc ?? oidcConfigFromEnv(process.env)
+  // 如意账号登录三件套齐全才启用；与上面完全独立，可以只开一套，也可以两套并存。
+  const aiserverConfig = config.aiserver ?? aiserverConfigFromEnv(process.env)
   /**
    * The AI-Server profile does not tell us which issuer is trustworthy, so one
    * must be configured server-side. `DSH_IAM_ISSUER` overrides it; otherwise the
@@ -214,9 +232,17 @@ export function createRemoteServer(config: Config) {
    */
   const trustedIssuer = config.iam?.expectedIssuer ?? oidcConfig?.issuer
   if (config.iam !== undefined && trustedIssuer === undefined) {
-    throw new Error('DSH_IAM_ISSUER (or DSH_IAM_OIDC_ISSUER) is required when DSH_IAM_BASE is set.')
+    throw new Error('DSH_IAM_ISSUER (or DSH_IAM_OIDC_ISSUER) is required when DSH_IDENTITY_BASE (legacy DSH_IAM_BASE) is set.')
   }
   const iam = config.iam === undefined ? undefined : { ...config.iam, expectedIssuer: trustedIssuer! }
+  /**
+   * 如意账号登录换到的是 AI-Server 的 access_token：那只能证明「谁在 AI-Server 上」，
+   * 还要读一次 profile 才能拿到可信的 (issuer, subject)。没有 `DSH_IDENTITY_BASE`
+   * 就换不出身份，路由会 404 —— 启动时直接说清楚，别等用户点了按钮才失败。
+   */
+  if (aiserverConfig !== undefined && iam === undefined) {
+    throw new Error('DSH_AISERVER_BASE requires DSH_IDENTITY_BASE (legacy DSH_IAM_BASE) and DSH_IAM_ISSUER to resolve the account identity.')
+  }
   /**
    * 浏览器回调地址与 OIDC 配置是一体的：没有 OIDC 就没有换票端点，配了回调也
    * 登录不了。启动时直接报错，避免线上「按钮点了没反应」这种隐性故障。
@@ -291,17 +317,22 @@ export function createRemoteServer(config: Config) {
     res.setHeader('Set-Cookie', cookie(value, 8 * 3600))
     return { ...profile(identity.account, identity.displayName), token: value, expiresAt }
   }
-  /** Map an IAM failure onto the relay's own error vocabulary, never echoing IAM's body. */
-  function iamFailure(error: unknown): never {
+  /**
+   * Map an AI-Server identity failure onto the relay's own error vocabulary,
+   * never echoing AI-Server's body. The code is `IDENTITY_UNAVAILABLE`, not
+   * `IAM_UNAVAILABLE`: the dependency that failed is AI-Server, and calling it
+   * IAM sent operators looking at the wrong service.
+   */
+  function identityFailure(error: unknown): never {
     if (error instanceof IamError) {
-      // 只记录错误类别与上游状态码，绝不记录凭据或 IAM 的响应正文。
-      logger.warn('iam_auth_failed', { code: error.code, status: error.status ?? null, detail: error.detail ?? null })
+      // 只记录错误类别与上游状态码，绝不记录凭据或上游的响应正文。
+      logger.warn('identity_auth_failed', { code: error.code, status: error.status ?? null, detail: error.detail ?? null })
       if (error.code === 'AUTH_INVALID') throw new ApiError('AUTH_INVALID', 401)
       if (error.code === 'RATE_LIMITED') throw new ApiError('RATE_LIMITED', 429)
     } else {
-      logger.warn('iam_auth_failed', { code: 'UNEXPECTED' })
+      logger.warn('identity_auth_failed', { code: 'UNEXPECTED' })
     }
-    throw new ApiError('IAM_UNAVAILABLE', 503)
+    throw new ApiError('IDENTITY_UNAVAILABLE', 503)
   }
   /**
    * Single owner mapping for every external identity. The key deliberately
@@ -326,13 +357,14 @@ export function createRemoteServer(config: Config) {
     throw new IamError('AUTH_INVALID', undefined, user.identityProblem ?? 'missing-identity')
   }
   async function iamFromToken(config: IamConfig, accessToken: string): Promise<Identity> {
-    try { return iamIdentity(await iamProfile(config, accessToken)) } catch (error) { return iamFailure(error) }
+    try { return iamIdentity(await iamProfile(config, accessToken)) } catch (error) { return identityFailure(error) }
   }
   /**
-   * Password login. IAM wins when configured; a locally configured account is kept
-   * as a break-glass path so an IAM outage does not lock every operator out. Only
-   * when neither accepts the credentials do we surface the IAM error shape — and we
-   * keep the original IamError, not the local 401, so 401-vs-503 stays meaningful.
+   * Password login. AI-Server wins when configured; a locally configured account
+   * is kept as a break-glass path so an identity outage does not lock every
+   * operator out. Only when neither accepts the credentials do we surface the
+   * identity error shape — and we keep the original IamError, not the local 401,
+   * so 401-vs-503 stays meaningful.
    */
   async function passwordIdentity(config: IamConfig | undefined, email: string, password: string): Promise<Identity> {
     const local = (): Identity => ({ account: email, accountId: store.verifyLogin(email, password), displayName: email })
@@ -343,7 +375,7 @@ export function createRemoteServer(config: Config) {
       const grant = await iamLogin(config, email, password)
       return iamIdentity(await iamProfile(config, grant.accessToken))
     } catch (error) { failure = error }
-    try { return local() } catch { return iamFailure(failure) }
+    try { return local() } catch { return identityFailure(failure) }
   }
   /** Mint a `XXXX-XXXX` hand-off code bound to one account. */
   function issueRegistrationCode(accountId: string): { code: string; expiresAt: number } {
@@ -459,6 +491,9 @@ export function createRemoteServer(config: Config) {
     // 只回传公开参数：client_secret 永远留在进程环境里。
     if (method === 'GET' && path === '/api/v1/auth/config') {
       rate(`config:${client}`, 120)
+      // 如意账号登录要求「换票 + 读 profile」两件事都配好，缺一件就当作未启用：
+      // 否则按钮能点、换到令牌也建不了账号，只会把用户送进死胡同。
+      const aserver = aiserverLoginEnabled(aiserverConfig, iam) ? aiserverConfig : undefined
       json(res, 200, {
         // 只有真的配了本地账号才暴露密码入口，否则给出一个点了必然 401 的表单。
         password: accounts.length > 0,
@@ -467,6 +502,25 @@ export function createRemoteServer(config: Config) {
           redirectUri: webRedirectUri,
           authorizeEndpoint: await oidcAuthorizeEndpoint(oidcConfig!),
           scope: 'openid profile email',
+        },
+        /**
+         * 如意账号登录：不是标准 OIDC，所以单列一段。`authorizeEndpoint` 是 AI-Server
+         * 的授权落地页（GET），页面参数由客户端拼：client_id / redirect_uri / state /
+         * code_challenge / code_challenge_method=S256 —— 没有 response_type 与 scope。
+         */
+        aiserver: aserver === undefined ? null : {
+          clientId: aserver.web.clientId,
+          redirectUri: aserver.web.redirectUri,
+          authorizeEndpoint: aiserverAuthorizeEndpoint(aserver),
+          /**
+           * App 深链那一条登记，未配置为 null。`client_id` 与自定义 scheme 都是
+           * 公开信息（APK 里就能读到），下发它们只是让手机端不必把地址写死。
+           */
+          app: aserver.app === null ? null : {
+            clientId: aserver.app.clientId,
+            redirectUri: aserver.app.redirectUri,
+            authorizeEndpoint: aiserverAuthorizeEndpoint(aserver),
+          },
         },
       }); return
     }
@@ -480,7 +534,7 @@ export function createRemoteServer(config: Config) {
     // Token exchange for a caller that already holds an IAM grant (the desktop Host).
     if (method === 'POST' && path === '/api/v1/auth/iam') {
       if (!iam) throw new ApiError('METHOD_NOT_FOUND', 404)
-      rate(`iam:${client}`, 60)
+      rate(`identity:${client}`, 60)
       const { token: accessToken } = z.object({ token: z.string().min(20).max(8192) }).strict().parse(await body(req))
       json(res, 200, openSession(res, await iamFromToken(iam, accessToken))); return
     }
@@ -505,11 +559,43 @@ export function createRemoteServer(config: Config) {
         logger.warn('iam_oidc_failed', { code: error.code, status: error.status ?? null, detail: error.detail ?? null })
         if (error.code === 'RATE_LIMITED') throw new ApiError('RATE_LIMITED', 429)
         if (error.code === 'AUTH_INVALID') throw new ApiError('AUTH_INVALID', 401)
+        // 这里是唯一真打 IAM 的路径（换的是 IAM 的 id_token），所以保留 IAM 这个名。
         throw new ApiError('IAM_UNAVAILABLE', 503)
       }
       // Same helper and same key as the AI-Server profile path: an id_token and
       // a profile naming the same (issuer, subject) must resolve to one account.
       json(res, 200, openSession(res, externalIdentity({ issuer: identity.issuer, subject: identity.subject }, identity)))
+      return
+    }
+    /**
+     * 如意账号登录换票：AI-Server 桌面授权（公开客户端 PKCE，无 client_secret）。
+     *
+     * 与 `/auth/iam/oidc` 的区别只在「怎么拿到凭证」：那边换 id_token，这边换
+     * access_token。拿到之后一律交给同一个 `iamFromToken` 读 profile，因此两条入口
+     * 产出的账号主键完全一致，不会出现「换个登录方式就变成另一个人」。
+     *
+     * access_token 只在本请求里活一次，验完身份即丢弃：不入库、不进 cookie、不打日志。
+     */
+    if (method === 'POST' && path === '/api/v1/auth/aiserver/exchange') {
+      if (aiserverConfig === undefined || iam === undefined) throw new ApiError('METHOD_NOT_FOUND', 404)
+      rate(`aserver:${client}`, 30)
+      const input = z.object({
+        code: z.string().min(1).max(4096),
+        codeVerifier: z.string().min(43).max(128),
+        redirectUri: z.string().url().max(2048),
+      }).strict().parse(await body(req))
+      let accessToken: string
+      try {
+        accessToken = await exchangeDesktopCode(aiserverConfig, input)
+      } catch (error) {
+        if (!(error instanceof AiserverError)) throw error
+        logger.warn('aiserver_exchange_failed', { code: error.code, status: error.status ?? null, detail: error.detail ?? null })
+        if (error.code === 'RATE_LIMITED') throw new ApiError('RATE_LIMITED', 429)
+        if (error.code === 'AUTH_INVALID') throw new ApiError('AUTH_INVALID', 401)
+        // 换票这一跳打的是 AI-Server，不是 IAM：错误码如实说是身份服务。
+        throw new ApiError('IDENTITY_UNAVAILABLE', 503)
+      }
+      json(res, 200, openSession(res, await iamFromToken(iam, accessToken)))
       return
     }
     if (method === 'GET' && path === '/api/v1/auth/me') {

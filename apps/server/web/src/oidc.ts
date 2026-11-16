@@ -6,6 +6,8 @@
  * `code_verifier` / `state` / `nonce` 只存 `sessionStorage`：同一个标签页跨域跳转往返
  * 仍在，关掉标签页即失效，既不落缓存也不进 URL。
  */
+import type { AiserverLoginConfig } from './aiserver'
+
 export interface OidcLoginConfig {
   clientId: string
   redirectUri: string
@@ -18,6 +20,11 @@ export interface AuthConfig {
   password: boolean
   /** 为 null 表示该部署未启用浏览器单点登录。 */
   oidc: OidcLoginConfig | null
+  /**
+   * 如意账号登录（AI-Server 桌面授权）。与 [oidc] 并列的独立入口，`null` 表示未启用。
+   * 两套可以同时开：优先显示这一套，失败时用户仍可退回 OIDC。
+   */
+  aiserver: AiserverLoginConfig | null
 }
 
 interface Pending {

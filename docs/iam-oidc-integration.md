@@ -154,7 +154,8 @@ Authorization: Bearer <access_token>
   缺失、空串、含空白/控制字符或 `***` 掩码的 `subject` 一律拒绝且原样保留合法值。
 - `issuer` 必须与服务端可信 issuer **精确相等**（不做前缀/同域比较），否则拒绝。
 - 可信 issuer 取 `DSH_IAM_ISSUER`，未设置时回退 `DSH_IAM_OIDC_ISSUER`；配置了
-  `DSH_IAM_BASE` 却两者都没有时服务启动失败，绝不接受 profile 自称的 issuer。
+  `DSH_IDENTITY_BASE`（或旧名 `DSH_IAM_BASE`）却两者都没有时服务启动失败，绝不接受
+  profile 自称的 issuer。
 - profile 请求固定服务端 base 与路径，并设置 `redirect: "manual"`：3xx 直接按
   上游不可用拒绝，避免 `Authorization` 头被带到其他源。
 - 不回退数字 `id`，也不接受请求 JSON 中的 `sub`。
@@ -170,7 +171,7 @@ account = "iam:" + sha256(JSON.stringify([issuer, subject]))
 所以同一 `(issuer, subject)` 必然落到同一个 `accountId`；issuer 参与哈希，
 不同 issuer 的同名 subject 不会串号。旧开发数据的 `iam:<数字>` 不做迁移。
 
-OIDC-only 部署（只配 `DSH_IAM_OIDC_*`、不配 `DSH_IAM_BASE`）现在允许无本地账号启动，
+OIDC-only 部署（只配 `DSH_IAM_OIDC_*`、不配 `DSH_IDENTITY_BASE`）现在允许无本地账号启动，
 且 Store 的外部身份开关在 OIDC 配置存在时也打开，重启后账号不会被本地账号扫描停用。
 本地口令账号仍然保留为 break-glass，不引入特权，也不自动清理任何数据。
 

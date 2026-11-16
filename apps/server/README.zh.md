@@ -107,7 +107,7 @@ node --env-file=.env dist/main.js
 - IAM 需把 `dshgo://auth/callback` 注册为允许的 `redirect_uri`，**逐字一致**，不能追加 query。授权页必须用系统浏览器打开；成功回跳 `?code=...&state=...`、失败回跳 `?error=access_denied&state=...` 都要处理。当前手机端仍使用 App 内 WebView + `http://127.0.0.1:8765/callback`，**联调前必须按对接说明 §8.2 改造**。
 - 手机端必须带 `--dart-define=DSH_IAM_OIDC_ISSUER=<同一 issuer>` 与 `--dart-define=DSH_IAM_OIDC_CLIENT_ID=<同一 client id>` 构建；client id 为空时登录页直接显示「未配置」。
 - `client_secret` 只存在于服务端环境变量，任何情况下都不要下发到手机端。
-- 仅启用 OIDC 时**仍需保留** `DSH_SERVER_ACCOUNT` / `DSH_SERVER_PASSWORD`；只有同时配置了 `DSH_IAM_BASE` 才允许本地账号为空。
+- 仅启用 OIDC 时**仍需保留** `DSH_SERVER_ACCOUNT` / `DSH_SERVER_PASSWORD`；只有同时配置了 `DSH_IDENTITY_BASE`（旧名 `DSH_IAM_BASE`）才允许本地账号为空。
 
 公网使用 HTTPS 反向代理，并将 `DSH_SERVER_PUBLIC_URL` 设为实际域名；代理需支持 `/ws/v1/connect` 的 WebSocket Upgrade，空闲超时大于 75 秒。
 

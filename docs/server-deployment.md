@@ -82,7 +82,9 @@ docker run -d \
 
 ## 5. 环境变量
 
-共 13 项（不含 `PATH` / `NODE_VERSION` / `YARN_VERSION` 这三个镜像自带项）。**值一律不进仓库**，线上存于 `/root/dsh-relay-multi/unified.env`（权限 `600`），由 `--env-file` 注入。可直接复制 [`../deploy/unified.env.example`](../deploy/unified.env.example) 起步。
+共 17 项（不含 `PATH` / `NODE_VERSION` / `YARN_VERSION` 这三个镜像自带项），其中「如意账号登录」一组整体可选，手机端第二组登记再单独可选。**值一律不进仓库**，线上存于 `/root/dsh-relay-multi/unified.env`（权限 `600`），由 `--env-file` 注入。可直接复制 [`../deploy/unified.env.example`](../deploy/unified.env.example) 起步。
+
+**基础**
 
 | 变量 | 用途 |
 |---|---|
@@ -94,10 +96,30 @@ docker run -d \
 | `DSH_SERVER_ACCOUNTS_JSON` | 账号配置（内联 JSON），见 `/root/dsh-relay-multi/accounts.json` |
 | `DSH_ALLOW_DEVICE_REBIND` | 允许设备换挂账号，多端联调时需要 `1` |
 | `DSH_REGISTRATION_CODE_TTL_MS` | 授权码有效期 |
-| `DSH_IAM_BASE` | IAM 服务基址 |
+
+**身份（IAM OIDC 入口）**
+
+| 变量 | 用途 |
+|---|---|
+| `DSH_IDENTITY_BASE` | 身份服务基址（AI-Server，读 `/api/v1/user/profile`）；**不是 IAM 地址**，旧名 `DSH_IAM_BASE` 仍接受但会警告 |
 | `DSH_IAM_OIDC_ISSUER` | OIDC issuer；**显式设置时才会启用统一身份派生** |
 | `DSH_IAM_OIDC_CLIENT_ID` | OIDC 客户端 ID |
 | `DSH_IAM_OIDC_CLIENT_SECRET` | OIDC 客户端密钥 —— **唯一的高敏感项**，只存在于 `unified.env` |
+| `DSH_WEB_REDIRECT_URI` | 浏览器登录回跳地址，同时进入换票白名单（手机端的 `dshgo://auth/callback` 始终保留） |
+
+**如意账号登录（AI-Server 桌面授权入口，可选，与上面那条并列）**
+
+| 变量 | 用途 |
+|---|---|
+| `DSH_AISERVER_BASE` | AI-Server 部署根（含反代前缀，不带尾部斜杠），如 `https://<AI_SERVER_HOST>/aiserver` |
+| `DSH_AISERVER_CLIENT_ID` | 网页那条登记的 `client_id`（现网 `dsh-remote-web`） |
+| `DSH_AISERVER_WEB_REDIRECT_URI` | 网页那条登记的回调，即本机 `/app/callback`，必须是 `http(s)`；三件套齐全才启用 |
+| `DSH_AISERVER_MOBILE_CLIENT_ID` | **可选第二组**：手机端登记的 `client_id`（现网 `ruyi-android`）；与下一项必须成对出现，半填直接拒绝启动 |
+| `DSH_AISERVER_MOBILE_REDIRECT_URI` | **可选第二组**：手机端自定义 scheme 回调（现网 `ruyiai://auth3/callback`）；必须 `scheme://…`，且不能与网页那条相同 |
+
+> 手机端这组只需要两行：`client_id` 与回调地址都在 AI-Server 的 `desktop_redirect_whitelist` 表里**逐字匹配**。迁移 `252` 之后该表不再要求 `client_id` 全局唯一，同一个 `ruyi-android` 可同时登记 `auth2` / `auth3` 两条回调（新旧 scheme 并存），无需为 App 新版本另建客户端。
+>
+> 换票请求体里**不带 `client_id`**：客户端只声明「我回跳到哪个地址」，用哪个客户端由服务端按回调地址反查，所以拿网页的 `client_id` 配手机的回调是走不通的。
 
 > `DSH_IAM_OIDC_CLIENT_SECRET` 绝不写入文档、代码库、日志、命令行参数或聊天记录。需要新增实例时，由持有方在目标机上直接写入 `unified.env`（`umask 077` + `chmod 600`）。
 
@@ -195,9 +217,14 @@ curl -sk https://118.196.18.181:8443/nginx-health    # 期望 ok
 # OIDC 端点是否被中继识别（空 body 应返回分类错误，而不是 404）
 curl -sk -X POST https://118.196.18.181:8443/api/v1/auth/iam/oidc \
   -H 'content-type: application/json' -d '{}'
+
+# 登录方式的下发（只读，不含任何密钥）：看 aiserver 段是否出现、app 段是否为登记值
+curl -sk https://118.196.18.181:8443/api/v1/auth/config | jq '.aiserver'
 ```
 
 `/healthz` 通但客户端仍连不上时，按序查：nginx 配置有没有 reload → 证书是否过期 → 容器日志 `docker logs --tail 50 dsh-relay-multi`。
+
+`/auth/config` 里 `aiserver.app` 为 `null` 而 `aiserver` 非空，说明只配了网页那条：手机端会据此判定「这套中继不支持 App 登录」，不会发起登录，属预期行为而非故障。
 
 ## 10. 回滚
 
@@ -220,6 +247,8 @@ docker start dsh-relay-multi
 | WebSocket 每小时断一次 | 超时用了默认 60s | `proxy_read_timeout 3600s` + `proxy_buffering off` |
 | 客户端 TLS 握手失败 | IP 证书过期 | certbot 续期后 reload nginx |
 | 换票返回「中继尚未配置 IAM 单点登录」 | 容器没注入 `DSH_IAM_*` 三项 | 检查 `unified.env`，重启容器 |
+| 网页能登、App 深链登不上，换票 401 `redirect-mismatch` | 回调地址没在 AI-Server 的 `desktop_redirect_whitelist` 里，或 `DSH_AISERVER_MOBILE_*` 与登记值不逐字一致 | 用 `curl /api/v1/auth/config` 对比 `aiserver.app.redirectUri`；中继按回调地址反查 `client_id`，地址不符就不发请求直接拒 |
+| 容器起不来，日志 `must be set together` / `must differ` | `DSH_AISERVER_MOBILE_CLIENT_ID` 与 `_REDIRECT_URI` 只填了一半，或手机回调与网页回调写成同一个 | 成对补齐；两条回调必须不同，否则无法反查用哪个客户端 |
 | 同一台 Host 出现多条记录 | `register()` 只按 `deviceId` 查重，重装后 `deviceId` 变新 | 见 `server.md` 设备注册一节；清理需按 `identityKey` 合并 |
 | 多端账号分裂 | 旧路径用 `iam:<数字id>`，OIDC 用 `iam:<sub>` | 需要 `DSH_IAM_OIDC_ISSUER` 显式设置才走统一派生 |
 

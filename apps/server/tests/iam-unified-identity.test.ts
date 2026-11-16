@@ -379,7 +379,7 @@ describe('统一身份：AI-Server profile 与 OIDC id_token', () => {
     const base = await serve()
     const result = await call(base, '/auth/iam', 'POST', { token: ai.issue(user) })
     expect(result.status).toBe(503)
-    expect(result.data.error.code).toBe('IAM_UNAVAILABLE')
+    expect(result.data.error.code).toBe('IDENTITY_UNAVAILABLE')
     expect(hits).toBe(0)
   })
 

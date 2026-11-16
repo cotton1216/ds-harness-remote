@@ -55,7 +55,9 @@ describe('浏览器 OIDC 登录', () => {
       const response = await fetch(`${base}/api/v1/auth/config`)
       const body = await response.json()
       expect(response.status).toBe(200)
-      expect(body).toEqual({ password: true, oidc: null })
+      // `aiserver` 是与 oidc 并列的独立入口，未配置时恒为 null（不省略字段，
+      // 让登录页可以用「两个都 null」判断要不要直接展开密码框）。
+      expect(body).toEqual({ password: true, oidc: null, aiserver: null })
     } },
     { name: '配置 OIDC 后只返回公开参数', run: async () => {
       await start({ oidc, webRedirectUri: webRedirect })
