@@ -21,6 +21,8 @@ __pycache__/
 artifacts/
 # Local verification screenshots and recordings
 /docs/screenshots/
+# 本地实测快照（截图、抓包、证据记录）：只在本机留档，不进仓库
+.runshots/
 *.tgz
 
 # Minimal self-hosted Server credentials and local state

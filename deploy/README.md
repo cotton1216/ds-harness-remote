@@ -82,6 +82,8 @@ curl -sk -o /dev/null -w '%{http_code}\n' https://<RELAY_HOST>:8443/healthz # 20
 
 `preflight` 会等 `/healthz` 返回 200、确认 `POST /api/v1/auth/iam/oidc` 返回 400 而 `GET` 返回 404，并检查日志里没有 `DSH_IAM_ISSUER` 缺失告警。**这一步不能省** —— 镜像起不来时线上还没动，回滚成本为零。
 
+**切换前必须做状态快照与临时文件清理**：账号/设备/令牌都在 `dsh-relay-multi-data` 卷的 `state.json` 里，复用卷即保留；遗留 `state.json.tmp` 会让下次启动 `EEXIST` 失败，需先删。完整清单与「重启不丢状态」机制见 [`RUNBOOK-aiserver-login-20261116.md`](./RUNBOOK-aiserver-login-20261116.md) 第二节。
+
 ## 三个必须注意的点
 
 **1. 脚本里的路径是硬编码的**

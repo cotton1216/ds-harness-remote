@@ -7,7 +7,7 @@ import { randomUUID } from 'node:crypto'
 import { once } from 'node:events'
 import { createRemoteServer } from '../src/server.js'
 import { Store } from '../src/store.js'
-import { parseIamConfig } from '../src/iam.js'
+import { identityBaseFromEnv, parseIamConfig } from '../src/iam.js'
 
 /**
  * A stand-in IAM deployment that mirrors the shapes observed on the live server:
@@ -192,13 +192,13 @@ describe('IAM 身份适配', () => {
     expect(JSON.stringify(unknown.data)).not.toContain('INVALID_CREDENTIALS')
   })
 
-  it('IAM 不可用时返回 503，而不是把故障当成口令错误', async () => {
+  it('身份服务不可用时返回 503，而不是把故障当成口令错误', async () => {
     await start()
     iam.mode = 'boom'
     const alice = iam.users[0]!
     const result = await call('/auth/login', 'POST', { email: alice.email, password: alice.password })
     expect(result.status).toBe(503)
-    expect(result.data.error.code).toBe('IAM_UNAVAILABLE')
+    expect(result.data.error.code).toBe('IDENTITY_UNAVAILABLE')
     expect(result.data.error.retryable).toBe(true)
 
     iam.mode = 'not-found'
@@ -496,5 +496,30 @@ describe('store 的外部账号约束', () => {
     const reopened = new Store(file, [], { iam: true })
     expect(reopened.getAccount(account)).toHaveLength(64)
     expect(reopened.displayNameOf(reopened.getAccount(account))).toBe('仅 IAM')
+  })
+})
+
+describe('身份服务基址的环境变量命名', () => {
+  it('新名字优先', () => {
+    const resolved = identityBaseFromEnv({
+      DSH_IDENTITY_BASE: 'https://ai.example.test',
+      DSH_IAM_BASE: 'https://legacy.example.test',
+    })
+    expect(resolved).toEqual({ value: 'https://ai.example.test', legacy: false })
+  })
+  it('旧名字仍然生效，但要标记为遗留（不是报错，现网会挂）', () => {
+    expect(identityBaseFromEnv({ DSH_IAM_BASE: 'https://legacy.example.test' }))
+      .toEqual({ value: 'https://legacy.example.test', legacy: true })
+  })
+  it('都没配、或配成空串，都视为未启用', () => {
+    expect(identityBaseFromEnv({})).toEqual({ value: undefined, legacy: false })
+    // 空串不能当成「配了」：否则 parseIamConfig 会以为拿到了一个空地址。
+    expect(identityBaseFromEnv({ DSH_IDENTITY_BASE: '   ' })).toEqual({ value: undefined, legacy: false })
+    expect(identityBaseFromEnv({ DSH_IDENTITY_BASE: '  ', DSH_IAM_BASE: 'https://legacy.example.test' }))
+      .toEqual({ value: 'https://legacy.example.test', legacy: true })
+  })
+  it('报错信息同时给出新旧两个名字', () => {
+    expect(() => parseIamConfig('ftp://ai.example.test')).toThrow(/DSH_IDENTITY_BASE/)
+    expect(() => parseIamConfig('ftp://ai.example.test')).toThrow(/DSH_IAM_BASE/)
   })
 })

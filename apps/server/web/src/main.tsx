@@ -4,6 +4,7 @@ import { ConfigProvider, Layout, theme as antdTheme } from 'antd'
 import zhCN from 'antd/locale/zh_CN'
 import { ThemeProvider, useColorTheme } from './theme'
 import { LoginPanel } from './LoginPanel'
+import { OidcCallback } from './OidcCallback'
 import { DevicesPage } from './DevicesPage'
 import { HomePage } from './HomePage'
 import { api, RequestError, type Account } from './api'
@@ -47,14 +48,22 @@ function App() {
     if (justLoggedIn.current) { justLoggedIn.current = false; return }
     if (account === null && path === '/app/remote') go('/app/login')
   }, [account, path, go])
-  const login = useCallback((next: Account) => { justLoggedIn.current = true; setAccount(next); go('/app/remote') }, [go])
+  const login = useCallback((next: Account) => {
+    justLoggedIn.current = true; setAccount(next)
+    // 用 replace 而不是 push：登录页和 `?code=` 回调地址都不该留在返回栈里，
+    // 否则用户按返回会回到一个已经作废的一次性授权码。
+    if (window.location.pathname !== '/app/remote') window.history.replaceState({}, '', '/app/remote')
+    setPath('/app/remote')
+  }, [])
   const content = account === undefined
     ? <div className="route-loading auth-route-loading" role="status">正在检查登录状态…</div>
-    : path === '/app/remote' && account
-      ? <DevicesPage account={account.account} onSignedOut={signedOut} />
-      : path === '/app/login'
-        ? <LoginPanel onAuthSuccess={login} initialError={error} />
-        : <HomePage />
+    : path === '/app/callback'
+      ? <OidcCallback onAuthSuccess={login} />
+      : path === '/app/remote' && account
+        ? <DevicesPage account={account.account} onSignedOut={signedOut} />
+        : path === '/app/login'
+          ? <LoginPanel onAuthSuccess={login} initialError={error} />
+          : <HomePage />
   return <ConfigProvider locale={zhCN} theme={{
     algorithm: dark ? antdTheme.darkAlgorithm : antdTheme.defaultAlgorithm,
     token: {

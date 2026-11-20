@@ -230,6 +230,8 @@ async function serve(options: { iam?: boolean; oidc?: boolean; accounts?: { acco
     accounts: options.accounts ?? [],
     dataFile: join(dir, 'state.json'),
     publicUrl: 'http://localhost:8080',
+    // 换票端点只接受声明过的 redirect_uri；这里把用例里用的回环地址声明进去。
+    allowedRedirectUris: ['http://127.0.0.1:8765/callback'],
     ...(options.iam === false ? {} : { iam: iamConfig() }),
     ...(options.oidc === false ? {} : { oidc: oidcConfig() }),
   })
@@ -377,7 +379,7 @@ describe('统一身份：AI-Server profile 与 OIDC id_token', () => {
     const base = await serve()
     const result = await call(base, '/auth/iam', 'POST', { token: ai.issue(user) })
     expect(result.status).toBe(503)
-    expect(result.data.error.code).toBe('IAM_UNAVAILABLE')
+    expect(result.data.error.code).toBe('IDENTITY_UNAVAILABLE')
     expect(hits).toBe(0)
   })
 

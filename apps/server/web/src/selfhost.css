@@ -4,6 +4,16 @@
 .auth-home-link { display: inline-flex; flex-direction: column; align-items: center; gap: 12px; }
 .auth-brand-icon { display: block; border: 1px solid var(--color-border); border-radius: 12px; }
 .auth-intro { margin-bottom: 28px; }
+/* 统一身份登录是主路径：按钮占满宽度，说明文字压在下面。 */
+.auth-subtitle { margin: 6px 0 0; }
+.auth-sso { margin-bottom: 8px; }
+.auth-sso-button { min-height: 48px; font-size: 16px; }
+.auth-sso-hint { margin: 12px 0 0; text-align: center; }
+.auth-sso-loading { padding: 12px 0; color: var(--color-text-muted); text-align: center; }
+.auth-divider { margin: 20px 0; }
+.auth-break-glass { display: block; margin: 4px auto 0; padding: 0; }
+.auth-callback { align-items: center; gap: 16px; display: flex; flex-direction: column; justify-content: center; min-height: 60vh; }
+.auth-callback-hint { color: var(--color-text-muted); }
 .selfhost-content { padding-top: 32px; }
 .selfhost-auth-error, .selfhost-error, .selfhost-connection { margin-bottom: 20px; }
 .selfhost-connection .ant-typography:last-child { margin-bottom: 0; }
@@ -186,9 +196,10 @@
 .landing-hero {
   position: relative;
   isolation: isolate;
-  min-height: clamp(740px, 88svh, 900px);
+  /* 上游首屏靠插件安装面板撑高；本部署只有三步说明，压低高度避免大片空白。 */
+  min-height: clamp(560px, 70svh, 720px);
   display: flex;
-  align-items: flex-start;
+  align-items: center;
   overflow: hidden;
   background: #030810;
 }
