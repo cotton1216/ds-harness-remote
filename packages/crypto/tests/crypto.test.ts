@@ -12,6 +12,6 @@ describe('secure channel primitives', () => {
     const plaintext = new TextEncoder().encode('hello remote')
     const frame = encryptFrame(hostKey, plaintext)
     expect(new TextDecoder().decode(decryptFrame(clientKey, frame))).toBe('hello remote')
-    expect(identityFingerprint(host.publicKey)).toMatch(/^[A-F0-9]{12}$/)
+    expect(identityFingerprint(host.publicKey)).toMatch(/^[A-F0-9]{64}$/)
   })
 })

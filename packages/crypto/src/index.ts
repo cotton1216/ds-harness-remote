@@ -61,7 +61,9 @@ export function fromBase64Url(value: string): Uint8Array {
 }
 
 export function identityFingerprint(publicKey: string): string {
-  return Array.from(sha256(fromBase64Url(publicKey)).slice(0, 6), byte => byte.toString(16).padStart(2, '0'))
+  // Full SHA-256 fingerprint (256 bit / 64 hex), per docs/device-pairing-v1.md.
+  // Do not truncate: a 48-bit prefix weakens the TOFU identity check.
+  return Array.from(sha256(fromBase64Url(publicKey)), byte => byte.toString(16).padStart(2, '0'))
     .join('')
     .toUpperCase()
 }
